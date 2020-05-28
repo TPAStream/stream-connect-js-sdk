@@ -140,3 +140,5 @@ The SDK currently has the following flow:
 `npm run format`
 
 Make sure to bump the version of the `package.json` with each release.
+
+Develop APIToken `49d492e0-9772-4975-8d1e-17f0ad8f2de0` not for actual customer use.
