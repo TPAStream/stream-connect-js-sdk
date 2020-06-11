@@ -329,28 +329,19 @@ class SDK extends Component {
         policyHolderId: policyHolderId,
         handleFormErrors: this.props.handleFormErrors
       }).then(({ taskId, policyHolderId }) => {
-        if (!this.props.realTimeVerification) {
-          getPolicyHolder({
-            policyHolderId: policyHolderId,
-            email: streamUser.email,
-            employerId: streamEmployer.id
-          }).then(phData => {
-            this.setState({
-              termsOfUse: false,
-              taskId: null,
-              policyHolderId: policyHolderId,
-              streamPolicyHolder: phData,
-              step: 5
-            });
-          });
-        } else {
+        getPolicyHolder({
+          policyHolderId: policyHolderId,
+          email: streamUser.email,
+          employerId: streamEmployer.id
+        }).then(phData => {
           this.setState({
             termsOfUse: false,
-            taskId: taskId,
+            taskId: this.props.realTimeVerification ? taskId : null,
             policyHolderId: policyHolderId,
+            streamPolicyHolder: phData,
             step: 5
           });
-        }
+        });
       });
     }
   };
