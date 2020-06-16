@@ -1,6 +1,12 @@
 import { sdkAxios } from '../services/axios';
 
-export const getSDK = async ({ signature, employer, user, isDemo }) => {
+export const getSDK = async ({
+  signature,
+  employer,
+  user,
+  isDemo,
+  doneGetSDK
+}) => {
   let sdkResponse = {};
   if (isDemo) {
     sdkResponse = await sdkAxios.get(
@@ -24,12 +30,16 @@ export const getSDK = async ({ signature, employer, user, isDemo }) => {
     );
   }
 
-  return {
+  const data = {
     user: sdkResponse.data.data.user,
     payers: sdkResponse.data.data.payers,
     employer: sdkResponse.data.data.employer,
     tenant: sdkResponse.data.data.tenant
   };
+
+  doneGetSDK(data);
+
+  return data;
 };
 
 export const postCredentials = async ({
@@ -77,20 +87,4 @@ export const getPolicyHolder = async ({
     }
   );
   return policyHolderResponse.data.data;
-};
-
-export const validateCredentials = async ({
-  taskId,
-  policyHolderId,
-  email
-}) => {
-  const validateCredsResponse = await sdkAxios.get(
-    `https://app.tpastream.com/sdk-api/validate-credentials/${policyHolderId}/${taskId}`,
-    {
-      params: {
-        email: email
-      }
-    }
-  );
-  return validateCredsResponse.data.data;
 };

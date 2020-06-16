@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.3.9
+### 0.4.0
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -38,6 +38,8 @@ Using TPAStream as a CDN
             isDemo: false,
             apiToken: 'VeryLegitKey', // We'll provide this.
             realTimeVerification: true,
+            renderChoosePayer: true,
+            doneGetSDK: ({ user, payers, tenant, employer }) => {},
             doneChoosePayer: () => {},
             doneTermsOfService: () => {},
             doneCreatedForm: () => {},
@@ -88,8 +90,20 @@ The SDK currently supports the following parameters:
 * `apiToken`
 * isDemo (This will let you set it up without worrying about a user)
 * realTimeVerification
+* renderChoosePayer (If this is set to false doneChoosePayer* will pass all the required methods to create your own module)
 * userSchema (This is an object `{}` following [react-jsonschema-form](https://react-jsonschema-form.readthedocs.io/en/latest/) pattern for making `ui:schema`)
-* doneChoosePayer*
+* doneGetSDK*
+    * user
+    * payers
+    * tenant
+    * employer
+* doneChoosePayer* (italicized are only present when renderChoosePayer is `false`)
+    * *choosePayer* (This function when called with have the SDK render the next view).
+        * *payer* (An object value from the streamPayers list)
+        * You're object should look like `choosePayer({payer: streamPayers[some_index]})`
+    * *usedPayers*
+    * *dropDown*
+    * *streamPayers* 
 * doneTermsOfService*
 * doneCreatedForm*
 * donePostCredentials*

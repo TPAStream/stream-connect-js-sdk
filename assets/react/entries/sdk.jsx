@@ -12,8 +12,10 @@ const StreamConnect = ({
   employer = { systemKey: '', vendor: '', name: '' },
   user = { firstName: '', lastName: '', email: '' },
   realTimeVerification = true,
+  renderChoosePayer = true,
   isDemo = false,
   userSchema = {},
+  doneGetSDK = () => {},
   doneChoosePayer = () => {},
   doneTermsOfService = () => {},
   donePopUp = () => {},
@@ -33,7 +35,9 @@ const StreamConnect = ({
         apiToken={apiToken}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
+        renderChoosePayer={renderChoosePayer}
         userSchema={userSchema}
+        doneGetSDK={doneGetSDK}
         doneStep3={doneChoosePayer}
         doneTermsOfService={doneTermsOfService}
         doneStep4={doneCreatedForm}
