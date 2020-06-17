@@ -100,6 +100,7 @@ export default class ChoosePayer extends Component {
   render() {
     const {
       streamPayers,
+      streamEmployer,
       usedPayers,
       choosePayer,
       isDemo,
@@ -141,22 +142,35 @@ export default class ChoosePayer extends Component {
         <div id="choose-payer">
           <h3>Choose an Account to add Below</h3>
           {dropDown ? (
-            <Select
-              id="payer-dropdown"
-              placeholder="Search for Payer"
-              classNamePrefix="ReactSelect"
-              clearable={true}
-              value={payerNameFilter}
-              onChange={this.handlePayerNameFilter.bind(this)}
-              options={payerOptions}
-              formatOptionLabel={(obj, { inputValue }) => (
-                <Highlighter
-                  searchWords={[inputValue]}
-                  textToHighlight={obj.label}
-                  autoEscape={true}
+            <div>
+              {(streamEmployer.payers.length > 0 || usedPayers.length > 0) && (
+                <PayerImages
+                  streamPayers={streamPayers.filter(
+                    p =>
+                      streamEmployer.payers.map(ep => ep.id).includes(p.id) ||
+                      usedPayers.includes(p.id)
+                  )}
+                  usedPayers={usedPayers}
+                  choosePayer={choosePayer}
                 />
               )}
-            />
+              <Select
+                id="payer-dropdown"
+                placeholder="Search for Payer"
+                classNamePrefix="ReactSelect"
+                clearable={true}
+                value={payerNameFilter}
+                onChange={this.handlePayerNameFilter.bind(this)}
+                options={payerOptions}
+                formatOptionLabel={(obj, { inputValue }) => (
+                  <Highlighter
+                    searchWords={[inputValue]}
+                    textToHighlight={obj.label}
+                    autoEscape={true}
+                  />
+                )}
+              />
+            </div>
           ) : (
             <PayerImages
               streamPayers={streamPayers}
