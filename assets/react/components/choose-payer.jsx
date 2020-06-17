@@ -70,7 +70,6 @@ const PayerImages = ({ streamPayers, usedPayers, choosePayer }) => {
 export default class ChoosePayer extends Component {
   constructor(props) {
     super(props);
-    const usedPayers = this.props.usedPayers;
     this.state = {
       payerNameFilter: null,
       payerOptions: this.props.streamPayers.map(payer => {

@@ -23,7 +23,7 @@ export default class FinishedEasyEnroll extends Component {
         <div id="finished-with-easy-enroll">
           <h2>Success!</h2>
           <p>
-            Your claims will now automatically be submitted to {tenant.name}
+            Your claims will now automatically be submitted to {tenant.name}{' '}
             shortly after they appear on the carrier website.
           </p>
           <p>
