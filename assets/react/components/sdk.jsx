@@ -288,7 +288,7 @@ class SDK extends Component {
             choosePayer={this.setStep4}
             usedPayers={streamUser.policy_holders.map(ph => ph.payer_id)}
             doneStep3={this.props.doneStep3}
-            dropDown={streamEmployer._show_all_payers_in_easy_enroll}
+            dropDown={streamEmployer.show_all_payers_in_easy_enroll}
             isDemo={this.props.isDemo}
           />
         );
@@ -296,7 +296,7 @@ class SDK extends Component {
         this.props.doneStep3({
           choosePayer: this.setStep4,
           usedPayers: streamUser.policy_holders.map(ph => ph.payer_id),
-          dropDown: streamEmployer._show_all_payers_in_easy_enroll,
+          dropDown: streamEmployer.show_all_payers_in_easy_enroll,
           streamPayers: streamPayers
         });
         return <div></div>;
