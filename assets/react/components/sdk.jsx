@@ -176,6 +176,7 @@ class SDK extends Component {
           this.setState({
             termsOfUse: false,
             taskId: this.props.realTimeVerification ? taskId : null,
+            credentialsValid: taskId ? null : true,
             policyHolderId: policyHolderId,
             streamPolicyHolder: phData,
             step: 5
@@ -283,6 +284,7 @@ class SDK extends Component {
         return (
           <Step3
             streamPayers={streamPayers}
+            streamEmployer={streamEmployer}
             choosePayer={this.setStep4}
             usedPayers={streamUser.policy_holders.map(ph => ph.payer_id)}
             doneStep3={this.props.doneStep3}
