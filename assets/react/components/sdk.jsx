@@ -105,29 +105,20 @@ class SDK extends Component {
     this.setState({
       loading: true
     });
-    if (credentialsValid) {
-      this.setState({
-        loading: false,
-        step: 5,
-        credentialsValid: credentialsValid,
-        taskId: null
-      });
-    } else {
-      const phData = await getPolicyHolder({
-        policyHolderId: policyHolderId,
-        email: streamUser.email,
-        employerId: streamEmployer.id
-      });
-      this.setState({
-        loading: false,
-        loginProblem: phData.login_problem,
-        streamPolicyHolder: phData,
-        endMessage: endMessage || phData.login_correction_message,
-        step: 5,
-        credentialsValid: credentialsValid,
-        taskId: null
-      });
-    }
+    const phData = await getPolicyHolder({
+      policyHolderId: policyHolderId,
+      email: streamUser.email,
+      employerId: streamEmployer.id
+    });
+    this.setState({
+      loading: false,
+      loginProblem: phData.login_problem,
+      streamPolicyHolder: phData,
+      endMessage: endMessage || phData.login_correction_message,
+      step: 5,
+      credentialsValid: credentialsValid,
+      taskId: null
+    });
   };
 
   validateCreds = ({ params: params }) => {
