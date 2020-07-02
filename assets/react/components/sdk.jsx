@@ -167,7 +167,11 @@ class SDK extends Component {
           this.setState({
             termsOfUse: false,
             taskId: this.props.realTimeVerification ? taskId : null,
-            credentialsValid: taskId ? null : true,
+            credentialsValid: taskId
+              ? null
+              : phData.login_problem !== null
+              ? !phData.login_needs_correction
+              : true,
             policyHolderId: policyHolderId,
             streamPolicyHolder: phData,
             step: 5
