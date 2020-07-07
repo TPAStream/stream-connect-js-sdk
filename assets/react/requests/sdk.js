@@ -64,11 +64,16 @@ export const postCredentials = async ({
       request: error.request,
       config: error.config
     });
-    return { taskId: null, policyHolderId: null };
+    const errorMessage =
+      error.response && error.response.data && error.response.data.message
+        ? error.response.data.message
+        : 'There was an issue submitting your credentials.';
+    return { taskId: null, policyHolderId: null, errorMessage: errorMessage };
   }
   return {
     taskId: response.data.data.task_id,
-    policyHolderId: response.data.data.policy_holder_id
+    policyHolderId: response.data.data.policy_holder_id,
+    errorMessage: false
   };
 };
 
