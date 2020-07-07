@@ -276,7 +276,7 @@ class SDK extends Component {
       credentialsValid,
       policyHolderId,
       endMessage,
-      streamPolicyHolder,
+      streamPolicyHolder
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
