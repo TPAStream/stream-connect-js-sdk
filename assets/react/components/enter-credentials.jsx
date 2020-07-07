@@ -97,6 +97,13 @@ export default class EnterCredentials extends Component {
     });
   };
 
+  handlePostError = ({ errorMessage }) => {
+    this.setState({
+      submitDisabled: false,
+      errorMessage: errorMessage
+    });
+  };
+
   handleSubmit = ({ formData }, event) => {
     event.preventDefault();
     this.setState({
@@ -114,11 +121,20 @@ export default class EnterCredentials extends Component {
       },
       ...formData
     };
-    this.props.validateCreds({ params: params });
+    this.props.validateCreds({
+      params: params,
+      errorCallBack: this.handlePostError
+    });
   };
 
   render() {
-    const { schema, uiSchema, formData, submitDisabled } = this.state;
+    const {
+      schema,
+      uiSchema,
+      formData,
+      submitDisabled,
+      errorMessage
+    } = this.state;
     const { streamPayer, tenantTerms, returnToStep3, donePopUp } = this.props;
     // We'll want to remove the div below eventually. It is just for my eyes.
     return (
@@ -130,6 +146,7 @@ export default class EnterCredentials extends Component {
             onClick={returnToStep3}
           />
         ) : null}
+        {errorMessage && <div>{errorMessage}</div>}
         <PayerInfo payer={streamPayer} donePopUp={donePopUp} />
         <Form
           schema={schema}

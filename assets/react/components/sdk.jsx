@@ -121,7 +121,7 @@ class SDK extends Component {
     });
   };
 
-  validateCreds = ({ params: params }) => {
+  validateCreds = ({ params: params, errorCallBack }) => {
     const { streamUser, streamEmployer, policyHolderId } = this.state;
     /* PH API Post Arguments
       username=args.get("username"),
@@ -158,25 +158,31 @@ class SDK extends Component {
         params: { ...params, ...additionalParams },
         policyHolderId: policyHolderId,
         handleFormErrors: this.props.handleFormErrors
-      }).then(({ taskId, policyHolderId }) => {
-        getPolicyHolder({
-          policyHolderId: policyHolderId,
-          email: streamUser.email,
-          employerId: streamEmployer.id
-        }).then(phData => {
-          this.setState({
-            termsOfUse: false,
-            taskId: this.props.realTimeVerification ? taskId : null,
-            credentialsValid: taskId
-              ? null
-              : phData.login_problem !== null
-              ? !phData.login_needs_correction
-              : true,
-            policyHolderId: policyHolderId,
-            streamPolicyHolder: phData,
-            step: 5
+      }).then(({ taskId, policyHolderId, errorMessage }) => {
+        if (errorMessage) {
+          errorCallBack({
+            errorMessage: errorMessage
           });
-        });
+        } else {
+          getPolicyHolder({
+            policyHolderId: policyHolderId,
+            email: streamUser.email,
+            employerId: streamEmployer.id
+          }).then(phData => {
+            this.setState({
+              termsOfUse: false,
+              taskId: this.props.realTimeVerification ? taskId : null,
+              credentialsValid: taskId
+                ? null
+                : phData.login_problem !== null
+                ? !phData.login_needs_correction
+                : true,
+              policyHolderId: policyHolderId,
+              streamPolicyHolder: phData,
+              step: 5
+            });
+          });
+        }
       });
     }
   };
@@ -270,7 +276,7 @@ class SDK extends Component {
       credentialsValid,
       policyHolderId,
       endMessage,
-      streamPolicyHolder
+      streamPolicyHolder,
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
