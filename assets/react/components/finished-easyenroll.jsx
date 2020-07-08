@@ -15,10 +15,31 @@ export default class FinishedEasyEnroll extends Component {
       tenant,
       returnToPage,
       endingMessage,
+      pending,
       payer,
       employer
     } = this.props;
-    if (credentialsValid) {
+    if (pending) {
+      return (
+        <div id="finished-with-easy-enroll">
+          <h2>Pending...</h2>
+          <p>{endingMessage}</p>
+          <p>
+            Once we finish validation, your claims will now automatically be
+            submitted to {tenant.name} shortly after they appear on the carrier
+            website.
+          </p>
+          <p>
+            Depending on your carrier, not all dependent claims may be submitted
+            in all cases. To ensure claims are submitted for all individuals
+            covered under a plan, you must add their accounts as well.
+          </p>
+          <button id="restart-easy-enroll" onClick={returnToPage}>
+            Click here to add additional logins
+          </button>
+        </div>
+      );
+    } else if (credentialsValid) {
       return (
         <div id="finished-with-easy-enroll">
           <h2>Success!</h2>
