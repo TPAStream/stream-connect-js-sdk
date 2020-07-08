@@ -43,9 +43,10 @@ export default class RealTimeVerification extends Component {
           clearInterval(this.interval);
           this.props.handleRealtimeCompletion({
             policyHolderId: policyHolderId,
-            credentialsValid: true, // We are just going to send the users to the done page if this fails,
-            pending: false,
-            validationState: validateData.state
+            credentialsValid: false,
+            pending: true,
+            validationState: validateData.state,
+            endMessage: validateData.message
           });
         } else if (validateData.state === 'SUCCESS') {
           clearInterval(this.interval);
