@@ -15,46 +15,52 @@ export default class RealTimeVerification extends Component {
 
   checkProgress = () => {
     const { taskId, policyHolderId, maxRetries, email } = this.props;
-
     if (this.state.currentRetries <= 0) {
-      throw new Error(
-        `Validating your credentials is taking longer than usual due to high traffic. 
-         We’ll keep trying even if you leave the page. Please check back later.`
-      );
+      clearInterval(this.interval);
+      this.props.handleRealtimeCompletion({
+        validationState: 'PENDING',
+        credentialsValid: null,
+        policyHolderId: policyHolderId,
+        pending: true,
+        endMessage:
+          "Validating your credentials is taking longer than usual due to high traffic. We'll keep trying even if you leave the page. Please check back later."
+      });
+    } else {
+      validateCredentials({
+        taskId: taskId,
+        policyHolderId: policyHolderId,
+        email: email
+      }).then(validateData => {
+        if (validateData.state === 'PENDING') {
+          this.setState({
+            progress: maxRetries
+              ? (maxRetries - this.state.currentRetries + 1) / maxRetries
+              : (this.defaultMaxRetries - this.state.currentRetries + 1) /
+                this.defaultMaxRetries,
+            currentRetries: this.state.currentRetries - 1
+          });
+        } else if (validateData.state === 'FAILURE') {
+          clearInterval(this.interval);
+          this.props.handleRealtimeCompletion({
+            policyHolderId: policyHolderId,
+            credentialsValid: true, // We are just going to send the users to the done page if this fails,
+            pending: false,
+            validationState: validateData.state
+          });
+        } else if (validateData.state === 'SUCCESS') {
+          clearInterval(this.interval);
+          this.props.handleRealtimeCompletion({
+            policyHolderId: policyHolderId,
+            pending: false,
+            credentialsValid: validateData.credentials_are_valid,
+            validationState: validateData.state
+          });
+        } else {
+          clearInterval(this.interval);
+          throw new Error('This is not a valid return state from validateData');
+        }
+      });
     }
-
-    validateCredentials({
-      taskId: taskId,
-      policyHolderId: policyHolderId,
-      email: email
-    }).then(validateData => {
-      if (validateData.state === 'PENDING') {
-        this.setState({
-          progress: maxRetries
-            ? (maxRetries - this.state.currentRetries + 1) / maxRetries
-            : (this.defaultMaxRetries - this.state.currentRetries + 1) /
-              this.defaultMaxRetries,
-          currentRetries: this.state.currentRetries - 1
-        });
-      } else if (validateData.state === 'FAILURE') {
-        clearInterval(this.interval);
-        this.props.handleRealtimeCompletion({
-          policyHolderId: policyHolderId,
-          credentialsValid: true, // We are just going to send the users to the done page if this fails
-          validationState: validateData.state
-        });
-      } else if (validateData.state === 'SUCCESS') {
-        clearInterval(this.interval);
-        this.props.handleRealtimeCompletion({
-          policyHolderId: policyHolderId,
-          credentialsValid: validateData.credentials_are_valid,
-          validationState: validateData.state
-        });
-      } else {
-        clearInterval(this.interval);
-        throw new Error('This is not a valid return state from validateData');
-      }
-    });
   };
 
   demoProgress = () => {

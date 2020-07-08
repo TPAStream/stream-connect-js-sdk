@@ -92,6 +92,7 @@ class SDK extends Component {
       endMessage: null,
       credentialsValid: null,
       streamPolicyHolder: null,
+      finishedEasyEnrollPending: null,
       loginProblem: null
     };
   }
@@ -99,6 +100,7 @@ class SDK extends Component {
   handleRealtimeCompletion = async ({
     policyHolderId,
     credentialsValid,
+    pending,
     endMessage
   }) => {
     const { streamUser, streamEmployer } = this.state;
@@ -116,7 +118,8 @@ class SDK extends Component {
       streamPolicyHolder: phData,
       endMessage: endMessage || phData.login_correction_message,
       step: 5,
-      credentialsValid: credentialsValid,
+      credentialsValid: phData.login_problem === 'valid',
+      finishedEasyEnrollPending: pending && phData.login_problem === null,
       taskId: null
     });
   };
@@ -276,7 +279,8 @@ class SDK extends Component {
       credentialsValid,
       policyHolderId,
       endMessage,
-      streamPolicyHolder
+      streamPolicyHolder,
+      finishedEasyEnrollPending
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
@@ -358,6 +362,7 @@ class SDK extends Component {
             credentialsValid={
               this.props.realTimeVerification ? credentialsValid : true
             }
+            pending={finishedEasyEnrollPending}
             endingMessage={endMessage}
             returnToPage={
               (this.props.realTimeVerification
