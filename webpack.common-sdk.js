@@ -7,6 +7,7 @@
 
 const path = require('path');
 const webpack = require('webpack');
+var WebpackAutoInject = require('webpack-auto-inject-version');
 
 module.exports = {
     entry: './assets/react/entries/sdk.jsx',
@@ -28,7 +29,8 @@ module.exports = {
         ]
     },
     plugins: [
-        new webpack.ProvidePlugin({})
+        new webpack.ProvidePlugin({}),
+        new WebpackAutoInject()
     ],
     output: {
         path: path.join(__dirname, 'static/js'),

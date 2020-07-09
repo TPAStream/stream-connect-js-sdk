@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.4.6
+### 0.4.7
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -54,6 +54,12 @@ Using TPAStream as a CDN
 ```
 
 As shown above the SDK is mounted by calling `window.StreamConnect({})` and passing in the desired parameters.
+
+As of SDK version 0.4.7 the CDN provider is now versioned and will support up to 10 minor versions behind.
+ * Importing the various versions of the SDK is handled in `src` attribute on your script tag
+    * `"https://app.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
+    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
+        * `"https://app.tpastream.com/static/js/sdk-v-0.4.7.js"`
 
 NPM package
 ```javascript
@@ -143,6 +149,11 @@ The SDK currently has the following flow:
 6. Direct persons to re-enter credentials if they were found to be invalid or if valid proceed to Step 7
 7. Render finish form. Prompt if they would like to add more credentials.
     * If yes this will restart from Step 1
+
+## Change Log
+### v0.4.7 (Latest)
+    * Add versioning to the CDN provider
+    * Append version to all request headers for underlying api to read.
 
 ## Example Page
 [Here!](https://www.tpastream.com/sdk_demo.html)
