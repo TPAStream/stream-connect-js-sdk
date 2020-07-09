@@ -4,6 +4,9 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
+// Injected from webpack-auto-inject version https://stackoverflow.com/questions/24663175/how-can-i-inject-a-build-number-with-webpack
+var version = '[AIV]{version}[/AIV]';
+
 const StreamConnect = ({
   el,
   signature,
@@ -46,6 +49,7 @@ const StreamConnect = ({
         donePopUp={donePopUp}
         doneEasyEnroll={doneEasyEnroll}
         handleFormErrors={handleFormErrors}
+        version={version}
       />,
       document.querySelector(el)
     );
