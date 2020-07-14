@@ -6,7 +6,7 @@ export const validateCredentials = async ({
   email
 }) => {
   const validateCredsResponse = await sdkAxios.get(
-    `https://jason.dev.sso.tpastream.com/sdk-api/validate-credentials/${policyHolderId}/${taskId}`,
+    `https://app.tpastream.com/sdk-api/validate-credentials/${policyHolderId}/${taskId}`,
     {
       params: {
         email: email
