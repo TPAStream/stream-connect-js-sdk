@@ -7,6 +7,7 @@ module.exports = merge(common, {
     optimization: {
         minimize: true
     },
+    devtool: false,
     plugins: [
         new webpack.LoaderOptionsPlugin({
             minimize: true,
