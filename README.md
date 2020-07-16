@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.4.7
+### 0.4.8
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -151,7 +151,11 @@ The SDK currently has the following flow:
     * If yes this will restart from Step 1
 
 ## Change Log
-### v0.4.7 (Latest)
+### v0.4.8 (Latest)
+    * Add individual endpoints for the following: payer and terms of service
+    * Seperate the versions of the api and create a version manager.
+    * Drastically improve initial endpoint loadtime by bringing down less info.
+### v0.4.7 
     * Add versioning to the CDN provider
     * Append version to all request headers for underlying api to read.
 

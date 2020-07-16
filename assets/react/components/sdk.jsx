@@ -1,5 +1,11 @@
 import React, { Component } from 'react';
-import { getSDK, postCredentials, getPolicyHolder } from '../requests/sdk';
+import { getSDK } from '../requests/sdk';
+import {
+  postCredentials,
+  getPolicyHolder
+} from '../requests/enter-credentials';
+import { getTerms } from '../requests/terms';
+import { getPayer } from '../requests/payer';
 import { sdkAxiosMaker } from '../services/axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '../util/font-awesome-icons';
@@ -71,7 +77,6 @@ const AdditionalSchema = tenant => {
   };
 };
 
-// Ending up using a class because the current implementation is using async call
 class SDK extends Component {
   constructor(props) {
     super(props);
@@ -93,7 +98,8 @@ class SDK extends Component {
       credentialsValid: null,
       streamPolicyHolder: null,
       finishedEasyEnrollPending: null,
-      loginProblem: null
+      loginProblem: null,
+      termsHtmlString: null
     };
   }
 
@@ -126,24 +132,6 @@ class SDK extends Component {
 
   validateCreds = ({ params: params, errorCallBack }) => {
     const { streamUser, streamEmployer, policyHolderId } = this.state;
-    /* PH API Post Arguments
-      username=args.get("username"),
-      password=args.get("password"),
-      date_of_birth=args.get("date_of_birth"),
-      employer_id=args.get("employer_id"),
-      payer_name=args.get("payer"),
-      payer_id=payer_id,
-      member_id=args.get("member_id"),
-      accept=args.get("accept"),
-      remote_addr=request.remote_addr,
-      user_agent=request.headers.get("User-Agent"),
-      tenants_accept=args.get("tenants_accept"),
-      policy_holder_id=policy_holder_id,
-      crawl=args.get("crawl"),
-      crawl_force=args.get("crawl_force"),
-      request_origin=request.url,
-      json_args=args 
-    */
     const additionalParams = {
       user: streamUser,
       employer_id: streamEmployer.id
@@ -191,9 +179,23 @@ class SDK extends Component {
   };
 
   toggleTermsOfUse = () => {
-    this.setState({
-      termsOfUse: !this.state.termsOfUse
-    });
+    const { streamUser, termsHtmlString } = this.state;
+    if (!termsHtmlString) {
+      this.setState({
+        loading: true
+      });
+      getTerms({ email: streamUser.email }).then(termsHtmlStringResponse =>
+        this.setState({
+          loading: false,
+          termsOfUse: !this.state.termsOfUse,
+          termsHtmlString: termsHtmlStringResponse
+        })
+      );
+    } else {
+      this.setState({
+        termsOfUse: !this.state.termsOfUse
+      });
+    }
   };
 
   setStep3 = () => {
@@ -206,13 +208,43 @@ class SDK extends Component {
   };
 
   setStep4 = ({ payer, dependent }) => {
-    this.setState({
-      dependent: dependent ? dependent : this.state.dependent,
-      streamPayer: payer ? payer : this.state.streamPayer,
-      termsOfUse: false,
-      step: 4,
-      realTimeVerification: false
-    });
+    const { streamPayer, streamUser, streamEmployer } = this.state;
+    if (payer) {
+      if (streamPayer && streamPayer.id == payer.id) {
+        this.setState({
+          dependent: dependent ? dependent : this.state.dependent,
+          streamPayer: payer ? payer : this.state.streamPayer,
+          termsOfUse: false,
+          step: 4,
+          realTimeVerification: false
+        });
+      } else {
+        this.setState({
+          loading: true
+        });
+        getPayer({
+          payerId: payer.id,
+          employerId: streamEmployer.id,
+          email: streamUser.email
+        }).then(payerResponse => {
+          this.setState({
+            loading: false,
+            dependent: dependent ? dependent : this.state.dependent,
+            streamPayer: payerResponse,
+            termsOfUse: false,
+            step: 4,
+            realTimeVerification: false
+          });
+        });
+      }
+    } else {
+      this.setState({
+        dependent: dependent ? dependent : this.state.dependent,
+        termsOfUse: false,
+        step: 4,
+        realTimeVerification: false
+      });
+    }
   };
 
   restartProcess = () => {
@@ -230,7 +262,10 @@ class SDK extends Component {
       policyHolderId: null,
       endMessage: null,
       credentialsValid: null,
-      loginProblem: null
+      streamPolicyHolder: null,
+      finishedEasyEnrollPending: null,
+      loginProblem: null,
+      termsHtmlString: null
     });
     getSDK(this.props).then(({ user, payers, tenant, employer }) => {
       if (payers.length === 1) {
@@ -280,7 +315,8 @@ class SDK extends Component {
       policyHolderId,
       endMessage,
       streamPolicyHolder,
-      finishedEasyEnrollPending
+      finishedEasyEnrollPending,
+      termsHtmlString
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
@@ -315,6 +351,7 @@ class SDK extends Component {
                 <button onClick={this.toggleTermsOfUse}>Return To Form</button>
               );
             }}
+            termsHtmlString={termsHtmlString}
             doneTermsOfService={this.props.doneTermsOfService}
           />
         );
