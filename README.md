@@ -151,7 +151,9 @@ The SDK currently has the following flow:
     * If yes this will restart from Step 1
 
 ## Change Log
-### v0.4.8 (Latest)
+### v0.4.9 (latest)
+    * Fix bug with sdk demo mode where final page won't load
+### v0.4.8
     * Add individual endpoints for the following: payer and terms of service
     * Seperate the versions of the api and create a version manager.
     * Drastically improve initial endpoint loadtime by bringing down less info.
