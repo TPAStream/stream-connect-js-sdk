@@ -12,7 +12,7 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
-### v0.4.9 (latest)
+### v0.5.0 (latest)
     * Fix bug with sdk demo mode where final page won't load
 ### v0.4.8
     * Add individual endpoints for the following: payer and terms of service
