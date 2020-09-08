@@ -56,6 +56,15 @@ export default class RealTimeVerification extends Component {
             credentialsValid: validateData.credentials_are_valid,
             validationState: validateData.state
           });
+        } else if (validateData.state === 'WAITING_FOR_METHOD_CHOICE') {
+          clearInterval(this.interval);
+          this.props.handleRealtimeCompletion({
+            policyHolderId: policyHolderId,
+            pending: false,
+            credentialsValid: validateData.credentials_are_valid,
+            twoFactorAuth: validateData,
+            validationState: validateData.state
+          });
         } else {
           clearInterval(this.interval);
           throw new Error('This is not a valid return state from validateData');
