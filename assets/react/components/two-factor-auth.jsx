@@ -5,7 +5,7 @@ import { faSpinner } from '../util/font-awesome-icons';
 import Select from 'react-select';
 import Highlighter from 'react-highlight-words';
 
-export default class RealTimeVerification extends Component {
+export default class TwoFactorAuth extends Component {
   constructor(props) {
     super(props);
     this.defaultMaxRetries = 40;
