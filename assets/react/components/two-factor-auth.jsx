@@ -101,7 +101,7 @@ export default class TwoFactorAuth extends Component {
         method: methodChoiceOption.value
       }
     }).then(() => {
-      this.interval = setInterval(this.checkProgress, 1000);
+      this.interval = setInterval(this.checkProgress, 3000);
     });
   }
 

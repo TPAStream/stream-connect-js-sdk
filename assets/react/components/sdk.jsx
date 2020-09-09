@@ -82,8 +82,7 @@ class SDK extends Component {
   constructor(props) {
     super(props);
     sdkAxiosMaker(props);
-
-    this.state = {
+    this.defaultState = {
       step: null,
       loading: true,
       termsOfUse: false,
@@ -102,8 +101,11 @@ class SDK extends Component {
       loginProblem: null,
       termsHtmlString: null,
       twoFactorAuth: null,
+      twoFactorAuthState: null,
       validationState: null
     };
+
+    this.state = Object.assign({}, this.defaultState);
   }
 
   handleRealtimeCompletion = async ({
@@ -241,7 +243,10 @@ class SDK extends Component {
           streamPayer: payer ? payer : this.state.streamPayer,
           termsOfUse: false,
           step: 4,
-          realTimeVerification: false
+          realTimeVerification: false,
+          twoFactorAuth: null,
+          twoFactorAuthState: null,
+          taskId: null
         });
       } else {
         this.setState({
@@ -258,7 +263,10 @@ class SDK extends Component {
             streamPayer: payerResponse,
             termsOfUse: false,
             step: 4,
-            realTimeVerification: false
+            realTimeVerification: false,
+            twoFactorAuth: null,
+            twoFactorAuthState: null,
+            taskId: null
           });
         });
       }
@@ -267,31 +275,16 @@ class SDK extends Component {
         dependent: dependent ? dependent : this.state.dependent,
         termsOfUse: false,
         step: 4,
-        realTimeVerification: false
+        realTimeVerification: false,
+        twoFactorAuth: null,
+        twoFactorAuthState: null,
+        taskId: null
       });
     }
   };
 
   restartProcess = () => {
-    this.setState({
-      step: null,
-      loading: true,
-      termsOfUse: false,
-      streamUser: null,
-      streamTenant: null,
-      streamPayers: null,
-      streamPayer: null,
-      streamEmployer: null,
-      dependent: false,
-      taskId: null,
-      policyHolderId: null,
-      endMessage: null,
-      credentialsValid: null,
-      streamPolicyHolder: null,
-      finishedEasyEnrollPending: null,
-      loginProblem: null,
-      termsHtmlString: null
-    });
+    this.setState(this.defaultState);
     getSDK(this.props).then(({ user, payers, tenant, employer }) => {
       if (payers.length === 1) {
         this.setStep4({ payer: payers[0] });
