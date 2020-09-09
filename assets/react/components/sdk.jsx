@@ -14,6 +14,7 @@ import Step3 from './choose-payer';
 import Step4 from './enter-credentials';
 import FinishedEasyEnroll from './finished-easyenroll';
 import RealTimeVerification from './realtime-validation';
+import TwoFactorAuth from './two-factor-auth';
 
 const AdditionalUiSchema = ({ toggleTermsOfUse, userAddedUISchema }) => {
   let editableUiSchema = {
@@ -81,8 +82,7 @@ class SDK extends Component {
   constructor(props) {
     super(props);
     sdkAxiosMaker(props);
-
-    this.state = {
+    this.defaultState = {
       step: null,
       loading: true,
       termsOfUse: false,
@@ -99,15 +99,22 @@ class SDK extends Component {
       streamPolicyHolder: null,
       finishedEasyEnrollPending: null,
       loginProblem: null,
-      termsHtmlString: null
+      termsHtmlString: null,
+      twoFactorAuth: null,
+      twoFactorAuthState: null,
+      validationState: null
     };
+
+    this.state = Object.assign({}, this.defaultState);
   }
 
   handleRealtimeCompletion = async ({
     policyHolderId,
     credentialsValid,
     pending,
-    endMessage
+    endMessage,
+    twoFactorAuth,
+    validationState
   }) => {
     const { streamUser, streamEmployer } = this.state;
     this.setState({
@@ -123,6 +130,13 @@ class SDK extends Component {
         credentialsValid: true,
         finishedEasyEnrollPending: false,
         taskId: null
+      });
+    } else if (twoFactorAuth) {
+      this.setState({
+        loading: false,
+        step: 5,
+        twoFactorAuth: twoFactorAuth,
+        twoFactorAuthState: validationState
       });
     } else {
       const phData = await getPolicyHolder({
@@ -229,7 +243,10 @@ class SDK extends Component {
           streamPayer: payer ? payer : this.state.streamPayer,
           termsOfUse: false,
           step: 4,
-          realTimeVerification: false
+          realTimeVerification: false,
+          twoFactorAuth: null,
+          twoFactorAuthState: null,
+          taskId: null
         });
       } else {
         this.setState({
@@ -246,7 +263,10 @@ class SDK extends Component {
             streamPayer: payerResponse,
             termsOfUse: false,
             step: 4,
-            realTimeVerification: false
+            realTimeVerification: false,
+            twoFactorAuth: null,
+            twoFactorAuthState: null,
+            taskId: null
           });
         });
       }
@@ -255,31 +275,16 @@ class SDK extends Component {
         dependent: dependent ? dependent : this.state.dependent,
         termsOfUse: false,
         step: 4,
-        realTimeVerification: false
+        realTimeVerification: false,
+        twoFactorAuth: null,
+        twoFactorAuthState: null,
+        taskId: null
       });
     }
   };
 
   restartProcess = () => {
-    this.setState({
-      step: null,
-      loading: true,
-      termsOfUse: false,
-      streamUser: null,
-      streamTenant: null,
-      streamPayers: null,
-      streamPayer: null,
-      streamEmployer: null,
-      dependent: false,
-      taskId: null,
-      policyHolderId: null,
-      endMessage: null,
-      credentialsValid: null,
-      streamPolicyHolder: null,
-      finishedEasyEnrollPending: null,
-      loginProblem: null,
-      termsHtmlString: null
-    });
+    this.setState(this.defaultState);
     getSDK(this.props).then(({ user, payers, tenant, employer }) => {
       if (payers.length === 1) {
         this.setStep4({ payer: payers[0] });
@@ -329,7 +334,9 @@ class SDK extends Component {
       endMessage,
       streamPolicyHolder,
       finishedEasyEnrollPending,
-      termsHtmlString
+      termsHtmlString,
+      twoFactorAuth,
+      twoFactorAuthState
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
@@ -392,15 +399,29 @@ class SDK extends Component {
       }
     } else if (step === 5) {
       if (this.props.realTimeVerification && taskId) {
-        return (
-          <RealTimeVerification
-            taskId={taskId}
-            policyHolderId={policyHolderId}
-            handleRealtimeCompletion={this.handleRealtimeCompletion}
-            doneRealtime={this.props.doneRealtime}
-            email={streamUser.email}
-          />
-        );
+        if (twoFactorAuth) {
+          return (
+            <TwoFactorAuth
+              taskId={taskId}
+              policyHolderId={policyHolderId}
+              handleRealtimeCompletion={this.handleRealtimeCompletion}
+              doneRealtime={this.props.doneRealtime}
+              email={streamUser.email}
+              twoFactorAuthData={twoFactorAuth}
+              twoFactorAuthState={twoFactorAuthState}
+            />
+          );
+        } else {
+          return (
+            <RealTimeVerification
+              taskId={taskId}
+              policyHolderId={policyHolderId}
+              handleRealtimeCompletion={this.handleRealtimeCompletion}
+              doneRealtime={this.props.doneRealtime}
+              email={streamUser.email}
+            />
+          );
+        }
       } else {
         return (
           <FinishedEasyEnroll
