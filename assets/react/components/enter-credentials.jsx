@@ -25,7 +25,7 @@ export default class EnterCredentials extends Component {
     const schemaKeys = Object.keys(schema);
     let required = []; // new way required is added to properties
     for (const key of schemaKeys) {
-      if (schema[key].required !== null) {
+      if (schema[key].required !== void 0) {
         delete schema[key].required; // We don't want required on the schema itself. So let's remove it
         required.push(key);
       }
