@@ -16,68 +16,6 @@ import FinishedEasyEnroll from './finished-easyenroll';
 import RealTimeVerification from './realtime-validation';
 import TwoFactorAuth from './two-factor-auth';
 
-const AdditionalUiSchema = ({ toggleTermsOfUse, userAddedUISchema }) => {
-  let editableUiSchema = {
-    termsAndServices: {
-      'ui:widget': props => {
-        return (
-          <div className="checkbox">
-            <input
-              id="accept"
-              required
-              name="accept"
-              type="checkbox"
-              onChange={event => props.onChange(event.target.value)}
-            />
-            <label htmlFor="accept">
-              I have read and I agree to the
-              <button
-                type="button"
-                className="btn btn-link"
-                style={{ padding: '0px' }}
-                onClick={toggleTermsOfUse}
-              >
-                Terms Of Use
-              </button>
-            </label>
-          </div>
-        );
-      },
-      'ui:options': {
-        label: false
-      }
-    }
-  };
-  const schemaToAdd = userAddedUISchema ? userAddedUISchema : {};
-  return { ...editableUiSchema, ...schemaToAdd };
-};
-
-const AdditionalSchema = tenant => {
-  let tenantAcknowledgementMessage = '';
-  if (tenant.terms_of_use !== null && tenant.terms_of_use.length > 0) {
-    tenantAcknowledgementMessage += `I have read and agree to the below Terms of Use for ${tenant.terms_of_use_message ||
-      tenant.name} and `;
-  }
-  tenantAcknowledgementMessage += `I acknowledge that my claims will be automatically sent to ${tenant.terms_of_use_message ||
-    tenant.name}`;
-  return {
-    showPassword: {
-      type: 'boolean',
-      title: 'Show password',
-      default: false
-    },
-    termsAndServices: {
-      type: 'boolean'
-    },
-    tenantAcknowledgement: {
-      type: 'boolean',
-      title: tenantAcknowledgementMessage,
-      default: false,
-      enum: [true, false]
-    }
-  };
-};
-
 class SDK extends Component {
   constructor(props) {
     super(props);
@@ -102,7 +40,9 @@ class SDK extends Component {
       termsHtmlString: null,
       twoFactorAuth: null,
       twoFactorAuthState: null,
-      validationState: null
+      validationState: null,
+      error: null,
+      formData: null
     };
 
     this.state = Object.assign({}, this.defaultState);
@@ -163,6 +103,9 @@ class SDK extends Component {
       user: streamUser,
       employer_id: streamEmployer.id
     };
+    this.setState({
+      formData: null
+    });
     this.props.donePostCredentials({ params: params });
     if (this.props.isDemo) {
       this.setState({
@@ -205,8 +148,13 @@ class SDK extends Component {
     }
   };
 
-  toggleTermsOfUse = () => {
+  toggleTermsOfUse = formData => {
     const { streamUser, termsHtmlString } = this.state;
+    if (formData) {
+      this.setState({
+        formData: formData
+      });
+    }
     if (!termsHtmlString) {
       this.setState({
         loading: true
@@ -223,6 +171,13 @@ class SDK extends Component {
         termsOfUse: !this.state.termsOfUse
       });
     }
+  };
+
+  setStepConfigError = error => {
+    this.setState({
+      step: -1,
+      error: error
+    });
   };
 
   setStep3 = () => {
@@ -302,8 +257,10 @@ class SDK extends Component {
   };
 
   componentDidMount() {
-    getSDK(this.props).then(({ user, payers, tenant, employer }) => {
-      if (payers.length === 1) {
+    getSDK(this.props).then(({ user, payers, tenant, employer, error }) => {
+      if (error) {
+        this.setStepConfigError(error);
+      } else if (payers.length === 1) {
         this.setStep4({ payer: payers[0] });
       } else {
         this.setStep3();
@@ -313,7 +270,8 @@ class SDK extends Component {
         streamUser: user,
         streamPayers: payers,
         streamTenant: tenant,
-        streamEmployer: employer
+        streamEmployer: employer,
+        error: null
       });
     });
   }
@@ -336,10 +294,18 @@ class SDK extends Component {
       finishedEasyEnrollPending,
       termsHtmlString,
       twoFactorAuth,
-      twoFactorAuthState
+      twoFactorAuthState,
+      formData
     } = this.state;
     if (loading) {
       return <FontAwesomeIcon icon={faSpinner} size="lg" spin />;
+    } else if (step === -1) {
+      return (
+        <div>
+          This widget has encountered a configuration error. Please contact the
+          site host.
+        </div>
+      );
     } else if (step === 3) {
       if (this.props.renderChoosePayer) {
         return (
@@ -368,7 +334,13 @@ class SDK extends Component {
           <TermsOfUse
             returnButton={() => {
               return (
-                <button onClick={this.toggleTermsOfUse}>Return To Form</button>
+                <button
+                  onClick={() => {
+                    this.toggleTermsOfUse(formData);
+                  }}
+                >
+                  Return To Form
+                </button>
               );
             }}
             termsHtmlString={termsHtmlString}
@@ -380,12 +352,11 @@ class SDK extends Component {
           <Step4
             streamPayer={streamPayer}
             tenantTerms={streamTenant.terms_of_use}
-            additionalSchema={AdditionalSchema(streamTenant)}
+            formData={formData}
+            streamTenant={streamTenant}
             tenantName={streamTenant.name}
-            additionalUiSchema={AdditionalUiSchema({
-              toggleTermsOfUse: this.toggleTermsOfUse,
-              userAddedUISchema: this.props.userSchema
-            })}
+            toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
+            userAddedUISchema={this.props.userSchema}
             returnToStep3={
               streamPayers.length > 1 && policyHolderId === null
                 ? this.setStep3
