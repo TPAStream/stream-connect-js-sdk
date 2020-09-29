@@ -12,7 +12,10 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
-### v0.5.2 (latest)
+### v0.5.3 (latest)
+    * Add config error page
+    * Make state transfer through terms of service widget
+### v0.5.2
     * Fix issue with Anthem security questions.
 ### v0.5.1
     * Add two factor authentication handling.

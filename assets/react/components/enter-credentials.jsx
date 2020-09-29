@@ -4,15 +4,83 @@ import { faSpinner, faArrowCircleLeft } from '../util/font-awesome-icons';
 import Form from 'react-jsonschema-form';
 import PayerInfo from './payer-info';
 
+const AdditionalUiSchema = ({ toggleTermsOfUse, userAddedUISchema }) => {
+  let editableUiSchema = {
+    termsAndServices: {
+      'ui:widget': props => {
+        return (
+          <div className="checkbox">
+            <input
+              id="accept"
+              required
+              name="accept"
+              type="checkbox"
+              onChange={event => props.onChange(event.target.value)}
+            />
+            <label htmlFor="accept">
+              I have read and I agree to the
+              <button
+                type="button"
+                className="btn btn-link"
+                style={{ padding: '0px' }}
+                onClick={toggleTermsOfUse}
+              >
+                Terms Of Use
+              </button>
+            </label>
+          </div>
+        );
+      },
+      'ui:options': {
+        label: false
+      }
+    }
+  };
+  const schemaToAdd = userAddedUISchema ? userAddedUISchema : {};
+  return { ...editableUiSchema, ...schemaToAdd };
+};
+
+const AdditionalSchema = tenant => {
+  let tenantAcknowledgementMessage = '';
+  if (tenant.terms_of_use !== null && tenant.terms_of_use.length > 0) {
+    tenantAcknowledgementMessage += `I have read and agree to the below Terms of Use for ${tenant.terms_of_use_message ||
+      tenant.name} and `;
+  }
+  tenantAcknowledgementMessage += `I acknowledge that my claims will be automatically sent to ${tenant.terms_of_use_message ||
+    tenant.name}`;
+  return {
+    showPassword: {
+      type: 'boolean',
+      title: 'Show password',
+      default: false
+    },
+    termsAndServices: {
+      type: 'boolean'
+    },
+    tenantAcknowledgement: {
+      type: 'boolean',
+      title: tenantAcknowledgementMessage,
+      default: false,
+      enum: [true, false]
+    }
+  };
+};
+
 export default class EnterCredentials extends Component {
   constructor(props) {
     super(props);
     this.state = {
       schema: null,
       uiSchema: null,
-      formData: null,
+      formData: this.props.formData || null,
       submitDisabled: false
     };
+  }
+
+  toggleTermsOfUse() {
+    const { toggleTermsOfUse } = this.props;
+    const { formData } = this.state;
+    toggleTermsOfUse(formData);
   }
 
   componentDidMount() {
@@ -20,7 +88,12 @@ export default class EnterCredentials extends Component {
   }
 
   componentWillMount() {
-    const { streamPayer, additionalSchema, additionalUiSchema } = this.props;
+    const {
+      streamPayer,
+      streamTenant,
+      userAddedUISchema,
+      formData
+    } = this.props;
     const schema = streamPayer.onboard_form.schema.properties;
     const schemaKeys = Object.keys(schema);
     let required = []; // new way required is added to properties
@@ -33,11 +106,14 @@ export default class EnterCredentials extends Component {
     const uiSchema = streamPayer.onboard_ui_schema;
     const fullSchema = {
       ...schema,
-      ...additionalSchema
+      ...AdditionalSchema(streamTenant)
     };
     const fullUiSchema = {
       ...uiSchema,
-      ...additionalUiSchema
+      ...AdditionalUiSchema({
+        toggleTermsOfUse: this.toggleTermsOfUse.bind(this),
+        userAddedUISchema
+      })
     };
     this.setState({
       schema: {
@@ -46,7 +122,7 @@ export default class EnterCredentials extends Component {
         properties: fullSchema
       },
       uiSchema: fullUiSchema,
-      formData: null,
+      formData: formData,
       submitDisabled: false
     });
   }
