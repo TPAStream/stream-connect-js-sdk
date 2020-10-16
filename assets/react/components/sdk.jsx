@@ -175,6 +175,7 @@ class SDK extends Component {
 
   setStepConfigError = error => {
     this.setState({
+      loading: false,
       step: -1,
       error: error
     });
@@ -182,6 +183,7 @@ class SDK extends Component {
 
   setStep3 = () => {
     this.setState({
+      loading: false,
       step: 3,
       termsOfUse: false,
       streamPayer: null,
@@ -194,6 +196,7 @@ class SDK extends Component {
     if (payer) {
       if (streamPayer && streamPayer.id == payer.id) {
         this.setState({
+          loading: false,
           dependent: dependent ? dependent : this.state.dependent,
           streamPayer: payer ? payer : this.state.streamPayer,
           termsOfUse: false,
@@ -227,6 +230,7 @@ class SDK extends Component {
       }
     } else {
       this.setState({
+        loading: false,
         dependent: dependent ? dependent : this.state.dependent,
         termsOfUse: false,
         step: 4,
@@ -241,23 +245,28 @@ class SDK extends Component {
   restartProcess = () => {
     this.setState(this.defaultState);
     getSDK(this.props).then(({ user, payers, tenant, employer }) => {
-      if (payers.length === 1) {
-        this.setStep4({ payer: payers[0] });
-      } else {
-        this.setStep3();
-      }
       this.setState({
-        loading: false,
         streamUser: user,
         streamPayers: payers,
         streamTenant: tenant,
         streamEmployer: employer
       });
+      if (payers.length === 1) {
+        this.setStep4({ payer: payers[0] });
+      } else {
+        this.setStep3();
+      }
     });
   };
 
   componentDidMount() {
     getSDK(this.props).then(({ user, payers, tenant, employer, error }) => {
+      this.setState({
+        streamUser: user,
+        streamPayers: payers,
+        streamTenant: tenant,
+        streamEmployer: employer
+      });
       if (error) {
         this.setStepConfigError(error);
       } else if (payers.length === 1) {
@@ -266,11 +275,6 @@ class SDK extends Component {
         this.setStep3();
       }
       this.setState({
-        loading: false,
-        streamUser: user,
-        streamPayers: payers,
-        streamTenant: tenant,
-        streamEmployer: employer,
         error: null
       });
     });
