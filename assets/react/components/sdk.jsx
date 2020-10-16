@@ -258,6 +258,12 @@ class SDK extends Component {
 
   componentDidMount() {
     getSDK(this.props).then(({ user, payers, tenant, employer, error }) => {
+      this.setState({
+        streamUser: user,
+        streamPayers: payers,
+        streamTenant: tenant,
+        streamEmployer: employer,
+      });
       if (error) {
         this.setStepConfigError(error);
       } else if (payers.length === 1) {
@@ -267,10 +273,6 @@ class SDK extends Component {
       }
       this.setState({
         loading: false,
-        streamUser: user,
-        streamPayers: payers,
-        streamTenant: tenant,
-        streamEmployer: employer,
         error: null
       });
     });
