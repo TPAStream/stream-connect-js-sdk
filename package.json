@@ -4,7 +4,8 @@
   "description": "A JavaScript SDK implementing TPAStream's Connect Platform",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk.js --mode=production",
-    "format": "eslint --fix assets/react && prettier --write \"assets/react/*/**\""
+    "format": "eslint --fix assets/react && prettier --write \"assets/react/*/**\"",
+    "test:lint": "eslint assets/react && prettier --list-different \"assets/react/*/**\""
   },
   "repository": {
     "type": "git",
