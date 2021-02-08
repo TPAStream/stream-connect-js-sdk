@@ -10,10 +10,6 @@ Using TPAStream as a CDN
     <script>
         window.StreamConnect({
             el: '#react-hook', // This is where we nest all the pages for the form. You will pass in a selector.
-            tenant: {
-                systemKey: 'test',
-                vendor: 'internal'
-            },
             employer: {
                 systemKey: 'some-system-key',
                 vendor: 'internal',
@@ -69,14 +65,14 @@ StreamConnect({
 | Field                         |            Description                                                                                  | Type    | Example                                               | Default   |
 |-------------------------------|---------------------------------------------------------------------------------------------------------|---------|-------------------------------------------------------|-----------|
 | `el`*                         | A CSS selector for where you want the sdk to render: all items will render under this element           | String  | `el: '#react-hook'`                                   | N\A       |
-| `tenant`                      | The tenant configuration for this sdk instance. Only needed if your token is configured to many tenants | Object  | `tenant: {}`                                          | `{}`      |
+| `tenant`                      | The tenant configuration for this sdk instance. **Only needed if your token is configured to many tenants. Such a configuration will be made clear when TPAStream provides a token.** | Object  | `tenant: {}`                                          | `{}`      |
 | `tenant.vendor`               | The `code` for the specific vendor_tenant configured for this sdk-token. This is usually `internal`     | String  | `tenant: { vendor: 'internal' }`                      | `internal`|
 | `tenant.systemKey`            | The unique systemKey configured for your selected tenant on the selected vendor.                        | String  | `tenant: { systemKey: 'uniquekey' }`                  | N\A       |
 | `employer`*                   | The employer configuration for this sdk instance. Employers will be created if they don't exist already | Object  | `employer: {}`                                        | N\A       |
 | `employer.vendor`*            | The `code` for the specific vendor your employer is configured to.                                      | String  | `employer: { vendor: 'internal' }`                    | `internal`|
 | `employer.systemKey`*         | The unique systemKey configured for your selected employer on said vendor                               | String  | `employer: { systemKey: 'ekey' }`                     | N\A       |
 | `employer.name`               | Name of the employer. *Only needed if the employer doesn't already exist*                               | String  | `employer: { name: 'some-employer-name' }`            | N\A       |
-| `user`*                       | The user configuration. These are created automatically if they don't exist in our system.              | Object  | `user: {}`                                            | N\A       |
+| `user`*                       | The user configuration. These are created automatically if they don't exist in our system. Think of users as employees going through and entering their payer credentials into our system. This is **not** an Implementors account on TPAStream (IE youremail@email.com). If you wish to set-up the SDK for the first time try using something like `youremail+testingsdk@email.com` in order to get the ball rolling.             | Object  | `user: {}`                                            | N\A       |
 | `user.firstName`*             | The user's first name                                                                                   | String  | `user: { firstName: 'Name' }`                         | N\A       |
 | `user.lastName`*              | The user's last name                                                                                    | String  | `user: { lastName: 'name' }`                          | N\A       |
 | `user.email`*                 | The user's email.                                                                                       | String  | `user: { email: 'email@email.com' }`                  | N\A       |
