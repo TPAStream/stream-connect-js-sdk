@@ -16,6 +16,8 @@ const StreamConnect = ({
   user = { firstName: '', lastName: '', email: '' },
   realTimeVerification = true,
   renderChoosePayer = true,
+  renderPayerForm = true,
+  renderEndWidget = true,
   isDemo = false,
   userSchema = {},
   doneGetSDK = () => {},
@@ -39,6 +41,8 @@ const StreamConnect = ({
         tenant={tenant}
         realTimeVerification={realTimeVerification}
         renderChoosePayer={renderChoosePayer}
+        renderPayerForm={renderPayerForm}
+        renderEndWidget={renderEndWidget}
         userSchema={userSchema}
         doneGetSDK={doneGetSDK}
         doneStep3={doneChoosePayer}
