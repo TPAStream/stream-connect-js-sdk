@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.5.4
+### 0.5.5
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -12,6 +12,8 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
+### v0.5.5
+    * Add in ability to implement custom widgets for payer form and the end widget.
 ### v0.5.4
     * Fix bug where single payer employers won't render
 ### v0.5.3

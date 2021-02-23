@@ -439,11 +439,11 @@ class SDK extends Component {
           );
         } else {
           this.props.doneEasyEnroll({
-            streamTenant: streamTenant,
-            streamPayer: streamPayer,
-            streamUser: streamUser,
-            streamPolicyHolder: streamPolicyHolder,
-            streamEmployer: streamEmployer,
+            tenant: streamTenant,
+            payer: streamPayer,
+            user: streamUser,
+            policyHolder: streamPolicyHolder,
+            employer: streamEmployer,
             credentialsValid: this.props.realTimeVerification
               ? credentialsValid
               : true,
