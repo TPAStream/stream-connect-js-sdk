@@ -97,7 +97,7 @@ class SDK extends Component {
     }
   };
 
-  validateCreds = ({ params: params, errorCallBack }) => {
+  validateCreds = ({ params: params, errorCallBack = data => {} }) => {
     const { streamUser, streamEmployer, policyHolderId } = this.state;
     const additionalParams = {
       user: streamUser,
@@ -316,7 +316,7 @@ class SDK extends Component {
           <Step3
             streamPayers={streamPayers}
             streamEmployer={streamEmployer}
-            choosePayer={this.setStep4}
+            choosePayer={this.setStep4.bind(this)}
             usedPayers={streamUser.policy_holders.map(ph => ph.payer_id)}
             doneStep3={this.props.doneStep3}
             dropDown={streamEmployer.show_all_payers_in_easy_enroll}
@@ -325,10 +325,11 @@ class SDK extends Component {
         );
       } else {
         this.props.doneStep3({
-          choosePayer: this.setStep4,
+          choosePayer: this.setStep4.bind(this),
           usedPayers: streamUser.policy_holders.map(ph => ph.payer_id),
           dropDown: streamEmployer.show_all_payers_in_easy_enroll,
-          streamPayers: streamPayers
+          streamPayers: streamPayers,
+          streamEmployer: streamEmployer
         });
         return <div></div>;
       }
@@ -351,7 +352,7 @@ class SDK extends Component {
             doneTermsOfService={this.props.doneTermsOfService}
           />
         );
-      } else {
+      } else if (this.props.renderPayerForm) {
         return (
           <Step4
             streamPayer={streamPayer}
@@ -363,14 +364,25 @@ class SDK extends Component {
             userAddedUISchema={this.props.userSchema}
             returnToStep3={
               streamPayers.length > 1 && policyHolderId === null
-                ? this.setStep3
+                ? this.setStep3.bind(this)
                 : null
             }
-            validateCreds={this.validateCreds}
+            validateCreds={this.validateCreds.bind(this)}
             doneStep4={this.props.doneStep4}
             donePopUp={this.props.donePopUp}
           />
         );
+      } else {
+        this.props.doneStep4({
+          streamPayer: streamPayer,
+          formJsonSchema: streamPayer.onboard_form,
+          tenantTerms: streamTenant.terms_of_use,
+          streamTenant: streamTenant,
+          toggleTermsOfUse: this.toggleTermsOfUse.bind(this),
+          returnToChoosePayer: this.setStep3.bind(this),
+          validateCreds: this.validateCreds.bind(this)
+        });
+        return <div></div>;
       }
     } else if (step === 5) {
       if (this.props.realTimeVerification && taskId) {
@@ -379,7 +391,9 @@ class SDK extends Component {
             <TwoFactorAuth
               taskId={taskId}
               policyHolderId={policyHolderId}
-              handleRealtimeCompletion={this.handleRealtimeCompletion}
+              handleRealtimeCompletion={this.handleRealtimeCompletion.bind(
+                this
+              )}
               doneRealtime={this.props.doneRealtime}
               email={streamUser.email}
               twoFactorAuthData={twoFactorAuth}
@@ -391,35 +405,58 @@ class SDK extends Component {
             <RealTimeVerification
               taskId={taskId}
               policyHolderId={policyHolderId}
-              handleRealtimeCompletion={this.handleRealtimeCompletion}
+              handleRealtimeCompletion={this.handleRealtimeCompletion.bind(
+                this
+              )}
               doneRealtime={this.props.doneRealtime}
               email={streamUser.email}
             />
           );
         }
       } else {
-        return (
-          <FinishedEasyEnroll
-            tenant={streamTenant}
-            payer={streamPayer}
-            user={streamUser}
-            policyHolder={streamPolicyHolder}
-            employer={streamEmployer}
-            credentialsValid={
-              this.props.realTimeVerification ? credentialsValid : true
-            }
-            pending={finishedEasyEnrollPending}
-            endingMessage={endMessage}
-            returnToPage={
-              (this.props.realTimeVerification
+        if (this.props.renderEndWidget) {
+          return (
+            <FinishedEasyEnroll
+              tenant={streamTenant}
+              payer={streamPayer}
+              user={streamUser}
+              policyHolder={streamPolicyHolder}
+              employer={streamEmployer}
+              credentialsValid={
+                this.props.realTimeVerification ? credentialsValid : true
+              }
+              pending={finishedEasyEnrollPending}
+              endingMessage={endMessage}
+              returnToPage={
+                (this.props.realTimeVerification
+                ? credentialsValid
+                : true)
+                  ? this.restartProcess.bind(this)
+                  : this.setStep4.bind(this)
+              }
+              doneEasyEnroll={this.props.doneEasyEnroll}
+            />
+          );
+        } else {
+          this.props.doneEasyEnroll({
+            tenant: streamTenant,
+            payer: streamPayer,
+            user: streamUser,
+            policyHolder: streamPolicyHolder,
+            employer: streamEmployer,
+            credentialsValid: this.props.realTimeVerification
               ? credentialsValid
-              : true)
-                ? this.restartProcess
-                : this.setStep4
-            }
-            doneEasyEnroll={this.props.doneEasyEnroll}
-          />
-        );
+              : true,
+            pending: finishedEasyEnrollPending,
+            endingMessage: endMessage,
+            returnFlowFunction: (this.props.realTimeVerification
+            ? credentialsValid
+            : true)
+              ? this.restartProcess.bind(this)
+              : this.setStep4.bind(this)
+          });
+          return <div></div>;
+        }
       }
     } else {
       return <div>Failed to find an associated step</div>;

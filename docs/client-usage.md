@@ -83,6 +83,8 @@ StreamConnect({
 | `isDemo`                      | This let's you tell the SDK to not work with real data. Instead letting an implementer work on styling. | Boolean | `isDemo: true`                                        | `false`   |
 | `realTimeVerification`        | For realtime validation of logins. If disabled all creds will be assumed correct by the sdk.            | Boolean | `realTimeVerification: false`                         | `true`    |
 | `renderChoosePayer`           | For rendering the choose payer widget. If disabled create a custom choose payer, via `doneChoosePayer`  | Boolean | `renderChoosePayer: false`                            | `true`    |
+| `renderPayerForm`             | For rendering the payer form widget. If disabled create a custom payer form, via `doneCreatedForm`      | Boolean | `renderPayerForm: false`                              | `true`    |
+| `renderEndWidget`             | For rendering the end widget. If disabled create a custom end widget, via `doneEasyEnroll`              | Boolean | `renderEndWidget: false`                              | `true`    |
 | `userSchema`                  | [react-jsonschema-form](https://react-jsonschema-form.readthedocs.io/en/latest/) for `ui:schema`        | Object  | `userSchema: {}`                                      | `{}`      |
 
 ## Callbacks
@@ -161,14 +163,26 @@ StreamConnect({
 ### `doneCreatedForm`
 `doneCreatedForm` is the third callback to be called in the SDK flow. It occurs when the system finishes render the specific enrollment form for a carrier. This callback is purely used by the implementor for styling the form via JavaScript.
 
+If `renderPayerForm: false` then this callback now passes back the params necessary for an implementor to create their own completely custom widget.
+* `formJsonSchema` -- Provides a JS object which contains the configuration of the forms. Follows [Json Schema Form](https://github.com/json-schema-form) configuration.
+    * Within this schema you will find all the security questions for a given payer as well as lots of other values and requirements.
+* `returnToChoosePayer` -- When called it will reset the `el` which the SDK is hooked into and re-render the ChoosePayer widget.
+    * An example call would look like `returnToChoosePayer();`
+* `streamPayer` -- The carrier/payer object associated with the form and the credentials to be implemented.
+* `streamTenant` -- The tenant object the SDK and credentials it will be associated. This can be used to adjust text on your widget.
+* `tenantTerms` -- The custom terms of service configured by the Tenant.
+* `toggleTermsOfUse` -- renders the terms of use widget.
+    * An example call would look like `toggleTermsOfUse();`
+* `validateCreds` -- Function which will submit the values of the form and then begin the realtime validation process.
+    * `params` -- The values from the form to be submitted.
+    * An example call would look like `validateCreds({ params: formValues });`
+
 Example Usage:
 ```javascript
 StreamConnect({
   el: '#react-hook',
   ...
-  doneCreatedForm: () => {
-      // Do some styling
-  },
+  doneCreatedForm: ({ formJsonSchema, returnToChoosePayer, streamPayer, streamTenant, tenantTerms, toggleTermsOfUse, validateCreds}) => {},
 });
 ```
 
@@ -296,13 +310,16 @@ There are several properties passed back through this callback. Only a few may b
         * `'wrong_secondary'` -- The user's account is configured to be using the wrong secondary method of authentication. This will prompt the user to update their account to use security questions.
         * `null` -- The crawl engine is still trying to confirm the status of these credentials. This may take up to 24 hours depending on the carrier's site uptime.
 
+If `renderEndWidget: true` then you will be given access to the following params as well.
+* `returnFlowFunction` This will restart the SDK engine or return the user to the payer form depending on if the credentials were valid or not.
+    * An example call of this function looks like `returnFlowFunction()`
 
 Example Usage:
 ```javascript
 StreamConnect({
   el: '#react-hook',
   ...
-  doneEasyEnroll: ({ employer, payer, tenant, policyHolder, user }) => {
+  doneEasyEnroll: ({ employer, payer, tenant, policyHolder, user, returnFlowFunction }) => {
       // Do something with the data.
   },
 });
