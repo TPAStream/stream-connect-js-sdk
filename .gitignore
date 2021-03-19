@@ -1,3 +1,4 @@
 node_modules
-sdk-hook.js
+sdk-hook/sdk.js
+sdk-hook/node_modules
 sdk.js
