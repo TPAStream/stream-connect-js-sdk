@@ -1,2 +1,3 @@
 node_modules
-static
+sdk-hook.js
+sdk.js

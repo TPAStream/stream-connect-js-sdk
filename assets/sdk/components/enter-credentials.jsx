@@ -1,6 +1,9 @@
 import React, { Component } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faArrowCircleLeft } from '../util/font-awesome-icons';
+import {
+  faSpinner,
+  faArrowCircleLeft
+} from '../../shared/util/font-awesome-icons';
 import Form from 'react-jsonschema-form';
 import PayerInfo from './payer-info';
 

@@ -8,7 +8,7 @@ const webpack = require('webpack');
 var WebpackAutoInject = require('webpack-auto-inject-version');
 
 module.exports = {
-    entry: './assets/sdk/entries/sdk.jsx',
+    entry: '../assets/sdk-hook/entries/sdk-hook.js',
     resolve: {
         extensions: ['.js', '.jsx']
     },

@@ -1,7 +1,10 @@
 import React, { Component } from 'react';
-import { validateCredentials, putTask } from '../requests/validate-credentials';
+import {
+  validateCredentials,
+  putTask
+} from '../../shared/requests/validate-credentials';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '../util/font-awesome-icons';
+import { faSpinner } from '../../shared/util/font-awesome-icons';
 import Select from 'react-select';
 import Highlighter from 'react-highlight-words';
 

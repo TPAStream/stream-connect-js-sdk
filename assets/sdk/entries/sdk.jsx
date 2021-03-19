@@ -11,7 +11,7 @@ const StreamConnect = ({
   el,
   signature,
   apiToken,
-  tenant = { system_key: '', vendor: '' },
+  tenant = { systemKey: '', vendor: '' },
   employer = { systemKey: '', vendor: '', name: '' },
   user = { firstName: '', lastName: '', email: '' },
   realTimeVerification = true,

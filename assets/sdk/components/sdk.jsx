@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
-import { getSDK } from '../requests/sdk';
+import { getSDK } from '../../shared/requests/sdk';
 import {
   postCredentials,
   getPolicyHolder
-} from '../requests/enter-credentials';
-import { getTerms } from '../requests/terms';
-import { getPayer } from '../requests/payer';
-import { sdkAxiosMaker } from '../services/axios';
+} from '../../shared/requests/enter-credentials';
+import { getTerms } from '../../shared/requests/terms';
+import { getPayer } from '../../shared/requests/payer';
+import { sdkAxiosMaker } from '../../shared/services/axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '../util/font-awesome-icons';
+import { faSpinner } from '../../shared/util/font-awesome-icons';
 import TermsOfUse from './terms-of-use';
 import Step3 from './choose-payer';
 import Step4 from './enter-credentials';

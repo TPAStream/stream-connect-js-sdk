@@ -1,11 +1,9 @@
 {
-  "name": "stream-connect-sdk",
+  "name": "stream-connect-sdk-hook",
   "version": "0.5.5",
-  "description": "A JavaScript SDK implementing TPAStream's Connect Platform",
+  "description": "A JavaScript SDK implementing TPAStream's Connect Platform Via React Hooks",
   "scripts": {
-    "build": "webpack --config webpack.prod-sdk.js --mode=production",
-    "format": "eslint --fix assets && prettier --write \"assets/*/*/**\"",
-    "test:lint": "eslint assets && prettier --list-different \"assets/*/*/**\""
+    "build": "webpack --config webpack.prod-sdk-hook.js --mode=production"
   },
   "repository": {
     "type": "git",
@@ -44,19 +42,8 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "^1.2.25",
-    "@fortawesome/free-solid-svg-icons": "^5.13.0",
-    "@fortawesome/react-fontawesome": "^0.1.6",
     "axios": "^0.21.1",
-    "font-awesome": "^4.7.0",
-    "jquery": "^3.4.1",
-    "query-string": "^6.6.0",
-    "react": "^16.11.0",
-    "react-dom": "^16.8.6",
-    "react-highlight-words": "^0.16.0",
-    "react-jsonschema-form": "^1.6.0",
-    "react-popup": "^0.10.0",
-    "react-select": "^3.0.4"
+    "query-string": "^6.6.0"
   },
   "prettier": {
     "tabWidth": 2,
