@@ -276,7 +276,6 @@ export default class StreamConnect {
 
   checkProgress = async (progressCheckCallback, maxRetries) => {
     const { user, policyHolder, taskId, realTimeVerificationData } = this.state;
-    console.log(realTimeVerificationData);
     if (
       realTimeVerificationData &&
       realTimeVerificationData.currentRetries <= 0
@@ -293,7 +292,6 @@ export default class StreamConnect {
             "Validating your credentials is taking longer than usual due to high traffic. We'll keep trying even if you leave the page. Please check back later."
         }
       });
-      console.log('Max retries met');
       progressCheckCallback(this.state);
       return this.state;
     }
@@ -319,7 +317,6 @@ export default class StreamConnect {
       });
     } else if (validateData.state === 'FAILURE') {
       this.stopRealTimeVerification();
-      console.log('FAIL');
       this.setState({
         realTimeVerificationData: {
           progress: 100,
@@ -334,7 +331,6 @@ export default class StreamConnect {
       });
     } else if (validateData.state === 'SUCCESS') {
       this.stopRealTimeVerification();
-      console.log('SUCCESS');
       this.setState({
         realTimeVerificationData: {
           progress: 100,
@@ -369,7 +365,7 @@ export default class StreamConnect {
         `Tried to call handleRealTimeVerification out of state step (${steps.step5}). Current step is ${this.state.step}.`
       );
     }
-    const maxRetries = 5;
+    const maxRetries = 40;
     this.setState({
       realTimeVerificationData: {
         progress: null,
