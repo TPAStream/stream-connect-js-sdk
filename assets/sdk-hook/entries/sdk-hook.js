@@ -23,13 +23,14 @@ const steps = {
 export default class StreamConnect {
   constructor({
     apiToken,
+    sdkToken = null,
     tenant = { systemKey: '', vendor: '' },
     employer = { systemKey: '', vendor: '', name: '' },
     user = { firstName: '', lastName: '', email: '' },
     realTimeVerification = true,
     isDemo = false
   }) {
-    sdkAxiosMaker({ apiToken, version, isDemo, tenant });
+    sdkAxiosMaker({ apiToken: sdkToken || apiToken, version, isDemo, tenant });
     this.props = {
       apiToken,
       tenant,
@@ -44,6 +45,7 @@ export default class StreamConnect {
         step: steps.step3,
         isDemo: null,
         apiToken: null,
+        sdkToken: null,
         employer: null,
         payer: null,
         payers: null,
@@ -65,6 +67,7 @@ export default class StreamConnect {
         step: steps.step3,
         isDemo: null,
         apiToken: null,
+        sdkToken: null,
         employer: null,
         payer: null,
         payers: null,

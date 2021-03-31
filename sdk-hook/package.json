@@ -1,6 +1,6 @@
 {
   "name": "stream-connect-sdk-hook",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "A JavaScript SDK implementing TPAStream's Connect Platform Via React Hooks",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk-hook.js --mode=production"
