@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import Popup from 'react-popup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faQuestionCircle } from '../util/font-awesome-icons';
+import { faQuestionCircle } from '../../shared/util/font-awesome-icons';
 
 export class ControlledPopup extends Popup {
   constructor(props) {

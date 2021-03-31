@@ -1,2 +1,4 @@
 node_modules
-static
+sdk-hook/sdk.js
+sdk-hook/node_modules
+sdk.js

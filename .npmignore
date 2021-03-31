@@ -1,4 +1,5 @@
 node_modules
+.github
 assets
 webpack.common-sdk.js
 webpack.prod-sdk.js

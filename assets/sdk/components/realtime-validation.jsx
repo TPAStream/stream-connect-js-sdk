@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import { validateCredentials } from '../requests/validate-credentials';
+import { validateCredentials } from '../../shared/requests/validate-credentials';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '../util/font-awesome-icons';
+import { faSpinner } from '../../shared/util/font-awesome-icons';
 
 export default class RealTimeVerification extends Component {
   constructor(props) {
