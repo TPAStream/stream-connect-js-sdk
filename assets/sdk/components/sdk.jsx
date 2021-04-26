@@ -179,6 +179,7 @@ class SDK extends Component {
       step: -1,
       error: error
     });
+    this.props.handleInitErrors(error);
   };
 
   setStep3 = () => {
