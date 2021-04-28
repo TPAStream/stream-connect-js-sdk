@@ -29,7 +29,8 @@ const StreamConnect = ({
   donePostCredentials = () => {},
   doneRealTime = () => {},
   doneEasyEnroll = () => {},
-  handleFormErrors = () => {}
+  handleFormErrors = () => {},
+  handleInitErrors = () => {}
 }) => {
   $(function() {
     render(
@@ -54,6 +55,7 @@ const StreamConnect = ({
         donePopUp={donePopUp}
         doneEasyEnroll={doneEasyEnroll}
         handleFormErrors={handleFormErrors}
+        handleInitErrors={handleInitErrors}
         version={version}
       />,
       document.querySelector(el)

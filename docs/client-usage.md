@@ -126,6 +126,19 @@ StreamConnect({
 });
 ```
 
+### `handleInitErrors`
+`handleInitErrors` is a callback which runs whenever there was a configuraiton error with the SDK. This configuration error will have a message attached to it explaining to an implementor what the problem with the configuration was. During this callback an implementor could add custom logic to handle custom messaging for the user who might be experiencing this error.
+Example Usage:
+```javascript
+StreamConnect({
+  el: '#react-hook',
+  ...
+  handleInitErrors: (error) => {
+      // Do something with this data
+  },
+});
+```
+
 ### `doneChoosePayer`
 `doneChoosePayer` is the second callback to be called in the SDK flow. It occurs when the system has finished rendering the choose-payer widget. If the default widget is enabled then there are no parameters passed back into it. Instead implementors will be using this callback to style the default widget to their liking. This may take a little bit of effort depending on how your system looks and feels. It is best to worry about these changes while setting `isDemo` equal to `true` so that you can do so without worrying about creating data.
 

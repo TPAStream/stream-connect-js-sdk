@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.5.5
+### 0.5.8
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -43,6 +43,8 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 [Client Usage](docs/client-usage.md)
 
 [SDK Flow Details](docs/sdk-flow.md)
+
+[QuickStart Guide](docs/quickstart.md)
 
 ## Development Commands
 `npm install`
