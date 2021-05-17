@@ -4,6 +4,7 @@
  * config, see:
  * https://stackoverflow.com/questions/50805626/webpack-4-multiple-sets-of-entries-with-code-splitting-unique-to-each
  */
+
 const webpack = require('webpack');
 var WebpackAutoInject = require('webpack-auto-inject-version');
 
