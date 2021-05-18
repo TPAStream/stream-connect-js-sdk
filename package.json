@@ -5,7 +5,8 @@
   "scripts": {
     "build": "webpack --config webpack.prod-sdk.js --mode=production",
     "format": "eslint --fix assets && prettier --write \"assets/*/*/**\"",
-    "test:lint": "eslint assets && prettier --list-different \"assets/*/*/**\""
+    "test:lint": "eslint assets && prettier --list-different \"assets/*/*/**\"",
+    "test": "jest assets/tests/ --config=jest.config.js"
   },
   "repository": {
     "type": "git",
@@ -33,6 +34,7 @@
     "es5-shim": "^4.5.13",
     "eslint": "^5.16.0",
     "eslint-plugin-react": "^7.13.0",
+    "jest": "^26.6.3",
     "prettier": "^1.18.2",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0",
@@ -56,7 +58,8 @@
     "react-highlight-words": "^0.16.0",
     "react-jsonschema-form": "^1.6.0",
     "react-popup": "^0.10.0",
-    "react-select": "^3.0.4"
+    "react-select": "^3.0.4",
+    "regenerator-runtime": "^0.13.7"
   },
   "prettier": {
     "tabWidth": 2,
