@@ -12,6 +12,7 @@ const StreamConnect = ({
   signature,
   apiToken,
   sdkToken = null,
+  connectAccessToken = undefined,
   tenant = { systemKey: '', vendor: '' },
   employer = { systemKey: '', vendor: '', name: '' },
   user = { firstName: '', lastName: '', email: '' },
@@ -40,6 +41,7 @@ const StreamConnect = ({
         isDemo={isDemo}
         employer={employer}
         apiToken={sdkToken || apiToken}
+        connectAccessToken={connectAccessToken}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
         renderChoosePayer={renderChoosePayer}
