@@ -77,7 +77,7 @@ export default class FinishedEasyEnroll extends Component {
           <h4>I don't know my username or password.</h4>
           <div>
             You can update your{' '}
-            <a target="_blank" href={payer.register_url}>
+            <a target="_blank" href={payer.register_url} rel="noreferrer">
               {payer.name} account here
             </a>
           </div>
