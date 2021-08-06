@@ -214,7 +214,14 @@ export default class EnterCredentials extends Component {
       submitDisabled,
       errorMessage
     } = this.state;
-    const { streamPayer, tenantTerms, returnToStep3, donePopUp } = this.props;
+    const {
+      streamPayer,
+      streamPolicyHolder,
+      tenantTerms,
+      returnToStep3,
+      returnToStep2,
+      donePopUp
+    } = this.props;
     // We'll want to remove the div below eventually. It is just for my eyes.
     return (
       <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
@@ -225,7 +232,17 @@ export default class EnterCredentials extends Component {
             onClick={returnToStep3}
           />
         ) : null}
+        {returnToStep2 ? (
+          <FontAwesomeIcon
+            size="lg"
+            icon={faArrowCircleLeft}
+            onClick={returnToStep2}
+          />
+        ) : null}
         {errorMessage && <div>{errorMessage}</div>}
+        {streamPolicyHolder && streamPolicyHolder.login_correction_message && (
+          <div>{streamPolicyHolder.login_correction_message}</div>
+        )}
         <PayerInfo payer={streamPayer} donePopUp={donePopUp} />
         <Form
           schema={schema}

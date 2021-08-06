@@ -6,10 +6,13 @@ import {
 } from '../../shared/requests/enter-credentials';
 import { getTerms } from '../../shared/requests/terms';
 import { getPayer } from '../../shared/requests/payer';
+import { getFixCredentials } from '../../shared/requests/fix-credentials';
 import { sdkAxiosMaker } from '../../shared/services/axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '../../shared/util/font-awesome-icons';
 import TermsOfUse from './terms-of-use';
+import Step1 from './select-enroll-process';
+import Step2 from './fix-credentials';
 import Step3 from './choose-payer';
 import Step4 from './enter-credentials';
 import FinishedEasyEnroll from './finished-easyenroll';
@@ -182,6 +185,35 @@ class SDK extends Component {
     this.props.handleInitErrors(error);
   };
 
+  setStep1 = () => {
+    this.setState({
+      loading: false,
+      step: 1,
+      termsOfUse: false,
+      streamPayer: null,
+      policyHolderId: null,
+      streamPolicyHolder: null
+    });
+  };
+
+  setStep2 = () => {
+    const { streamUser } = this.state;
+    this.setState({
+      loading: true
+    });
+    getFixCredentials({ email: streamUser.email }).then(({ user }) => {
+      this.setState({
+        loading: false,
+        step: 2,
+        termsOfUse: false,
+        streamPayer: null,
+        policyHolderId: null,
+        streamPolicyHolder: null,
+        streamUser: user
+      });
+    });
+  };
+
   setStep3 = () => {
     this.setState({
       loading: false,
@@ -192,8 +224,14 @@ class SDK extends Component {
     });
   };
 
-  setStep4 = ({ payer, dependent }) => {
+  setStep4 = ({ payer, dependent, policyHolder }) => {
     const { streamPayer, streamUser, streamEmployer } = this.state;
+    if (policyHolder) {
+      this.setState({
+        streamPolicyHolder: policyHolder,
+        policyHolderId: policyHolder.id
+      });
+    }
     if (payer) {
       if (streamPayer && streamPayer.id == payer.id) {
         this.setState({
@@ -245,22 +283,10 @@ class SDK extends Component {
 
   restartProcess = () => {
     this.setState(this.defaultState);
-    getSDK(this.props).then(({ user, payers, tenant, employer }) => {
-      this.setState({
-        streamUser: user,
-        streamPayers: payers,
-        streamTenant: tenant,
-        streamEmployer: employer
-      });
-      if (payers.length === 1) {
-        this.setStep4({ payer: payers[0] });
-      } else {
-        this.setStep3();
-      }
-    });
+    this.makeInitRequest();
   };
 
-  componentDidMount() {
+  makeInitRequest = () => {
     getSDK(this.props).then(({ user, payers, tenant, employer, error }) => {
       this.setState({
         streamUser: user,
@@ -270,6 +296,16 @@ class SDK extends Component {
       });
       if (error) {
         this.setStepConfigError(error);
+        return;
+      } else if (this.props.fixCredentials) {
+        if (!this.props.connectAccessToken) {
+          this.setStepConfigError(
+            'You must have a connect access token enabled and set to use fix-credentials functionality.'
+          );
+          return;
+        } else {
+          this.setStep1();
+        }
       } else if (payers.length === 1) {
         this.setStep4({ payer: payers[0] });
       } else {
@@ -279,6 +315,10 @@ class SDK extends Component {
         error: null
       });
     });
+  };
+
+  componentDidMount() {
+    this.makeInitRequest();
   }
 
   render() {
@@ -311,12 +351,35 @@ class SDK extends Component {
           site host.
         </div>
       );
+    } else if (step === 1) {
+      return (
+        <Step1
+          doneStep1={this.props.doneStep1}
+          setFixCredentials={this.setStep2.bind(this)}
+          setChoosePayer={this.setStep3.bind(this)}
+        />
+      );
+    } else if (step === 2) {
+      return (
+        <Step2
+          doneStep2={this.props.doneStep2}
+          streamUser={streamUser}
+          streamPayers={streamPayers}
+          choosePolicyHolder={this.setStep4.bind(this)}
+          returnSelectEnrollProcess={
+            this.props.fixCredentials && this.setStep1.bind(this)
+          }
+        />
+      );
     } else if (step === 3) {
       if (this.props.renderChoosePayer) {
         return (
           <Step3
             streamPayers={streamPayers}
             streamEmployer={streamEmployer}
+            returnSelectEnrollProcess={
+              this.props.fixCredentials && this.setStep1.bind(this)
+            }
             choosePayer={this.setStep4.bind(this)}
             usedPayers={streamUser.policy_holders.map(ph => ph.payer_id)}
             doneStep3={this.props.doneStep3}
@@ -357,6 +420,7 @@ class SDK extends Component {
         return (
           <Step4
             streamPayer={streamPayer}
+            streamPolicyHolder={streamPolicyHolder}
             tenantTerms={streamTenant.terms_of_use}
             formData={formData}
             streamTenant={streamTenant}
@@ -366,6 +430,11 @@ class SDK extends Component {
             returnToStep3={
               streamPayers.length > 1 && policyHolderId === null
                 ? this.setStep3.bind(this)
+                : null
+            }
+            returnToStep2={
+              this.props.fixCredentials && policyHolderId !== null
+                ? this.setStep2.bind(this)
                 : null
             }
             validateCreds={this.validateCreds.bind(this)}

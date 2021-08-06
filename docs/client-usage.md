@@ -6,7 +6,7 @@ A mock implementation might look something like the following:
 
 Using TPAStream as a CDN
 ```html
-    <script src="https://app.tpastream.com/static/js/sdk.js"></script>
+    <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
     <script>
         window.StreamConnect({
             el: '#react-hook', // This is where we nest all the pages for the form. You will pass in a selector.
@@ -42,9 +42,9 @@ As shown above the SDK is mounted by calling `window.StreamConnect({})` and pass
 
 As of SDK version 0.4.7 the CDN provider is now versioned and will support up to 10 minor versions behind.
  * Importing the various versions of the SDK is handled in `src` attribute on your script tag
-    * `"https://app.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
-    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
-        * `"https://app.tpastream.com/static/js/sdk-v-0.4.7.js"`
+    * `"https://jason.dev.sso.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
+    * `"https://jason.dev.sso.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
+        * `"https://jason.dev.sso.tpastream.com/static/js/sdk-v-0.4.7.js"`
 
 NPM package
 ```javascript
@@ -87,6 +87,7 @@ StreamConnect({
 | `renderPayerForm`             | For rendering the payer form widget. If disabled create a custom payer form, via `doneCreatedForm`      | Boolean | `renderPayerForm: false`                              | `true`    |
 | `renderEndWidget`             | For rendering the end widget. If disabled create a custom end widget, via `doneEasyEnroll`              | Boolean | `renderEndWidget: false`                              | `true`    |
 | `userSchema`                  | [react-jsonschema-form](https://react-jsonschema-form.readthedocs.io/en/latest/) for `ui:schema`        | Object  | `userSchema: {}`                                      | `{}`      |
+| `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials) in the SDK                                    | Boolean | `fixCredentials: true` | `false` |
 
 ## Callbacks
 The main way an implementor will be interacting and modifying the `stream-connect-js-sdk` is via our various callbacks placed at key flowpoints of the SDK. In these callbacks the implementors are recommended to use `JavaScript` to style the various widgets as well as handle any additional custom logic which they deem necessary. These callbacks also include various amounts of information which can be helpful when trying to integrate fully with the TPAStream system.
@@ -123,6 +124,34 @@ StreamConnect({
   ...
   doneGetSDK: ({ user, payers, tenant, employer }) => {
       // Do something with this data
+  },
+});
+```
+
+### `doneSelectEnrollProcess`
+`doneSelectEnrollProcess` is fired right after doneGetSDK when `fixCredentials` is `true`. This is primarly meant for styling the two buttons.
+
+Example Usage:
+```javascript
+StreamConnect({
+  el: '#react-hook',
+  ...
+  doneSelectEnrollProcess: () => {
+      // Do some styling
+  },
+});
+```
+
+### `doneFixCredentials`
+`doneFixCredentials` is is fired after the Fix Credentials card is clicked in the select enroll flow. This only fires when `fixCredentials` is `true`
+
+Example Usage:
+```javascript
+StreamConnect({
+  el: '#react-hook',
+  ...
+  doneFixCredentials: () => {
+      // Do some styling
   },
 });
 ```
