@@ -11,11 +11,11 @@ export const getSDK = async ({
   try {
     if (isDemo) {
       sdkResponse = await sdkAxios.get(
-        'https://jason.dev.sso.tpastream.com/sdk-api/tpastream_sdk'
+        'https://app.tpastream.com/sdk-api/tpastream_sdk'
       );
     } else {
       sdkResponse = await sdkAxios.post(
-        'https://jason.dev.sso.tpastream.com/sdk-api/tpastream_sdk',
+        'https://app.tpastream.com/sdk-api/tpastream_sdk',
         {
           tenant_id: signature,
           system_key: employer.systemKey,

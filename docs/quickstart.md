@@ -13,14 +13,14 @@ Here is what the test htmlscript looks like.
 <html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
+        <script src="https://app.tpastream.com/static/js/sdk.js"></script>
     </head>
     <body></body>
 </html>
 ```
 
-`<script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>` in the head  will bring down the latest version of the StreamConnect SDK. If for any reason you require a previous version or wish to set the SDK to a specific version change the src to something like 
-`<script src="https://jason.dev.sso.tpastream.com/static/js/sdk-v-0.5.4.js"></script>`. The SDK CDN provides up to 10 minor version prior.
+`<script src="https://app.tpastream.com/static/js/sdk.js"></script>` in the head  will bring down the latest version of the StreamConnect SDK. If for any reason you require a previous version or wish to set the SDK to a specific version change the src to something like 
+`<script src="https://app.tpastream.com/static/js/sdk-v-0.5.4.js"></script>`. The SDK CDN provides up to 10 minor version prior.
 
 ## Step 2 -- Add element for SDK to hook to and init SDK
 ```html
@@ -28,7 +28,7 @@ Here is what the test htmlscript looks like.
 <html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
+        <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
                 el: '#sdk-hook',
@@ -56,7 +56,7 @@ If you then open up the above html in a browser you should see something close t
 <html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
+        <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
                 el: '#sdk-hook',
@@ -93,7 +93,7 @@ if the error naturally resolves as you add the rest of the configuration.
 <html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
+        <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
                 el: '#sdk-hook',
@@ -128,7 +128,7 @@ your current email.
 <html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <script src="https://jason.dev.sso.tpastream.com/static/js/sdk.js"></script>
+        <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
                 el: '#sdk-hook',
@@ -156,7 +156,7 @@ your current email.
 When implementing the SDK all carrier credentials will be nested under an employer in TPAStream. This block will define which
 employer your are interested in.
 
-To get the Key for an existing employer go to the [Employers Page](https://jason.dev.sso.tpastream.com/b/employers) in the TPAStream Admin portal. From there search up the desired employer. Then enter the details page of said employer. From there navigate to the **support** tab.
+To get the Key for an existing employer go to the [Employers Page](https://app.tpastream.com/b/employers) in the TPAStream Admin portal. From there search up the desired employer. Then enter the details page of said employer. From there navigate to the **support** tab.
 
 You will see a screen similar to this:
 ![Employer Key Page](quickstart-screenshots/employer-key-page.png)
