@@ -87,6 +87,7 @@ StreamConnect({
 | `renderPayerForm`             | For rendering the payer form widget. If disabled create a custom payer form, via `doneCreatedForm`      | Boolean | `renderPayerForm: false`                              | `true`    |
 | `renderEndWidget`             | For rendering the end widget. If disabled create a custom end widget, via `doneEasyEnroll`              | Boolean | `renderEndWidget: false`                              | `true`    |
 | `userSchema`                  | [react-jsonschema-form](https://react-jsonschema-form.readthedocs.io/en/latest/) for `ui:schema`        | Object  | `userSchema: {}`                                      | `{}`      |
+| `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials) in the SDK                                    | Boolean | `fixCredentials: true` | `false` |
 
 ## Callbacks
 The main way an implementor will be interacting and modifying the `stream-connect-js-sdk` is via our various callbacks placed at key flowpoints of the SDK. In these callbacks the implementors are recommended to use `JavaScript` to style the various widgets as well as handle any additional custom logic which they deem necessary. These callbacks also include various amounts of information which can be helpful when trying to integrate fully with the TPAStream system.
@@ -123,6 +124,34 @@ StreamConnect({
   ...
   doneGetSDK: ({ user, payers, tenant, employer }) => {
       // Do something with this data
+  },
+});
+```
+
+### `doneSelectEnrollProcess`
+`doneSelectEnrollProcess` is fired right after doneGetSDK when `fixCredentials` is `true`. This is primarly meant for styling the two buttons.
+
+Example Usage:
+```javascript
+StreamConnect({
+  el: '#react-hook',
+  ...
+  doneSelectEnrollProcess: () => {
+      // Do some styling
+  },
+});
+```
+
+### `doneFixCredentials`
+`doneFixCredentials` is is fired after the Fix Credentials card is clicked in the select enroll flow. This only fires when `fixCredentials` is `true`
+
+Example Usage:
+```javascript
+StreamConnect({
+  el: '#react-hook',
+  ...
+  doneFixCredentials: () => {
+      // Do some styling
   },
 });
 ```

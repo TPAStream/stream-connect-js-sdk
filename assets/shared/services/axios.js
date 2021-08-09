@@ -27,6 +27,18 @@ const sdkAxiosMaker = ({
       })
     }
   });
+  sdkAxios.interceptors.response.use(
+    response => {
+      if (response.headers['x-set-connect-access-token']) {
+        sdkAxios.defaults.headers['X-Connect-Access-Token'] =
+          response.headers['x-set-connect-access-token'];
+      }
+      return response;
+    },
+    error => {
+      return Promise.reject(error);
+    }
+  );
 };
 
 export { sdkAxiosMaker, sdkAxios };

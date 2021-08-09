@@ -1,6 +1,6 @@
 {
   "name": "stream-connect-sdk",
-  "version": "0.5.9",
+  "version": "0.6.0",
   "description": "A JavaScript SDK implementing TPAStream's Connect Platform",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk.js --mode=production",

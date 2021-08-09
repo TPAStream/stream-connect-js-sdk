@@ -2,5 +2,7 @@
 export {
   faQuestionCircle,
   faArrowCircleLeft,
-  faSpinner
+  faSpinner,
+  faUserPlus,
+  faUserEdit
 } from '@fortawesome/free-solid-svg-icons';

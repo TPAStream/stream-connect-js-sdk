@@ -21,8 +21,11 @@ const StreamConnect = ({
   renderPayerForm = true,
   renderEndWidget = true,
   isDemo = false,
+  fixCredentials = false,
   userSchema = {},
   doneGetSDK = () => {},
+  doneSelectEnrollProcess = () => {},
+  doneFixCredentials = () => {},
   doneChoosePayer = () => {},
   doneTermsOfService = () => {},
   donePopUp = () => {},
@@ -44,11 +47,14 @@ const StreamConnect = ({
         connectAccessToken={connectAccessToken}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
+        fixCredentials={fixCredentials}
         renderChoosePayer={renderChoosePayer}
         renderPayerForm={renderPayerForm}
         renderEndWidget={renderEndWidget}
         userSchema={userSchema}
         doneGetSDK={doneGetSDK}
+        doneStep1={doneSelectEnrollProcess}
+        doneStep2={doneFixCredentials}
         doneStep3={doneChoosePayer}
         doneTermsOfService={doneTermsOfService}
         doneStep4={doneCreatedForm}
