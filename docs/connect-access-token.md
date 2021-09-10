@@ -25,7 +25,7 @@ The pattern is as followed.
 ![Connect Access Token Pattern](connect-access-token-screenshots/connect-access-token-pattern.png)
 
 1. Confirm that your secret key is stored on your application.
-2. Make a POST request to https://app.tpastream.com/api/create-connect-token
+2. Make a POST request to https://app.tpastream.com/sdk-api/create-connect-token
     * The Body should have `{"connect_access_key": "", "connect_secret_key": ""}`
 3. You will recieve back a response with json data `"data": "some-super-long-jwt"`
 4. Take the value from that response's data key and pump it up to your StreamConnect instance through `connectAccessToken`
