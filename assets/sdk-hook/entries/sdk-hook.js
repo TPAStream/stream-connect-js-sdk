@@ -10,8 +10,7 @@ import { parseMany, parseOne } from '../../shared/parsers/generic';
 import { serializeOne } from '../../shared/serializers/generic';
 import { validateCredentials } from '../../shared/requests/validate-credentials';
 
-// Injected from webpack-auto-inject version https://stackoverflow.com/questions/24663175/how-can-i-inject-a-build-number-with-webpack
-let version = '[AIV]{version}[/AIV]';
+let version = '0.6.1';
 
 const steps = {
   step3: 'choosePayer',
@@ -24,13 +23,20 @@ export default class StreamConnect {
   constructor({
     apiToken,
     sdkToken = null,
+    connectAccessToken = null,
     tenant = { systemKey: '', vendor: '' },
     employer = { systemKey: '', vendor: '', name: '' },
     user = { firstName: '', lastName: '', email: '' },
     realTimeVerification = true,
     isDemo = false
   }) {
-    sdkAxiosMaker({ apiToken: sdkToken || apiToken, version, isDemo, tenant });
+    sdkAxiosMaker({
+      apiToken: sdkToken || apiToken,
+      connectAccessToken,
+      version,
+      isDemo,
+      tenant
+    });
     this.props = {
       apiToken,
       tenant,

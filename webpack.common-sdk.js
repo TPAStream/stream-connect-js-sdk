@@ -6,7 +6,6 @@
  */
 
 const webpack = require('webpack');
-var WebpackAutoInject = require('webpack-auto-inject-version');
 
 module.exports = {
     entry: './assets/sdk/entries/sdk.jsx',
@@ -28,8 +27,7 @@ module.exports = {
         ]
     },
     plugins: [
-        new webpack.ProvidePlugin({}),
-        new WebpackAutoInject()
+        new webpack.ProvidePlugin({})
     ],
     output: {
         path: __dirname,
@@ -37,7 +35,5 @@ module.exports = {
         libraryTarget: 'commonjs2',
     },
     externals: {},
-    node: {
-        fs: 'empty'
-    }
+    node: {}
 };

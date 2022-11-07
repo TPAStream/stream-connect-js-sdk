@@ -158,7 +158,7 @@ const streamConnect = new StreamConnect({
 });
 
 const App = (props) => {
-  const [ streamConnectPayers, setStreamConnectPayers ] = useState(null);
+  const [ streamConnectPayers, setStreamConnectPayers ] = useState([]);
 
   useEffect(() => {
     streamConnect.getStreamConnectInitAsync().then(({ payers }) => setStreamConnectPayers(payers))

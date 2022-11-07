@@ -2,3 +2,4 @@ node_modules
 sdk-hook/sdk.js
 sdk-hook/node_modules
 /sdk.js
+.npmrc
