@@ -107,12 +107,12 @@ export default class StreamConnect {
   beginAddNewCredentials = () => {
     this.setState({ step: steps.step3 });
     return this.state;
-  }
+  };
 
   beginFixCredentials = () => {
     this.setState({ step: steps.step2 });
     return this.state;
-  }
+  };
 
   getStreamConnectInitAsync = async () => {
     const { employer, user, isDemo } = this.state;
@@ -142,7 +142,7 @@ export default class StreamConnect {
     });
   };
 
-  getStreamConnectPayerAsync = async (payer) => {
+  getStreamConnectPayerAsync = async payer => {
     const { employer, user, tenant } = this.state;
     if (this.state.step !== steps.step3 && this.state.step !== steps.step2) {
       throw new Error(
