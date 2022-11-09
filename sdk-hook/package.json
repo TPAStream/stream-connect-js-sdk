@@ -1,6 +1,6 @@
 {
   "name": "stream-connect-sdk-hook",
-  "version": "0.5.7",
+  "version": "0.6.1",
   "description": "A JavaScript SDK implementing TPAStream's Connect Platform Via React Hooks",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk-hook.js --mode=production"
@@ -34,14 +34,13 @@
     "prettier": "^1.18.2",
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0",
-    "transform-loader": "^0.2.4",
-    "webpack": "^4.41.2",
-    "webpack-auto-inject-version": "^1.2.2",
-    "webpack-cli": "^3.3.10",
+    "transform-loader": "^0.2.3",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0",
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "query-string": "^6.6.0"
   },
   "prettier": {

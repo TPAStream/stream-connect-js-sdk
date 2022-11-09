@@ -426,6 +426,7 @@ class SDK extends Component {
             streamTenant={streamTenant}
             tenantName={streamTenant.name}
             toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
+            includePayerBlogs={this.props.includePayerBlogs}
             userAddedUISchema={this.props.userSchema}
             returnToStep3={
               streamPayers.length > 1 && policyHolderId === null

@@ -5,7 +5,6 @@
  * https://stackoverflow.com/questions/50805626/webpack-4-multiple-sets-of-entries-with-code-splitting-unique-to-each
  */
 const webpack = require('webpack');
-var WebpackAutoInject = require('webpack-auto-inject-version');
 
 module.exports = {
     entry: '../assets/sdk-hook/entries/sdk-hook.js',
@@ -28,7 +27,6 @@ module.exports = {
     },
     plugins: [
         new webpack.ProvidePlugin({}),
-        new WebpackAutoInject()
     ],
     output: {
         path: __dirname,
@@ -36,7 +34,5 @@ module.exports = {
         libraryTarget: 'commonjs2',
     },
     externals: {},
-    node: {
-        fs: 'empty'
-    }
+    node: {}
 };

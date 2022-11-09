@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.5.8
+### 0.6.1
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -12,6 +12,12 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
+### v0.6.1
+    * Add in payer blogs. See includePayerBlogs in client-usage documentaiton.
+    * Various bug fixes in SDK-Hooks
+    * Fix SDK flow bug which caused page to stop rendering on multiple login inputs. This was related to AIV which is now deprecated.
+    * Various package updates
+    * Remove auto version injector. Deprecated. TPAStream Devs MUST now manually update the file (unfortunately)
 ### v0.5.5
     * Add in ability to implement custom widgets for payer form and the end widget.
 ### v0.5.4
@@ -45,6 +51,8 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 [SDK Flow Details](docs/sdk-flow.md)
 
 [QuickStart Guide](docs/quickstart.md)
+
+[SDK-Hook Guide](sdk-hook/docs/README.md)
 
 ## Development Commands
 `npm install`

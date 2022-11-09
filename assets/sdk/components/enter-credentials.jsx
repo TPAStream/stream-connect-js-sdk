@@ -218,6 +218,7 @@ export default class EnterCredentials extends Component {
       streamPayer,
       streamPolicyHolder,
       tenantTerms,
+      includePayerBlogs,
       returnToStep3,
       returnToStep2,
       donePopUp
@@ -243,7 +244,11 @@ export default class EnterCredentials extends Component {
         {streamPolicyHolder && streamPolicyHolder.login_correction_message && (
           <div>{streamPolicyHolder.login_correction_message}</div>
         )}
-        <PayerInfo payer={streamPayer} donePopUp={donePopUp} />
+        <PayerInfo
+          payer={streamPayer}
+          donePopUp={donePopUp}
+          includePayerBlogs={includePayerBlogs}
+        />
         <Form
           schema={schema}
           uiSchema={uiSchema}
