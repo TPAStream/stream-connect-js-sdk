@@ -1,6 +1,7 @@
 import { sdkAxiosMaker } from '../../shared/services/axios';
 import { getSDK } from '../../shared/requests/sdk';
 import { getPayer } from '../../shared/requests/payer';
+import { getFixCredentials } from '../../shared/requests/fix-credentials';
 import {
   postCredentials,
   getPolicyHolder
@@ -13,6 +14,8 @@ import { validateCredentials } from '../../shared/requests/validate-credentials'
 let version = '0.6.1';
 
 const steps = {
+  step1: 'select-enroll-process',
+  step2: 'fix-credentials',
   step3: 'choosePayer',
   step4: 'enterCredentials',
   step5: 'realTimeVerification',
@@ -48,7 +51,7 @@ export default class StreamConnect {
     };
     this.state = Object.assign(
       {
-        step: steps.step3,
+        step: steps.step1,
         isDemo: null,
         apiToken: null,
         sdkToken: null,
@@ -70,7 +73,7 @@ export default class StreamConnect {
   restartStreamConnect = () => {
     this.state = Object.assign(
       {
-        step: steps.step3,
+        step: steps.step1,
         isDemo: null,
         apiToken: null,
         sdkToken: null,
@@ -101,24 +104,47 @@ export default class StreamConnect {
     this.state = parseOne(this.state);
   };
 
+  beginAddNewCredentials = () => {
+    this.setState({ step: steps.step3 });
+    return this.state;
+  }
+
+  beginFixCredentials = () => {
+    this.setState({ step: steps.step2 });
+    return this.state;
+  }
+
   getStreamConnectInitAsync = async () => {
     const { employer, user, isDemo } = this.state;
     const doneGetSDK = () => {};
-    if (this.state.step !== steps.step3) {
+    if (this.state.step !== steps.step1) {
       throw new Error(
-        `Tried to call getStreamConnectInitAsync out of state step (${steps.step3}). Current step is ${this.state.step}.`
+        `Tried to call getStreamConnectInitAsync out of state step (${steps.step1}). Current step is ${this.state.step}.`
       );
     }
 
     return getSDK({ employer, user, isDemo, doneGetSDK }).then(initData => {
-      this.setState({ ...initData, step: steps.step3 });
+      this.setState({ ...initData, step: steps.step1 });
       return this.state;
     });
   };
 
-  getStreamConnectPayerAsync = payer => {
+  getFixCredentialsAsync = async () => {
+    const { user } = this.state;
+    if (this.state.step !== steps.step2) {
+      throw new Error(
+        `Tried to call getFixCredentialsAsync out of state step (${steps.step2}). Current step is ${this.state.step}.`
+      );
+    }
+    return getFixCredentials({ email: user.email }).then(({ user }) => {
+      this.setState({ user: user });
+      return this.state;
+    });
+  };
+
+  getStreamConnectPayerAsync = async (payer) => {
     const { employer, user, tenant } = this.state;
-    if (this.state.step !== steps.step3) {
+    if (this.state.step !== steps.step3 && this.state.step !== steps.step2) {
       throw new Error(
         `Tried to call getStreamConnectPayerAsync out of state step (${steps.step3}). Current step is ${this.state.step}.`
       );

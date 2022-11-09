@@ -65,15 +65,14 @@ const streamConnect = new StreamConnect({
 * All functions return the classes state property.
 
 ### Flow
-The streamConnect SDK is designed to follow the following steps: choosePayer --> enterCredentials --> realTimeVerification --> finishEasyEnroll
+The streamConnect SDK is designed to follow the following steps: select-enroll-process ->  fix-credentials / choosePayer --> enterCredentials --> realTimeVerification --> finishEasyEnroll
 
 The following steps will be described below as well as all of the functions provided by the StreamConnect class and how to implement them.
 
-### choosePayer (step3)
-
-During the first step an implementor should focus on initing the StreamConnect class filling out the config as show above. After initing the sdk an implementor should be concerned with letting the user choose a payer. The following functions are part of this flow:
+### select-enroll-process (step1) 
 * getStreamConnectInitAsync
-* getStreamConnectPayerAsync
+* beginAddNewCredentials
+* beginFixCredentials
 
 **getStreamConnectInitAsync**
 * This should be the first call you make within the implementation of streamConnect
@@ -130,51 +129,25 @@ During the first step an implementor should focus on initing the StreamConnect c
 
 * An implementor should be expressly concerned with the `payers` array within the state field. The `payers` array has several objects within it which will be passed into the next function on the sdk flow.
 
-```javascript
-getStreamConnectInitAsync
-/* mock implementation */
+**beginFixCredentials**
+* This function will set the SDK step state to step2 which is required for a user to begin fix-credentials.
+* An implementor should determine if the user wants to adjust an old set of credentials or if the user wants to add new creds
 
-import React, { useState, useEffect } from 'react';
-import StreamConnect from 'stream-connect-sdk-hook';
+**beginAddNewCredentials**
+* This function will set the SDK step state to step3 which will have a user get a list of payers to choose from.
 
-const streamConnect = new StreamConnect({
-  realTimeVerification: true,
-  isDemo: false,
-  apiToken: 'not-real-api-token',
-  tenant: {
-      vendor: 'internal',
-      systemKey: 'test-tenant-key'
-  },
-  employer: {
-      name: 'testingEmployer',
-      systemKey: 'testing-sdk',
-      vendor: 'internal',
-  },
-  user: {
-      firstName: 'Not Real',
-      lastName: 'Not Real',
-      email: 'youremail+testingsdk@email.com'
-  },
-});
 
-const App = (props) => {
-  const [ streamConnectPayers, setStreamConnectPayers ] = useState([]);
+### fix-credentials (step2)
 
-  useEffect(() => {
-    streamConnect.getStreamConnectInitAsync().then(({ payers }) => setStreamConnectPayers(payers))
-  }, []);
+After initing the sdk then calling `beginFixCredentials` the implementor should be concerned with letting the user select a specific set of credentials to work with. The following functions are part of this flow:
+* getFixCredentialsAsync
 
-  console.log(streamConnectPayers);
+You should expect the state here to return a user which has several policy_holders nested beneath it. You will call `getStreamConnectPayerAsync` after you find which payer the PH is on and pass in the payer object same as from step3.
 
-  return (
-    streamConnectPayers.forEach(p => {
-        return (<button onClick={() => {}}>{p.name}</button>)
-    })
-  )
-};
+### choosePayer (step3)
 
-export default App;
-```
+After initing the sdk then calling `beginAddNewCredentials` the implementor should be concerned with letting the user choose a payer. The following functions are part of this flow:
+* getStreamConnectPayerAsync
 
 **getStreamConnectPayerAsync**
 * This is the final call of step choosePayer. This call will progress the sdk to the next step, enter-credentials.
