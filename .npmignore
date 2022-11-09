@@ -4,3 +4,6 @@ assets
 webpack.common-sdk.js
 webpack.prod-sdk.js
 docs
+sdk-hook/
+jest.config.js
+sdk.js.LICENSE.txt

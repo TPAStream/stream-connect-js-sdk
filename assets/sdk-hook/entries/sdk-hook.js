@@ -11,7 +11,7 @@ import { parseMany, parseOne } from '../../shared/parsers/generic';
 import { serializeOne } from '../../shared/serializers/generic';
 import { validateCredentials } from '../../shared/requests/validate-credentials';
 
-let version = '0.6.1';
+let version = '0.6.2';
 
 const steps = {
   step1: 'select-enroll-process',
