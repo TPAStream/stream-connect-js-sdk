@@ -80,7 +80,7 @@ StreamConnect({
 | `user.phoneNumber`            | The user's phone number                                                                                 | String  | `user: { phoneNumber: '000-000-0000' }`               | N\A       |
 | `user.dateOfBirth`            | The user's date of birth                                                                                | String  | `user: { dateOfBirth: 'YYYY-MM-DD' }`                 | N\A       |
 | `sdkToken`*                   | The SDK Token. This has to be configured before-hand. It isn't a secret.                                | String  | `sdkToken: 'VeryLegitKey'`                            | N\A       |
-| `connectAccessToken`          | A generated token if advanced security is enabled. See [Connect Access Token](./connect-access-token)   | String  | `connectAccessToken: ''`                              | N\A       |
+| `connectAccessToken`          | A generated token if advanced security is enabled. See [Connect Access Token](./connect-access-token.md)   | String  | `connectAccessToken: ''`                              | N\A       |
 | `includePayerBlogs`           | Enable optional payer updates blog on each enrollment form. Has some additional info about the payer.   | String  | `includePayerBlogs: false`                            | `false`   |
 | `isDemo`                      | This let's you tell the SDK to not work with real data. Instead letting an implementer work on styling. | Boolean | `isDemo: true`                                        | `false`   |
 | `realTimeVerification`        | For realtime validation of logins. If disabled all creds will be assumed correct by the sdk.            | Boolean | `realTimeVerification: true`                          | `true`    |
