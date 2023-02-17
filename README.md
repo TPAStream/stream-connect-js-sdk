@@ -3,7 +3,7 @@
 
 ## Version
 
-### 0.6.2
+### 0.6.3
 
 ## Philosophy
 This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
@@ -12,6 +12,8 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
+### v0.6.3
+    * Add in interoperability payer flag and redirect URL
 ### v0.6.2
     * Bump version and have better npm ignore
 ### v0.6.1

@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.2';
+let version = '0.6.3';
 
 const StreamConnect = ({
   el,
@@ -22,6 +22,8 @@ const StreamConnect = ({
   includePayerBlogs = false,
   isDemo = false,
   fixCredentials = false,
+  interoperabilityRedirectUrl = null,
+  previousInteroperabilityState = null,
   userSchema = {},
   doneGetSDK = () => {},
   doneSelectEnrollProcess = () => {},
@@ -45,6 +47,8 @@ const StreamConnect = ({
         employer={employer}
         apiToken={sdkToken || apiToken}
         connectAccessToken={connectAccessToken}
+        interoperabilityRedirectUrl={interoperabilityRedirectUrl}
+        previousInteroperabilityState={previousInteroperabilityState}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
         fixCredentials={fixCredentials}

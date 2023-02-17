@@ -6,6 +6,7 @@ import {
 } from '../../shared/util/font-awesome-icons';
 import Form from 'react-jsonschema-form';
 import PayerInfo from './payer-info';
+import { InteroperabilityPayerForm } from './interoperability-payer-form';
 
 const AdditionalUiSchema = ({ toggleTermsOfUse, userAddedUISchema }) => {
   let editableUiSchema = {
@@ -219,62 +220,75 @@ export default class EnterCredentials extends Component {
       streamPolicyHolder,
       tenantTerms,
       includePayerBlogs,
+      interoperabilityRedirectUrl,
       returnToStep3,
       returnToStep2,
       donePopUp
     } = this.props;
-    // We'll want to remove the div below eventually. It is just for my eyes.
-    return (
-      <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
-        {returnToStep3 ? (
-          <FontAwesomeIcon
-            size="lg"
-            icon={faArrowCircleLeft}
-            onClick={returnToStep3}
+    console.log(streamPayer);
+
+    if (interoperabilityRedirectUrl) {
+      return (
+        <div style={{ marginTop: '15px' }} id="easy-enroll-form-page"></div>
+      );
+    } else {
+      return (
+        <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
+          {returnToStep3 ? (
+            <FontAwesomeIcon
+              size="lg"
+              icon={faArrowCircleLeft}
+              onClick={returnToStep3}
+            />
+          ) : null}
+          {returnToStep2 ? (
+            <FontAwesomeIcon
+              size="lg"
+              icon={faArrowCircleLeft}
+              onClick={returnToStep2}
+            />
+          ) : null}
+          {errorMessage && <div>{errorMessage}</div>}
+          {streamPolicyHolder &&
+            streamPolicyHolder.login_correction_message && (
+              <div>{streamPolicyHolder.login_correction_message}</div>
+            )}
+          <PayerInfo
+            payer={streamPayer}
+            donePopUp={donePopUp}
+            includePayerBlogs={includePayerBlogs}
           />
-        ) : null}
-        {returnToStep2 ? (
-          <FontAwesomeIcon
-            size="lg"
-            icon={faArrowCircleLeft}
-            onClick={returnToStep2}
-          />
-        ) : null}
-        {errorMessage && <div>{errorMessage}</div>}
-        {streamPolicyHolder && streamPolicyHolder.login_correction_message && (
-          <div>{streamPolicyHolder.login_correction_message}</div>
-        )}
-        <PayerInfo
-          payer={streamPayer}
-          donePopUp={donePopUp}
-          includePayerBlogs={includePayerBlogs}
-        />
-        <Form
-          schema={schema}
-          uiSchema={uiSchema}
-          formData={formData}
-          showErrorList={false}
-          onSubmit={this.handleSubmit}
-          onChange={this.handleChange}
-          validate={this.validateForm}
-          //noValidate={true}
-          id="easy-enroll-form"
-        >
-          <div>
-            <div className="tenant-terms">{tenantTerms}</div>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitDisabled}
+          {interoperabilityRedirectUrl &&
+          streamPayer.supports_interoperability_apis ? (
+            <InteroperabilityPayerForm streamPayer={streamPayer} />
+          ) : (
+            <Form
+              schema={schema}
+              uiSchema={uiSchema}
+              formData={formData}
+              showErrorList={false}
+              onSubmit={this.handleSubmit}
+              onChange={this.handleChange}
+              validate={this.validateForm}
+              id="easy-enroll-form"
             >
-              Validate Credentials
-            </button>
-            {submitDisabled ? (
-              <FontAwesomeIcon icon={faSpinner} size="lg" spin />
-            ) : null}
-          </div>
-        </Form>
-      </div>
-    );
+              <div>
+                <div className="tenant-terms">{tenantTerms}</div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={submitDisabled}
+                >
+                  Validate Credentials
+                </button>
+                {submitDisabled ? (
+                  <FontAwesomeIcon icon={faSpinner} size="lg" spin />
+                ) : null}
+              </div>
+            </Form>
+          )}
+        </div>
+      );
+    }
   }
 }
