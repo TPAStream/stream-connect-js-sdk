@@ -299,6 +299,12 @@ class SDK extends Component {
       if (error) {
         this.setStepConfigError(error);
         return;
+      } else if (this.props.forceEndStep) {
+        this.setState({
+          loading: false,
+          step: 5,
+          credentialsValid: true
+        });
       } else if (this.props.fixCredentials) {
         if (!this.props.connectAccessToken) {
           this.setStepConfigError(

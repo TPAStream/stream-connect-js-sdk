@@ -1,23 +1,16 @@
 import { sdkAxios } from '../services/axios';
 
-export const getSDK = async ({
-  signature,
-  employer,
-  user,
-  isDemo,
-  doneGetSDK
-}) => {
+export const getSDK = async ({ employer, user, isDemo, doneGetSDK }) => {
   let sdkResponse = {};
   try {
     if (isDemo) {
       sdkResponse = await sdkAxios.get(
-        'https://app.tpastream.com/sdk-api/tpastream_sdk'
+        'https://app.tpastream.com.com/sdk-api/tpastream_sdk'
       );
     } else {
       sdkResponse = await sdkAxios.post(
-        'https://app.tpastream.com/sdk-api/tpastream_sdk',
+        'https://app.tpastream.com.com/sdk-api/tpastream_sdk',
         {
-          tenant_id: signature,
           system_key: employer.systemKey,
           vendor: employer.vendor,
           employer_name: employer.name,

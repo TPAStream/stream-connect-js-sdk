@@ -11,11 +11,8 @@ export default class InteroperabilityPayerForm extends Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    console.log(this.props);
     const { streamPayer } = this.props;
     // Redirect the person to the oauth flow. They will return to the sdk eventually.
-    console.log(streamPayer.interoperability_authorization_url);
-    console.log(window);
     window.location.href = streamPayer.interoperability_authorization_url;
   }
 
