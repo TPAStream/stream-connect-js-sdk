@@ -28,7 +28,6 @@ export default class PayerInfo extends Component {
   render() {
     const { payer, donePopUp, includePayerBlogs } = this.props;
     const { popUpActive } = this.state;
-    console.log(this.props);
     let message = `
           Before you proceed, make sure you have registered on ${payer.website_home_url_netloc}
           and have your ${payer.name} username and password at your fingertips.
@@ -90,7 +89,6 @@ export default class PayerInfo extends Component {
           ? payer.blogs.map(blog => {
               const article = marked.parse(blog.article);
               const clean = DOMPurify.sanitize(article);
-              console.log(clean);
               return <div dangerouslySetInnerHTML={{ __html: clean }} />;
             })
           : null}

@@ -252,7 +252,8 @@ class SDK extends Component {
         getPayer({
           payerId: payer.id,
           employerId: streamEmployer.id,
-          email: streamUser.email
+          email: streamUser.email,
+          referer: this.props.interoperabilityRedirectUrl
         }).then(payerResponse => {
           this.setState({
             loading: false,
@@ -297,6 +298,12 @@ class SDK extends Component {
       if (error) {
         this.setStepConfigError(error);
         return;
+      } else if (this.props.forceEndStep) {
+        this.setState({
+          loading: false,
+          step: 5,
+          credentialsValid: true
+        });
       } else if (this.props.fixCredentials) {
         if (!this.props.connectAccessToken) {
           this.setStepConfigError(
@@ -426,6 +433,7 @@ class SDK extends Component {
             streamTenant={streamTenant}
             tenantName={streamTenant.name}
             toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
+            interoperabilityRedirectUrl={this.props.interoperabilityRedirectUrl}
             includePayerBlogs={this.props.includePayerBlogs}
             userAddedUISchema={this.props.userSchema}
             returnToStep3={

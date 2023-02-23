@@ -6,7 +6,7 @@ A mock implementation might look something like the following:
 
 Using TPAStream as a CDN
 ```html
-    <script src="https://app.tpastream.com/static/js/sdk.js"></script>
+    <script src="https://app.tpastream.com.com/static/js/sdk.js"></script>
     <script>
         window.StreamConnect({
             el: '#react-hook', // This is where we nest all the pages for the form. You will pass in a selector.
@@ -42,9 +42,9 @@ As shown above the SDK is mounted by calling `window.StreamConnect({})` and pass
 
 As of SDK version 0.4.7 the CDN provider is now versioned and will support up to 10 minor versions behind.
  * Importing the various versions of the SDK is handled in `src` attribute on your script tag
-    * `"https://app.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
-    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
-        * `"https://app.tpastream.com/static/js/sdk-v-0.4.7.js"`
+    * `"https://app.tpastream.com.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
+    * `"https://app.tpastream.com.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
+        * `"https://app.tpastream.com.com/static/js/sdk-v-0.4.7.js"`
 
 NPM package
 ```javascript
@@ -82,6 +82,8 @@ StreamConnect({
 | `sdkToken`*                   | The SDK Token. This has to be configured before-hand. It isn't a secret.                                | String  | `sdkToken: 'VeryLegitKey'`                            | N\A       |
 | `connectAccessToken`          | A generated token if advanced security is enabled. See [Connect Access Token](./connect-access-token.md)   | String  | `connectAccessToken: ''`                              | N\A       |
 | `includePayerBlogs`           | Enable optional payer updates blog on each enrollment form. Has some additional info about the payer.   | String  | `includePayerBlogs: false`                            | `false`   |
+| `interoperabilityRedirectUrl` | The redirect URL sent to the SDK interop system post authentication on a payer website. See [Interop](./interop.md) | String | `interoperabilityRedirectUrl: 'https://myredirect.com/someurlwithdata/youcareabout` | N\A |
+| `forceEndStep` | A value passed into the instance widget to immediate force the end widget to render instead of any other step | Boolean | `forceEndStep: true` | `false` |
 | `isDemo`                      | This let's you tell the SDK to not work with real data. Instead letting an implementer work on styling. | Boolean | `isDemo: true`                                        | `false`   |
 | `realTimeVerification`        | For realtime validation of logins. If disabled all creds will be assumed correct by the sdk.            | Boolean | `realTimeVerification: true`                          | `true`    |
 | `renderChoosePayer`           | For rendering the choose payer widget. If disabled create a custom choose payer, via `doneChoosePayer`  | Boolean | `renderChoosePayer: false`                            | `true`    |

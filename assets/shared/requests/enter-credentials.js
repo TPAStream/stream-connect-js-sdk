@@ -9,11 +9,11 @@ export const postCredentials = async ({
   try {
     response = policyHolderId
       ? await sdkAxios.put(
-          `https://app.tpastream.com/sdk-api/policy_holder_sdk/policy_holder/${policyHolderId}`,
+          `https://app.tpastream.com.com/sdk-api/policy_holder_sdk/policy_holder/${policyHolderId}`,
           params
         )
       : await sdkAxios.post(
-          'https://app.tpastream.com/sdk-api/policy_holder_sdk/policy_holder',
+          'https://app.tpastream.com.com/sdk-api/policy_holder_sdk/policy_holder',
           params
         );
   } catch (error) {
@@ -41,7 +41,7 @@ export const getPolicyHolder = async ({
   email
 }) => {
   const policyHolderResponse = await sdkAxios.get(
-    `https://app.tpastream.com/sdk-api/policy_holder_sdk/policy_holder/${policyHolderId}`,
+    `https://app.tpastream.com.com/sdk-api/policy_holder_sdk/policy_holder/${policyHolderId}`,
     {
       params: {
         employer_id: employerId,
