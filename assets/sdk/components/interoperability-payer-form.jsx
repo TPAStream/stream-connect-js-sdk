@@ -18,14 +18,12 @@ export default class InteroperabilityPayerForm extends Component {
 
   render() {
     const { tenantAccept, tpastreamTermsAccept } = this.state;
-    console.log(this.state);
     const {
       streamTenant,
       streamPayer,
       tenantTerms,
       handleTermsClick
     } = this.props;
-    console.log(this.props);
     return (
       <form id="easy-enroll-form" onSubmit={this.handleSubmit.bind(this)}>
         <h2 id="interoperability-api-notification">
