@@ -249,6 +249,7 @@ class SDK extends Component {
         this.setState({
           loading: true
         });
+        console.log(this.props);
         getPayer({
           payerId: payer.id,
           employerId: streamEmployer.id,

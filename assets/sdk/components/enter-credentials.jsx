@@ -6,7 +6,7 @@ import {
 } from '../../shared/util/font-awesome-icons';
 import Form from 'react-jsonschema-form';
 import PayerInfo from './payer-info';
-import { InteroperabilityPayerForm } from './interoperability-payer-form';
+import InteroperabilityPayerForm from './interoperability-payer-form';
 
 const AdditionalUiSchema = ({ toggleTermsOfUse, userAddedUISchema }) => {
   let editableUiSchema = {
@@ -218,6 +218,7 @@ export default class EnterCredentials extends Component {
     const {
       streamPayer,
       streamPolicyHolder,
+      streamTenant,
       tenantTerms,
       includePayerBlogs,
       interoperabilityRedirectUrl,
@@ -225,70 +226,66 @@ export default class EnterCredentials extends Component {
       returnToStep2,
       donePopUp
     } = this.props;
-    console.log(streamPayer);
-
-    if (interoperabilityRedirectUrl) {
-      return (
-        <div style={{ marginTop: '15px' }} id="easy-enroll-form-page"></div>
-      );
-    } else {
-      return (
-        <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
-          {returnToStep3 ? (
-            <FontAwesomeIcon
-              size="lg"
-              icon={faArrowCircleLeft}
-              onClick={returnToStep3}
-            />
-          ) : null}
-          {returnToStep2 ? (
-            <FontAwesomeIcon
-              size="lg"
-              icon={faArrowCircleLeft}
-              onClick={returnToStep2}
-            />
-          ) : null}
-          {errorMessage && <div>{errorMessage}</div>}
-          {streamPolicyHolder &&
-            streamPolicyHolder.login_correction_message && (
-              <div>{streamPolicyHolder.login_correction_message}</div>
-            )}
-          <PayerInfo
-            payer={streamPayer}
-            donePopUp={donePopUp}
-            includePayerBlogs={includePayerBlogs}
+    return (
+      <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
+        {returnToStep3 ? (
+          <FontAwesomeIcon
+            size="lg"
+            icon={faArrowCircleLeft}
+            onClick={returnToStep3}
           />
-          {interoperabilityRedirectUrl &&
-          streamPayer.supports_interoperability_apis ? (
-            <InteroperabilityPayerForm streamPayer={streamPayer} />
-          ) : (
-            <Form
-              schema={schema}
-              uiSchema={uiSchema}
-              formData={formData}
-              showErrorList={false}
-              onSubmit={this.handleSubmit}
-              onChange={this.handleChange}
-              validate={this.validateForm}
-              id="easy-enroll-form"
-            >
-              <div>
-                <div className="tenant-terms">{tenantTerms}</div>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitDisabled}
-                >
-                  Validate Credentials
-                </button>
-                {submitDisabled ? (
-                  <FontAwesomeIcon icon={faSpinner} size="lg" spin />
-                ) : null}
-              </div>
-            </Form>
-          )}
-        </div>
-      );
-    }
+        ) : null}
+        {returnToStep2 ? (
+          <FontAwesomeIcon
+            size="lg"
+            icon={faArrowCircleLeft}
+            onClick={returnToStep2}
+          />
+        ) : null}
+        {errorMessage && <div>{errorMessage}</div>}
+        {streamPolicyHolder && streamPolicyHolder.login_correction_message && (
+          <div>{streamPolicyHolder.login_correction_message}</div>
+        )}
+        <PayerInfo
+          payer={streamPayer}
+          donePopUp={donePopUp}
+          includePayerBlogs={includePayerBlogs}
+        />
+        {interoperabilityRedirectUrl &&
+        streamPayer.supports_interoperability_apis ? (
+          <InteroperabilityPayerForm
+            streamPayer={streamPayer}
+            streamTenant={streamTenant}
+            tenantTerms={tenantTerms}
+            handleTermsClick={this.toggleTermsOfUse.bind(this)}
+          />
+        ) : (
+          <Form
+            schema={schema}
+            uiSchema={uiSchema}
+            formData={formData}
+            showErrorList={false}
+            onSubmit={this.handleSubmit}
+            onChange={this.handleChange}
+            validate={this.validateForm}
+            id="easy-enroll-form"
+          >
+            <div>
+              <div className="tenant-terms">{tenantTerms}</div>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitDisabled}
+              >
+                Validate Credentials
+              </button>
+              {submitDisabled ? (
+                <FontAwesomeIcon icon={faSpinner} size="lg" spin />
+              ) : null}
+            </div>
+          </Form>
+        )}
+      </div>
+    );
   }
 }
