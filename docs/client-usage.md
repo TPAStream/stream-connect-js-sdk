@@ -6,7 +6,7 @@ A mock implementation might look something like the following:
 
 Using TPAStream as a CDN
 ```html
-    <script src="https://app.tpastream.com.com/static/js/sdk.js"></script>
+    <script src="https://app.tpastream.com/static/js/sdk.js"></script>
     <script>
         window.StreamConnect({
             el: '#react-hook', // This is where we nest all the pages for the form. You will pass in a selector.
@@ -42,9 +42,9 @@ As shown above the SDK is mounted by calling `window.StreamConnect({})` and pass
 
 As of SDK version 0.4.7 the CDN provider is now versioned and will support up to 10 minor versions behind.
  * Importing the various versions of the SDK is handled in `src` attribute on your script tag
-    * `"https://app.tpastream.com.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
-    * `"https://app.tpastream.com.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
-        * `"https://app.tpastream.com.com/static/js/sdk-v-0.4.7.js"`
+    * `"https://app.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
+    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
+        * `"https://app.tpastream.com/static/js/sdk-v-0.4.7.js"`
 
 NPM package
 ```javascript

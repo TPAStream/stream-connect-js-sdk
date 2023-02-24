@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.3';
+let version = '0.6.4';
 
 const affirmInstance = ({
   el,
