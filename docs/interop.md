@@ -6,7 +6,7 @@ When `interoperabilityRedirectUrl` is set and your given tenant / token is confi
 
 Here's how the flow goes at a top level:
 
-![Interop Payer Pattern](connect-access-token-screenshots/connect-access-token-pattern.png)
+![Interop Payer Pattern](interop-screenshots/Interop%20SDK%20Flow.png)
 
 
 As you can see there is a redirect within the center of the flow where the user will go through the Payer Website then through TPAStream.
