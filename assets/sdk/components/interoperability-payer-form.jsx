@@ -9,13 +9,25 @@ export default class InteroperabilityPayerForm extends Component {
     };
   }
 
+  checkDone() {
+    const { windowProxyObj } = this.state;
+    if (windowProxyObj.location.href.includes("sdk-interop-done")) {
+      const ph_id=parseInt(windowProxyObj.location.href.replace('https://app.tpastream.com/sdk-interop-done/', ''))
+      windowProxyObj.close();
+      clearInterval(this.interval);
+      this.props.validateCreds({ params: {}, errorCallBack: this.handleError, interopPhId: ph_id });
+    }
+  }
+
   handleSubmit(event) {
     event.preventDefault();
     const { streamPayer } = this.props;
     // Redirect the person to the oauth flow. They will return to the sdk eventually.
-    window.location.href = streamPayer.interoperability_authorization_url;
+    const windowProxyObj = window.open(streamPayer.interoperability_authorization_url);
+    this.setState({ windowProxyObj: windowProxyObj });
+    this.interval = setInterval(this.checkDone.bind(this), 1000);
   }
-
+      
   render() {
     const { tenantAccept, tpastreamTermsAccept } = this.state;
     const {

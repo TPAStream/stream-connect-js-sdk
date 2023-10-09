@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.4';
+let version = '0.6.5';
 
 const affirmInstance = ({
   el,
@@ -21,7 +21,7 @@ const affirmInstance = ({
   includePayerBlogs,
   isDemo,
   fixCredentials,
-  interoperabilityRedirectUrl,
+  enableInterop,
   forceEndStep,
   userSchema,
   doneGetSDK,
@@ -70,9 +70,7 @@ const affirmInstance = ({
     includePayerBlogs: typeof includePayerBlogs == 'boolean',
     isDemo: typeof isDemo == 'boolean',
     fixCredentials: typeof fixCredentials == 'boolean',
-    interoperabilityRedirectUrl: interoperabilityRedirectUrl
-      ? typeof interoperabilityRedirectUrl == 'string'
-      : true,
+    enableInterop: typeof enableInterop == 'boolean',
     forceEndStep: typeof forceEndStep == 'boolean',
     userSchema: typeof userSchema == 'object',
     doneGetSDK: typeof doneGetSDK == 'function',
@@ -122,7 +120,7 @@ const StreamConnect = ({
   includePayerBlogs = false,
   isDemo = false,
   fixCredentials = false,
-  interoperabilityRedirectUrl = null,
+  enableInterop = false,
   forceEndStep = false,
   userSchema = {},
   doneGetSDK = () => {},
@@ -153,7 +151,7 @@ const StreamConnect = ({
     includePayerBlogs,
     isDemo,
     fixCredentials,
-    interoperabilityRedirectUrl,
+    enableInterop,
     forceEndStep,
     userSchema,
     doneGetSDK,
@@ -182,7 +180,7 @@ const StreamConnect = ({
         employer={employer}
         apiToken={sdkToken || apiToken}
         connectAccessToken={connectAccessToken}
-        interoperabilityRedirectUrl={interoperabilityRedirectUrl}
+        enableInterop={enableInterop}
         forceEndStep={forceEndStep}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
