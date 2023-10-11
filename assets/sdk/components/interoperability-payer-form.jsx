@@ -11,11 +11,31 @@ export default class InteroperabilityPayerForm extends Component {
 
   checkDone() {
     const { windowProxyObj } = this.state;
-    if (windowProxyObj.location.href.includes("sdk-interop-done")) {
-      const ph_id=parseInt(windowProxyObj.location.href.replace('https://app.tpastream.com/sdk-interop-done/', ''))
+    if (windowProxyObj.location.href.includes('sdk-interop-done')) {
+      const ph_id = parseInt(
+        windowProxyObj.location.href.replace(
+          'https://app.tpastream.com/sdk-interop-done/',
+          ''
+        )
+      );
       windowProxyObj.close();
       clearInterval(this.interval);
-      this.props.validateCreds({ params: {}, errorCallBack: this.handleError, interopPhId: ph_id });
+      this.props.validateCreds({
+        params: {},
+        errorCallBack: this.handleError,
+        interopPhId: ph_id
+      });
+    } else if (
+      windowProxyObj.location.href.includes('sdk-interop-error-done')
+    ) {
+      const error = windowProxyObj.location.href.replace(
+        'https://app.tpastream.com/sdk-interop-error-done/',
+        ''
+      );
+      windowProxyObj.close();
+      clearInterval(this.interval);
+      this.setState({ error: error });
+      this.handleError(error);
     }
   }
 
@@ -23,13 +43,15 @@ export default class InteroperabilityPayerForm extends Component {
     event.preventDefault();
     const { streamPayer } = this.props;
     // Redirect the person to the oauth flow. They will return to the sdk eventually.
-    const windowProxyObj = window.open(streamPayer.interoperability_authorization_url);
+    const windowProxyObj = window.open(
+      streamPayer.interoperability_authorization_url
+    );
     this.setState({ windowProxyObj: windowProxyObj });
     this.interval = setInterval(this.checkDone.bind(this), 1000);
   }
-      
+
   render() {
-    const { tenantAccept, tpastreamTermsAccept } = this.state;
+    const { tenantAccept, tpastreamTermsAccept, error } = this.state;
     const {
       streamTenant,
       streamPayer,
@@ -38,6 +60,7 @@ export default class InteroperabilityPayerForm extends Component {
     } = this.props;
     return (
       <form id="easy-enroll-form" onSubmit={this.handleSubmit.bind(this)}>
+        {error && <div>{error}</div>}
         <h2 id="interoperability-api-notification">
           Connect to {streamPayer.website_home_url_netloc}
         </h2>

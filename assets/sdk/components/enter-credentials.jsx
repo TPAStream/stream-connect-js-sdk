@@ -251,8 +251,7 @@ export default class EnterCredentials extends Component {
           donePopUp={donePopUp}
           includePayerBlogs={includePayerBlogs}
         />
-        {enableInterop &&
-        streamPayer.supports_interoperability_apis ? (
+        {enableInterop && streamPayer.supports_interoperability_apis ? (
           <InteroperabilityPayerForm
             streamPayer={streamPayer}
             streamTenant={streamTenant}
@@ -261,7 +260,6 @@ export default class EnterCredentials extends Component {
             validateCreds={this.props.validateCreds}
             handlePostError={this.handlePostError.bind(this)}
           />
-          
         ) : (
           <Form
             schema={schema}

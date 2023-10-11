@@ -100,7 +100,11 @@ class SDK extends Component {
     }
   };
 
-  validateCreds = ({ params: params, errorCallBack = data => {}, interopPhId = null }) => {
+  validateCreds = ({
+    params: params,
+    errorCallBack = data => {},
+    interopPhId = null
+  }) => {
     const { streamUser, streamEmployer, policyHolderId } = this.state;
     const additionalParams = {
       user: streamUser,
@@ -110,7 +114,7 @@ class SDK extends Component {
       formData: null
     });
     this.props.donePostCredentials({ params: params });
-  
+
     if (interopPhId) {
       getPolicyHolder({
         policyHolderId: interopPhId,
