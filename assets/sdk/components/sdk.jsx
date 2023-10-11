@@ -100,7 +100,11 @@ class SDK extends Component {
     }
   };
 
-  validateCreds = ({ params: params, errorCallBack = data => {} }) => {
+  validateCreds = ({
+    params: params,
+    errorCallBack = data => {},
+    interopPhId = null
+  }) => {
     const { streamUser, streamEmployer, policyHolderId } = this.state;
     const additionalParams = {
       user: streamUser,
@@ -110,44 +114,62 @@ class SDK extends Component {
       formData: null
     });
     this.props.donePostCredentials({ params: params });
-    if (this.props.isDemo) {
-      this.setState({
-        termsOfUse: false,
-        policyHolderId: policyHolderId,
-        taskId: this.props.realTimeVerification ? 'DEMO' : null,
-        step: 5
+
+    if (interopPhId) {
+      getPolicyHolder({
+        policyHolderId: interopPhId,
+        email: streamUser.email,
+        employerId: streamEmployer.id
+      }).then(phData => {
+        this.setState({
+          termsOfUse: false,
+          taskId: null,
+          credentialsValid: true,
+          policyHolderId: interopPhId,
+          streamPolicyHolder: phData,
+          step: 5
+        });
       });
     } else {
-      postCredentials({
-        params: { ...params, ...additionalParams },
-        policyHolderId: policyHolderId,
-        handleFormErrors: this.props.handleFormErrors
-      }).then(({ taskId, policyHolderId, errorMessage }) => {
-        if (errorMessage) {
-          errorCallBack({
-            errorMessage: errorMessage
-          });
-        } else {
-          getPolicyHolder({
-            policyHolderId: policyHolderId,
-            email: streamUser.email,
-            employerId: streamEmployer.id
-          }).then(phData => {
-            this.setState({
-              termsOfUse: false,
-              taskId: this.props.realTimeVerification ? taskId : null,
-              credentialsValid: taskId
-                ? null
-                : phData.login_problem !== null
-                ? !phData.login_needs_correction
-                : true,
-              policyHolderId: policyHolderId,
-              streamPolicyHolder: phData,
-              step: 5
+      if (this.props.isDemo) {
+        this.setState({
+          termsOfUse: false,
+          policyHolderId: policyHolderId,
+          taskId: this.props.realTimeVerification ? 'DEMO' : null,
+          step: 5
+        });
+      } else {
+        postCredentials({
+          params: { ...params, ...additionalParams },
+          policyHolderId: policyHolderId,
+          handleFormErrors: this.props.handleFormErrors
+        }).then(({ taskId, policyHolderId, errorMessage }) => {
+          if (errorMessage) {
+            errorCallBack({
+              errorMessage: errorMessage
             });
-          });
-        }
-      });
+          } else {
+            getPolicyHolder({
+              policyHolderId: policyHolderId,
+              email: streamUser.email,
+              employerId: streamEmployer.id
+            }).then(phData => {
+              this.setState({
+                termsOfUse: false,
+                taskId: this.props.realTimeVerification ? taskId : null,
+                credentialsValid: taskId
+                  ? null
+                  : phData.login_problem !== null
+                  ? !phData.login_needs_correction
+                  : true,
+                policyHolderId: policyHolderId,
+                streamPolicyHolder: phData,
+                step: 5
+              });
+            });
+          }
+        });
+      }
     }
   };
 
@@ -433,7 +455,7 @@ class SDK extends Component {
             streamTenant={streamTenant}
             tenantName={streamTenant.name}
             toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
-            interoperabilityRedirectUrl={this.props.interoperabilityRedirectUrl}
+            enableInterop={this.props.enableInterop}
             includePayerBlogs={this.props.includePayerBlogs}
             userAddedUISchema={this.props.userSchema}
             returnToStep3={
