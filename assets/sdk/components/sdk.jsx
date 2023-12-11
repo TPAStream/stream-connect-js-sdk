@@ -452,6 +452,7 @@ class SDK extends Component {
             streamPolicyHolder={streamPolicyHolder}
             tenantTerms={streamTenant.terms_of_use}
             formData={formData}
+            email={streamUser.email}
             streamTenant={streamTenant}
             tenantName={streamTenant.name}
             toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
@@ -481,7 +482,8 @@ class SDK extends Component {
           streamTenant: streamTenant,
           toggleTermsOfUse: this.toggleTermsOfUse.bind(this),
           returnToChoosePayer: this.setStep3.bind(this),
-          validateCreds: this.validateCreds.bind(this)
+          validateCreds: this.validateCreds.bind(this),
+          email: streamUser.email
         });
         return <div></div>;
       }

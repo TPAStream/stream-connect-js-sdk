@@ -1,57 +1,76 @@
 import React, { Component } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSpinner } from '../../shared/util/font-awesome-icons';
+import { beginInterop, getInteropState } from '../../shared/requests/interop';
 
 export default class InteroperabilityPayerForm extends Component {
   constructor(props) {
     super(props);
     this.state = {
       tenantAccept: false,
-      tpastreamTermsAccept: false
+      tpastreamTermsAccept: false,
+      connectingToInterop: false
     };
   }
 
   checkDone() {
-    const { windowProxyObj } = this.state;
-    if (windowProxyObj.location.href.includes('sdk-interop-done')) {
-      const ph_id = parseInt(
-        windowProxyObj.location.href.replace(
-          'https://app.tpastream.com/sdk-interop-done/',
-          ''
-        )
-      );
-      windowProxyObj.close();
-      clearInterval(this.interval);
-      this.props.validateCreds({
-        params: {},
-        errorCallBack: this.handleError,
-        interopPhId: ph_id
-      });
-    } else if (
-      windowProxyObj.location.href.includes('sdk-interop-error-done')
-    ) {
-      const error = windowProxyObj.location.href.replace(
-        'https://app.tpastream.com/sdk-interop-error-done/',
-        ''
-      );
-      windowProxyObj.close();
-      clearInterval(this.interval);
-      this.setState({ error: error });
-      this.handleError(error);
-    }
+    const { email } = this.props;
+    getInteropState({ email: email }).then(data => {
+      if (data.status === 'SUCCESS') {
+        this.setState({ connectingToInterop: false });
+        clearInterval(this.interval);
+        this.props.validateCreds({
+          params: {},
+          errorCallBack: this.handleError,
+          interopPhId: data.ph_id
+        });
+      } else if (data.status === 'FAILURE') {
+        clearInterval(this.interval);
+        this.setState({ errorMessage: data.error, connectingToInterop: false });
+        this.props.handlePostError({ errorMessage: data.error });
+      } else if (data.status === 'IN_PROGRESS') {
+        console.log('Interop in progress, waiting for completion');
+      } else {
+        const errorMessage = 'Unknown State of Interop flow';
+        clearInterval(this.interval);
+        this.setState({
+          errorMessage: errorMessage,
+          connectingToInterop: false
+        });
+        this.props.handlePostError({ errorMessage: errorMessage });
+      }
+    });
   }
 
   handleSubmit(event) {
     event.preventDefault();
-    const { streamPayer } = this.props;
-    // Redirect the person to the oauth flow. They will return to the sdk eventually.
-    const windowProxyObj = window.open(
-      streamPayer.interoperability_authorization_url
+    const { streamPayer, email } = this.props;
+    this.setState({ connectingToInterop: true });
+    beginInterop({ email: email }).then(
+      data => {
+        this.setState({ connectingToInterop: true });
+        // Begin redirect oauth flow. Query in the background for SUCCESS or FAILURE.
+        // Do a check every 5 seconds since that is how long it takes the end page to close.
+        // Open in new tab. This should really hopefully be the default
+        window.open(streamPayer.interoperability_authorization_url);
+        this.interval = setInterval(this.checkDone.bind(this), 5000);
+      },
+      error => {
+        this.setState({
+          errorMessage: error,
+          connectingToInterop: false
+        });
+      }
     );
-    this.setState({ windowProxyObj: windowProxyObj });
-    this.interval = setInterval(this.checkDone.bind(this), 1000);
   }
 
   render() {
-    const { tenantAccept, tpastreamTermsAccept, error } = this.state;
+    const {
+      tenantAccept,
+      tpastreamTermsAccept,
+      error,
+      connectingToInterop
+    } = this.state;
     const {
       streamTenant,
       streamPayer,
@@ -121,10 +140,15 @@ export default class InteroperabilityPayerForm extends Component {
             <button
               type="submit"
               className="btn btn-lg btn-block btn-primary"
-              disabled={!(tenantAccept && tpastreamTermsAccept)}
+              disabled={
+                connectingToInterop || !(tenantAccept && tpastreamTermsAccept)
+              }
             >
               Connect to {streamPayer.website_home_url_netloc}
             </button>
+            {connectingToInterop ? (
+              <FontAwesomeIcon icon={faSpinner} size="lg" spin />
+            ) : null}
           </div>
         </div>
       </form>

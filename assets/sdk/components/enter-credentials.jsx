@@ -256,6 +256,7 @@ export default class EnterCredentials extends Component {
             streamPayer={streamPayer}
             streamTenant={streamTenant}
             tenantTerms={tenantTerms}
+            email={this.props.email}
             handleTermsClick={this.toggleTermsOfUse.bind(this)}
             validateCreds={this.props.validateCreds}
             handlePostError={this.handlePostError.bind(this)}
