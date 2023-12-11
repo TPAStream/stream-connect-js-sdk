@@ -10,6 +10,7 @@ const sdkAxiosMaker = ({
   connectAccessToken,
   version,
   isDemo,
+  sdkStateId,
   tenant
 }) => {
   sdkAxios = axios.create({
@@ -17,6 +18,7 @@ const sdkAxiosMaker = ({
     headers: {
       'X-TPAStream-Token': apiToken,
       'X-SDK-Version': version,
+      'X-SDK-State-Id': sdkStateId,
       'X-Is-Demo': isDemo ? '1' : '0',
       ...(connectAccessToken && {
         'X-Connect-Access-Token': connectAccessToken

@@ -4,7 +4,16 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.5';
+let version = '0.6.6';
+
+function uuidv4() {
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+    (
+      c ^
+      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+    ).toString(16)
+  );
+}
 
 const affirmInstance = ({
   el,
@@ -171,6 +180,8 @@ const StreamConnect = ({
   if (!configuredCorrectly) {
     throw Error('Configuration Instance Issue');
   }
+  // A unique ID set for each SDK instance run.
+  const sdkStateId = uuidv4();
 
   $(function() {
     render(
@@ -203,6 +214,7 @@ const StreamConnect = ({
         handleFormErrors={handleFormErrors}
         handleInitErrors={handleInitErrors}
         version={version}
+        sdkStateId={sdkStateId}
       />,
       document.querySelector(el)
     );
