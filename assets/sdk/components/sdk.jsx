@@ -45,6 +45,7 @@ class SDK extends Component {
       twoFactorAuthState: null,
       validationState: null,
       error: null,
+      restartFlow: null,
       formData: null
     };
 
@@ -248,6 +249,7 @@ class SDK extends Component {
 
   setStep4 = ({ payer, dependent, policyHolder }) => {
     const { streamPayer, streamUser, streamEmployer } = this.state;
+    const searchParams = new URLSearchParams(window.location.search);
     if (policyHolder) {
       this.setState({
         streamPolicyHolder: policyHolder,
@@ -275,7 +277,15 @@ class SDK extends Component {
           payerId: payer.id,
           employerId: streamEmployer.id,
           email: streamUser.email,
-          referer: this.props.interoperabilityRedirectUrl
+          referer: this.props.enableInteropSinglePage
+            ? // We need to do some construction here
+              window.location.origin +
+              window.location.pathname +
+              window.location.search +
+              (window.location.search
+                ? '&forceTPAStreamSdkEnd=1'
+                : '?forceTPAStreamSdkEnd=1')
+            : undefined
         }).then(payerResponse => {
           this.setState({
             loading: false,
@@ -305,7 +315,7 @@ class SDK extends Component {
   };
 
   restartProcess = () => {
-    this.setState(this.defaultState);
+    this.setState({ ...this.defaultState, restartFlow: true });
     this.makeInitRequest();
   };
 
@@ -320,7 +330,7 @@ class SDK extends Component {
       if (error) {
         this.setStepConfigError(error);
         return;
-      } else if (this.props.forceEndStep) {
+      } else if (this.props.forceEndStep && !this.state.restartFlow) {
         this.setState({
           loading: false,
           step: 5,
@@ -457,6 +467,7 @@ class SDK extends Component {
             tenantName={streamTenant.name}
             toggleTermsOfUse={this.toggleTermsOfUse.bind(this)}
             enableInterop={this.props.enableInterop}
+            enableInteropSinglePage={this.props.enableInteropSinglePage}
             includePayerBlogs={this.props.includePayerBlogs}
             userAddedUISchema={this.props.userSchema}
             returnToStep3={

@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.6';
+let version = '0.6.7';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -31,6 +31,7 @@ const affirmInstance = ({
   isDemo,
   fixCredentials,
   enableInterop,
+  enableInteropSinglePage,
   forceEndStep,
   userSchema,
   doneGetSDK,
@@ -80,7 +81,7 @@ const affirmInstance = ({
     isDemo: typeof isDemo == 'boolean',
     fixCredentials: typeof fixCredentials == 'boolean',
     enableInterop: typeof enableInterop == 'boolean',
-    forceEndStep: typeof forceEndStep == 'boolean',
+    enableInteropSinglePage: typeof enableInteropSinglePage == 'boolean',
     userSchema: typeof userSchema == 'object',
     doneGetSDK: typeof doneGetSDK == 'function',
     doneSelectEnrollProcess: typeof doneSelectEnrollProcess == 'function',
@@ -130,7 +131,7 @@ const StreamConnect = ({
   isDemo = false,
   fixCredentials = false,
   enableInterop = false,
-  forceEndStep = false,
+  enableInteropSinglePage = false,
   userSchema = {},
   doneGetSDK = () => {},
   doneSelectEnrollProcess = () => {},
@@ -161,7 +162,7 @@ const StreamConnect = ({
     isDemo,
     fixCredentials,
     enableInterop,
-    forceEndStep,
+    enableInteropSinglePage,
     userSchema,
     doneGetSDK,
     doneSelectEnrollProcess,
@@ -182,7 +183,16 @@ const StreamConnect = ({
   }
   // A unique ID set for each SDK instance run.
   const sdkStateId = uuidv4();
-
+  const searchParams = new window.URLSearchParams(window.location.search);
+  const shouldForceEnd = searchParams.get('forceTPAStreamSdkEnd');
+  if (shouldForceEnd) {
+    // Remove this after so on refreshes we don't force end.
+    // But do not immediately reload page
+    searchParams.delete('forceTPAStreamSdkEnd');
+    const newRelativePathQuery =
+      window.location.pathname + '?' + searchParams.toString();
+    history.pushState(null, '', newRelativePathQuery);
+  }
   $(function() {
     render(
       <SDK
@@ -191,8 +201,9 @@ const StreamConnect = ({
         employer={employer}
         apiToken={sdkToken || apiToken}
         connectAccessToken={connectAccessToken}
-        enableInterop={enableInterop}
-        forceEndStep={forceEndStep}
+        enableInterop={enableInterop || enableInteropSinglePage}
+        enableInteropSinglePage={enableInteropSinglePage}
+        forceEndStep={!!shouldForceEnd}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
         fixCredentials={fixCredentials}

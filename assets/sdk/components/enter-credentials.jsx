@@ -222,6 +222,7 @@ export default class EnterCredentials extends Component {
       tenantTerms,
       includePayerBlogs,
       enableInterop,
+      enableInteropSinglePage,
       returnToStep3,
       returnToStep2,
       donePopUp
@@ -257,6 +258,7 @@ export default class EnterCredentials extends Component {
             streamTenant={streamTenant}
             tenantTerms={tenantTerms}
             email={this.props.email}
+            enableInteropSinglePage={enableInteropSinglePage}
             handleTermsClick={this.toggleTermsOfUse.bind(this)}
             validateCreds={this.props.validateCreds}
             handlePostError={this.handlePostError.bind(this)}
