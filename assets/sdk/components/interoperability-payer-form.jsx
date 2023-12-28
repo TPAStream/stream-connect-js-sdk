@@ -44,16 +44,22 @@ export default class InteroperabilityPayerForm extends Component {
 
   handleSubmit(event) {
     event.preventDefault();
-    const { streamPayer, email } = this.props;
+    const { streamPayer, email, enableInteropSinglePage } = this.props;
     this.setState({ connectingToInterop: true });
     beginInterop({ email: email }).then(
       data => {
         this.setState({ connectingToInterop: true });
-        // Begin redirect oauth flow. Query in the background for SUCCESS or FAILURE.
-        // Do a check every 5 seconds since that is how long it takes the end page to close.
-        // Open in new tab. This should really hopefully be the default
-        window.open(streamPayer.interoperability_authorization_url);
-        this.interval = setInterval(this.checkDone.bind(this), 5000);
+        if (enableInteropSinglePage) {
+          window.location.replace(
+            streamPayer.interoperability_authorization_url
+          );
+        } else {
+          // Begin redirect oauth flow. Query in the background for SUCCESS or FAILURE.
+          // Do a check every 5 seconds since that is how long it takes the end page to close.
+          // Open in new tab. This should really hopefully be the default
+          window.open(streamPayer.interoperability_authorization_url);
+          this.interval = setInterval(this.checkDone.bind(this), 5000);
+        }
       },
       error => {
         this.setState({
