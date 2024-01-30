@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.7';
+let version = '0.6.8';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -33,6 +33,8 @@ const affirmInstance = ({
   enableInterop,
   enableInteropSinglePage,
   forceEndStep,
+  entrySdkStateId,
+  webViewDelegation,
   userSchema,
   doneGetSDK,
   doneSelectEnrollProcess,
@@ -82,6 +84,9 @@ const affirmInstance = ({
     fixCredentials: typeof fixCredentials == 'boolean',
     enableInterop: typeof enableInterop == 'boolean',
     enableInteropSinglePage: typeof enableInteropSinglePage == 'boolean',
+    forceEndStep: typeof forceEndStep == 'boolean',
+    webViewDelegation: typeof webViewDelegation == 'boolean',
+    entrySdkStateId: typeof entrySdkStateId == 'string',
     userSchema: typeof userSchema == 'object',
     doneGetSDK: typeof doneGetSDK == 'function',
     doneSelectEnrollProcess: typeof doneSelectEnrollProcess == 'function',
@@ -132,6 +137,9 @@ const StreamConnect = ({
   fixCredentials = false,
   enableInterop = false,
   enableInteropSinglePage = false,
+  forceEndStep = false,
+  webViewDelegation = false,
+  entrySdkStateId = '',
   userSchema = {},
   doneGetSDK = () => {},
   doneSelectEnrollProcess = () => {},
@@ -163,6 +171,9 @@ const StreamConnect = ({
     fixCredentials,
     enableInterop,
     enableInteropSinglePage,
+    forceEndStep,
+    webViewDelegation,
+    entrySdkStateId,
     userSchema,
     doneGetSDK,
     doneSelectEnrollProcess,
@@ -182,7 +193,7 @@ const StreamConnect = ({
     throw Error('Configuration Instance Issue');
   }
   // A unique ID set for each SDK instance run.
-  const sdkStateId = uuidv4();
+  const sdkStateId = entrySdkStateId || uuidv4();
   const searchParams = new window.URLSearchParams(window.location.search);
   const shouldForceEnd = searchParams.get('forceTPAStreamSdkEnd');
   if (shouldForceEnd) {
@@ -203,7 +214,8 @@ const StreamConnect = ({
         connectAccessToken={connectAccessToken}
         enableInterop={enableInterop || enableInteropSinglePage}
         enableInteropSinglePage={enableInteropSinglePage}
-        forceEndStep={!!shouldForceEnd}
+        forceEndStep={!!shouldForceEnd || !!forceEndStep}
+        webViewDelegation={webViewDelegation}
         tenant={tenant}
         realTimeVerification={realTimeVerification}
         fixCredentials={fixCredentials}

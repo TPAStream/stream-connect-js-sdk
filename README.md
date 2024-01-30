@@ -12,7 +12,9 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 
 ## Change Log
-
+### v0.6.8
+    * Adds in webview delegation init option. This allows an implementor to handle the final part of redirection themselves.
+    * Adds in forceEndStep init option.
 ### v0.6.7
     * Open a new payer window when entering credentials for a patient access api.
 ### v0.6.4

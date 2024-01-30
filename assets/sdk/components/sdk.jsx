@@ -273,19 +273,22 @@ class SDK extends Component {
         this.setState({
           loading: true
         });
-        getPayer({
-          payerId: payer.id,
-          employerId: streamEmployer.id,
-          email: streamUser.email,
-          referer: this.props.enableInteropSinglePage
-            ? // We need to do some construction here
+        const referer = this.props.enableInteropSinglePage
+          ? this.props.webViewDelegation
+            ? 'sdk_interop_done_delegation'
+            : // We need to do some construction here
               window.location.origin +
               window.location.pathname +
               window.location.search +
               (window.location.search
                 ? '&forceTPAStreamSdkEnd=1'
                 : '?forceTPAStreamSdkEnd=1')
-            : undefined
+          : undefined;
+        getPayer({
+          payerId: payer.id,
+          employerId: streamEmployer.id,
+          email: streamUser.email,
+          referer: referer
         }).then(payerResponse => {
           this.setState({
             loading: false,
