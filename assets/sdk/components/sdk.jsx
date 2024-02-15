@@ -511,6 +511,7 @@ class SDK extends Component {
               handleRealtimeCompletion={this.handleRealtimeCompletion.bind(
                 this
               )}
+              maxRetries={this.props.maxRetries}
               doneRealtime={this.props.doneRealtime}
               email={streamUser.email}
               twoFactorAuthData={twoFactorAuth}
@@ -525,6 +526,7 @@ class SDK extends Component {
               handleRealtimeCompletion={this.handleRealtimeCompletion.bind(
                 this
               )}
+              maxRetries={this.props.maxRetries}
               doneRealtime={this.props.doneRealtime}
               email={streamUser.email}
             />
