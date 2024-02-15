@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.8';
+let version = '0.6.9';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -24,6 +24,7 @@ const affirmInstance = ({
   employer,
   user,
   realTimeVerification,
+  realtimeTimeout,
   renderChoosePayer,
   renderPayerForm,
   renderEndWidget,
@@ -75,6 +76,7 @@ const affirmInstance = ({
       (user.memberSystemKey ? typeof user.memberSystemKey == 'string' : true) &&
       (user.phoneNumber ? typeof user.phoneNumber == 'string' : true) &&
       (user.dateOfBirth ? typeof user.dateOfBirth == 'string' : true),
+    realtimeTimeout: typeof realtimeTimeout == 'number',
     realTimeVerification: typeof realTimeVerification == 'boolean',
     renderChoosePayer: typeof renderChoosePayer == 'boolean',
     renderPayerForm: typeof renderPayerForm == 'boolean',
@@ -134,6 +136,7 @@ const StreamConnect = ({
   renderEndWidget = true,
   includePayerBlogs = false,
   isDemo = false,
+  realtimeTimeout = 200,
   fixCredentials = false,
   enableInterop = false,
   enableInteropSinglePage = false,
@@ -168,6 +171,7 @@ const StreamConnect = ({
     renderEndWidget,
     includePayerBlogs,
     isDemo,
+    realtimeTimeout,
     fixCredentials,
     enableInterop,
     enableInteropSinglePage,
@@ -238,6 +242,7 @@ const StreamConnect = ({
         handleInitErrors={handleInitErrors}
         version={version}
         sdkStateId={sdkStateId}
+        maxRetries={Math.round(realtimeTimeout / 5)}
       />,
       document.querySelector(el)
     );
