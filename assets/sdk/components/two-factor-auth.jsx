@@ -91,6 +91,7 @@ export default class TwoFactorAuth extends Component {
   };
 
   handleMethodChoice(methodChoiceOption) {
+    clearInterval(this.interval);
     const { taskId, policyHolderId, email } = this.props;
     this.setState({
       progress: 0,
@@ -104,11 +105,12 @@ export default class TwoFactorAuth extends Component {
         method: methodChoiceOption.value
       }
     }).then(() => {
-      this.interval = setInterval(this.checkProgress, 3000);
+      this.interval = setInterval(this.checkProgress, 5000);
     });
   }
 
   handleCodeSubmit() {
+    clearInterval(this.interval);
     const { taskId, policyHolderId, email } = this.props;
     const { code } = this.state;
     this.setState({
@@ -123,7 +125,7 @@ export default class TwoFactorAuth extends Component {
         code: code
       }
     }).then(() => {
-      this.interval = setInterval(this.checkProgress, 1000);
+      this.interval = setInterval(this.checkProgress, 5000);
     });
   }
 

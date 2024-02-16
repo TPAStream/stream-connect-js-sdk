@@ -14,6 +14,7 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 ## Change Log
 ### v0.6.9
     * Add in `realtimeTimeout` to allow for configuration around the validate credentials wait time for MFA / normal validate crawls.
+    * Fix bug with 2fa end where screen would flicker.
 ### v0.6.8
     * Adds in webview delegation init option. This allows an implementor to handle the final part of redirection themselves.
     * Adds in forceEndStep init option.
