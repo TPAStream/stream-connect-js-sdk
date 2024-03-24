@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.6.9';
+let version = '0.7.0';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -208,6 +208,15 @@ const StreamConnect = ({
       window.location.pathname + '?' + searchParams.toString();
     history.pushState(null, '', newRelativePathQuery);
   }
+  // accessTokens get invalidated once they are used.
+  // We need to get this passed back from tpastream's app for interop
+  const accessToken = searchParams.get('accessToken');
+  if (accessToken) {
+    searchParams.delete('accessToken');
+    const newRelativePathQuery =
+      window.location.pathname + '?' + searchParams.toString();
+    history.pushState(null, '', newRelativePathQuery);
+  }
   $(function() {
     render(
       <SDK
@@ -215,7 +224,7 @@ const StreamConnect = ({
         isDemo={isDemo}
         employer={employer}
         apiToken={sdkToken || apiToken}
-        connectAccessToken={connectAccessToken}
+        connectAccessToken={accessToken || connectAccessToken}
         enableInterop={enableInterop || enableInteropSinglePage}
         enableInteropSinglePage={enableInteropSinglePage}
         forceEndStep={!!shouldForceEnd || !!forceEndStep}

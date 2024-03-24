@@ -96,12 +96,21 @@ export const FixPayerImages = ({
               borderColor: '#ebccd1',
               cursor: 'pointer'
             }}
-            onClick={() =>
-              choosePolicyHolder({
-                policyHolder: ph,
-                payer: payers.find(p => ph.payer_id === p.payer_id)
-              })
-            }
+            onClick={() => {
+              if (ph.login_problem === 'migrating') {
+                choosePolicyHolder({
+                  payer: payers.find(
+                    p => ph.payer.payer_group_id === p.payer_group_id
+                  ),
+                  dependent: false
+                });
+              } else {
+                choosePolicyHolder({
+                  policyHolder: ph,
+                  payer: payers.find(p => ph.payer_id === p.payer_id)
+                });
+              }
+            }}
           >
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -114,7 +123,11 @@ export const FixPayerImages = ({
               </div>
             </div>
             <img
-              src={payers.find(p => ph.payer_id === p.payer_id).logo_url}
+              src={
+                payers.find(p => ph.payer_id === p.payer_id)?.logo_url ||
+                payers.find(p => ph.payer.payer_group_id === p.payer_group_id)
+                  ?.logo_url
+              }
               style={{
                 maxWidth: '200px',
                 maxHeight: '50px',
