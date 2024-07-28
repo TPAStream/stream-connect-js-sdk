@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.7.0';
+let version = '0.7.1';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -48,7 +48,8 @@ const affirmInstance = ({
   doneRealTime,
   doneEasyEnroll,
   handleFormErrors,
-  handleInitErrors
+  handleInitErrors,
+  _overrideBaseUrl
 }) => {
   const sdkPropParsed = {
     el: typeof el == 'string',
@@ -101,7 +102,11 @@ const affirmInstance = ({
     doneRealTime: typeof doneRealTime == 'function',
     doneEasyEnroll: typeof doneEasyEnroll == 'function',
     handleFormErrors: typeof handleFormErrors == 'function',
-    handleInitErrors: typeof handleInitErrors == 'function'
+    handleInitErrors: typeof handleInitErrors == 'function',
+    _overrideBaseUrl: _overrideBaseUrl
+      ? typeof _overrideBaseUrl == 'string' &&
+        _overrideBaseUrl.includes('/sdk-api')
+      : true
   };
 
   for (const key in sdkPropParsed) {
@@ -155,7 +160,8 @@ const StreamConnect = ({
   doneRealTime = () => {},
   doneEasyEnroll = () => {},
   handleFormErrors = () => {},
-  handleInitErrors = () => {}
+  handleInitErrors = () => {},
+  _overrideBaseUrl = ''
 }) => {
   const configuredCorrectly = affirmInstance({
     el,
@@ -190,7 +196,8 @@ const StreamConnect = ({
     doneRealTime,
     doneEasyEnroll,
     handleFormErrors,
-    handleInitErrors
+    handleInitErrors,
+    _overrideBaseUrl
   });
 
   if (!configuredCorrectly) {
@@ -252,6 +259,7 @@ const StreamConnect = ({
         version={version}
         sdkStateId={sdkStateId}
         maxRetries={Math.round(realtimeTimeout / 5)}
+        _overrideBaseUrl={_overrideBaseUrl}
       />,
       document.querySelector(el)
     );

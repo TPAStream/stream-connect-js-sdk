@@ -6,7 +6,7 @@ export const validateCredentials = async ({
   email
 }) => {
   const validateCredsResponse = await sdkAxios.get(
-    `https://app.tpastream.com/sdk-api/validate-credentials/${policyHolderId}/${taskId}`,
+    `validate-credentials/${policyHolderId}/${taskId}`,
     {
       params: {
         email: email
@@ -18,7 +18,7 @@ export const validateCredentials = async ({
 
 export const putTask = async ({ taskId, policyHolderId, params }) => {
   const validateCredsResponse = await sdkAxios.put(
-    `https://app.tpastream.com/sdk-api/validate-credentials/${policyHolderId}/${taskId}`,
+    `validate-credentials/${policyHolderId}/${taskId}`,
     params
   );
   return validateCredsResponse.data.data;
