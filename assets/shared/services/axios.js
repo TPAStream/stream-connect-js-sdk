@@ -11,9 +11,11 @@ const sdkAxiosMaker = ({
   version,
   isDemo,
   sdkStateId,
-  tenant
+  tenant,
+  _overrideBaseUrl
 }) => {
   sdkAxios = axios.create({
+    baseURL: _overrideBaseUrl || 'https://app.tpastream.com/sdk-api',
     crossdomain: true,
     headers: {
       'X-TPAStream-Token': apiToken,

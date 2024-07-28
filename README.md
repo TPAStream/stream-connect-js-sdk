@@ -79,3 +79,5 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 Make sure to bump the version of the `package.json` with each release.
 
 Develop APIToken `49d492e0-9772-4975-8d1e-17f0ad8f2de0` not for actual customer use.
+
+On init you can pass in _overrideBaseUrl for development sandbox as well.

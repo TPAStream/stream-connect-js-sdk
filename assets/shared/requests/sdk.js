@@ -4,24 +4,19 @@ export const getSDK = async ({ employer, user, isDemo, doneGetSDK }) => {
   let sdkResponse = {};
   try {
     if (isDemo) {
-      sdkResponse = await sdkAxios.get(
-        'https://app.tpastream.com/sdk-api/tpastream_sdk'
-      );
+      sdkResponse = await sdkAxios.get('tpastream_sdk');
     } else {
-      sdkResponse = await sdkAxios.post(
-        'https://app.tpastream.com/sdk-api/tpastream_sdk',
-        {
-          system_key: employer.systemKey,
-          vendor: employer.vendor,
-          employer_name: employer.name,
-          user_first_name: user.firstName,
-          user_last_name: user.lastName,
-          user_email: user.email,
-          phone_number: user.phoneNumber,
-          member_system_key: user.memberSystemKey,
-          date_of_birth: user.dateOfBirth
-        }
-      );
+      sdkResponse = await sdkAxios.post('tpastream_sdk', {
+        system_key: employer.systemKey,
+        vendor: employer.vendor,
+        employer_name: employer.name,
+        user_first_name: user.firstName,
+        user_last_name: user.lastName,
+        user_email: user.email,
+        phone_number: user.phoneNumber,
+        member_system_key: user.memberSystemKey,
+        date_of_birth: user.dateOfBirth
+      });
     }
     const data = {
       user: sdkResponse.data.data.user,
