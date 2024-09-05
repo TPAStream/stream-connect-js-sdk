@@ -86,9 +86,15 @@ export default class InteroperabilityPayerForm extends Component {
     return (
       <form id="easy-enroll-form" onSubmit={this.handleSubmit.bind(this)}>
         {error && <div>{error}</div>}
-        <h2 id="interoperability-api-notification">
-          Connect to {streamPayer.website_home_url_netloc}
+        <h2
+          id="interoperability-api-notification"
+          style={{ padding: 0, margin: 0 }}
+        >
+          Connect to {streamPayer.name}
         </h2>
+        {streamPayer.redirect_vendor_name ? (
+          <h4>Powered by {streamPayer.redirect_vendor_name}</h4>
+        ) : null}
         <p>
           The security of your information is very important to us. You're being
           redirected to securely login on {streamPayer.website_home_url_netloc}
@@ -142,15 +148,29 @@ export default class InteroperabilityPayerForm extends Component {
               </div>
             </div>
           </div>
-          <div className="form-group">
+          <div
+            className="form-group"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
             <button
               type="submit"
               className="btn btn-lg btn-block btn-primary"
+              centered
               disabled={
                 connectingToInterop || !(tenantAccept && tpastreamTermsAccept)
               }
             >
-              Connect to {streamPayer.website_home_url_netloc}
+              Connect to {streamPayer.name}
+              {streamPayer.redirect_vendor_name ? (
+                <>
+                  <br />
+                  Powered by {streamPayer.redirect_vendor_name}
+                </>
+              ) : null}
             </button>
             {connectingToInterop ? (
               <FontAwesomeIcon icon={faSpinner} size="lg" spin />

@@ -37,9 +37,18 @@ export default class PayerInfo extends Component {
     }
     return (
       <div>
-        <img src={payer.logo_url} style={{ maxWidth: '400px' }}></img>
+        <h3>Enter Credentials for</h3>
+        <img
+          src={payer.logo_url}
+          style={{ maxWidth: '400px' }}
+          alt={payer.name}
+        ></img>
+        {payer.redirect_vendor_name ? (
+          <h5 style={{ textAlign: 'left' }}>
+            Powered by {payer.redirect_vendor_name}
+          </h5>
+        ) : null}
         <div style={{ display: 'flex' }}>
-          <h3>Enter Credentials for {payer.website_home_url_netloc}</h3>
           <FontAwesomeIcon
             icon={faQuestionCircle}
             size="lg"

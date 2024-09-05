@@ -281,7 +281,13 @@ export default class EnterCredentials extends Component {
                 className="btn btn-primary"
                 disabled={submitDisabled}
               >
-                Validate Credentials
+                Validate Credentials for {streamPayer.name}
+                {streamPayer.redirect_vendor_name ? (
+                  <>
+                    <br />
+                    Powered by {streamPayer.redirect_vendor_name}
+                  </>
+                ) : null}
               </button>
               {submitDisabled ? (
                 <FontAwesomeIcon icon={faSpinner} size="lg" spin />
