@@ -95,7 +95,7 @@ export default class RealTimeVerification extends Component {
     this.props.doneRealtime();
   }
 
-  componentWillMount() {
+  componentWillUnmount() {
     clearInterval(this.interval);
   }
 

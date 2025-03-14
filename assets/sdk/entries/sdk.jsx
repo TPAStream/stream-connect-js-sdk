@@ -4,7 +4,7 @@ import { render } from 'react-dom';
 import SDK from '../components/sdk';
 import $ from 'jquery';
 
-let version = '0.7.2';
+let version = '0.7.3';
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>

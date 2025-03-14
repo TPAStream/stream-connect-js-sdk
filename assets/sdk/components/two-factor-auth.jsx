@@ -17,7 +17,7 @@ export default class TwoFactorAuth extends Component {
       fetching: false,
       currentRetries: this.props.maxRetries || this.defaultMaxRetries,
       methodChoice: null,
-      code: null
+      code: ''
     };
   }
 
@@ -134,7 +134,7 @@ export default class TwoFactorAuth extends Component {
     this.props.doneRealtime();
   }
 
-  componentWillMount() {
+  componentWillUnmount() {
     clearInterval(this.interval);
   }
 

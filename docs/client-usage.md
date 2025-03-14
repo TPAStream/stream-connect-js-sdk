@@ -1,6 +1,6 @@
 
 # Client Usage
-We have decided that the best possible way to implement this SDK is a simple config pattern. A prospective user will communicate with us to recieve an SDK apiToken as well as employer system keys. 
+We have decided that the best possible way to implement this SDK is a simple config pattern. A prospective user will communicate with us to recieve an SDK sdkToken as well as employer system keys. 
 
 A mock implementation might look something like the following:
 
@@ -21,7 +21,7 @@ Using TPAStream as a CDN
                 email: 'some-email@place.com' // You're going to need to provide This
             },
             isDemo: false,
-            apiToken: 'VeryLegitKey', // We'll provide this.
+            sdkToken: 'VeryLegitKey',
             realTimeVerification: true,
             renderChoosePayer: true,
             doneGetSDK: ({ user, payers, tenant, employer }) => {},

@@ -88,7 +88,7 @@ export default class EnterCredentials extends Component {
   }
 
   componentDidMount() {
-    this.props.doneStep4();
+    this.props.doneStep4({ streamPayer: this.props.streamPayer });
   }
 
   componentWillMount() {

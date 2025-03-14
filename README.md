@@ -4,7 +4,7 @@
 
 ## Version
 
-### 0.7.0
+### 0.7.3
 
 ## Philosophy
 
@@ -13,6 +13,9 @@ This SDK is designed to implement the [EasyEnrollment platform](https://www.easy
 In the spirit of creating a seemless process we will also be forgoing the verification of emails for users using easyenrollment. Instead, we will be relying on the implementers to provide valid emails, first names, and last names in order to create an association of information to a user.
 
 ## Change Log
+
+### v0.7.3
+    * add logo_url to the doneCreatedForm callback
 
 ### v0.7.2
 

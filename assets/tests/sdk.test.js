@@ -1,19 +1,19 @@
-import React from "react"
-import { render, unmountComponentAtNode } from "react-dom";
-import { act } from "react-dom/test-utils";
+import React from 'react';
+import { render, unmountComponentAtNode } from 'react-dom';
+import { act } from 'react-dom/test-utils';
 
 /* eslint-disable */
-import regeneratorRuntime from "regenerator-runtime";
+import regeneratorRuntime from 'regenerator-runtime';
 /* eslint-enable */
 
-import SDK from "../sdk/components/sdk"
+import SDK from '../sdk/components/sdk';
 
 const sdkrequest = require('../shared/requests/sdk');
 
 let container = null;
 beforeEach(() => {
   // setup a DOM element as a render target
-  container = document.createElement("div");
+  container = document.createElement('div');
   document.body.appendChild(container);
 });
 
@@ -24,92 +24,144 @@ afterEach(() => {
   container = null;
 });
 
-it("Renders error form when error is present", async () => {
-    const fakeSDKResponse = {
-        user: {},
-        payers: [],
-        tenant: {},
-        employer: {},
-        error: "this is a config error"
-    }
-    jest.spyOn(sdkrequest, "getSDK").mockImplementation(() =>
-        Promise.resolve(fakeSDKResponse)
-    );
+it('Renders error form when error is present', async () => {
+  const fakeSDKResponse = {
+    user: {},
+    payers: [],
+    tenant: {},
+    employer: {},
+    error: 'this is a config error'
+  };
+  jest
+    .spyOn(sdkrequest, 'getSDK')
+    .mockImplementation(() => Promise.resolve(fakeSDKResponse));
 
-    await act(async () => {
-        render(<SDK handleInitErrors={() => {}} />, container)
-    });
-    expect(container.textContent).toBe("This widget has encountered a configuration error. Please contact the site host.");
+  await act(async () => {
+    render(<SDK handleInitErrors={() => {}} />, container);
+  });
+  expect(container.textContent).toBe(
+    'This widget has encountered a configuration error. Please contact the site host.'
+  );
 
-
-    sdkrequest.getSDK.mockRestore();
+  sdkrequest.getSDK.mockRestore();
 });
 
-it("Renders choose payer widget when renderChoosePayer is true and init occurs", async () => {
-    const fakeSDKResponse = {
-        user: {
-            policy_holders: []
-        },
-        payers: [],
-        tenant: {},
-        employer: {},
-        error: undefined
-    }
-    jest.spyOn(sdkrequest, "getSDK").mockImplementation(() =>
-        Promise.resolve(fakeSDKResponse)
+it('Renders choose payer widget when renderChoosePayer is true and init occurs', async () => {
+  const fakeSDKResponse = {
+    user: {
+      policy_holders: []
+    },
+    payers: [],
+    tenant: {},
+    employer: {},
+    error: undefined
+  };
+  jest
+    .spyOn(sdkrequest, 'getSDK')
+    .mockImplementation(() => Promise.resolve(fakeSDKResponse));
+
+  const mockDoneStep3 = data => {
+    expect(typeof data).toBe('undefined');
+  };
+
+  await act(async () => {
+    render(
+      <SDK
+        handleInitErrors={() => {}}
+        doneStep3={mockDoneStep3}
+        renderChoosePayer={true}
+      />,
+      container
     );
+  });
+  expect(container.querySelector('#choose-payer > h3').textContent).toBe(
+    'Choose an Account to add Below'
+  );
 
-    const mockDoneStep3 = (data) => {
-        
-        expect(typeof data).toBe("undefined")
-    }
-
-    await act(async () => {
-        render(<SDK 
-            handleInitErrors={() => {}} 
-            doneStep3={mockDoneStep3}
-            renderChoosePayer={true} />, container)
-    });
-    expect(container.querySelector("#choose-payer > h3").textContent).toBe("Choose an Account to add Below");
-
-
-    sdkrequest.getSDK.mockRestore();
+  sdkrequest.getSDK.mockRestore();
 });
 
 it("Doesn't render ChoosePayer when renderChoosePayer is false. Instead calls step3 with values", async () => {
-    const fakeSDKResponse = {
-        user: {
-            policy_holders: []
-        },
-        payers: [],
-        tenant: {},
-        employer: {
-            // for dropdown in mockDoneStep3
-            show_all_payers_in_easy_enroll: true 
-        },
-        error: undefined
-    }
-    jest.spyOn(sdkrequest, "getSDK").mockImplementation(() =>
-        Promise.resolve(fakeSDKResponse)
+  const fakeSDKResponse = {
+    user: {
+      policy_holders: []
+    },
+    payers: [],
+    tenant: {},
+    employer: {
+      // for dropdown in mockDoneStep3
+      show_all_payers_in_easy_enroll: true
+    },
+    error: undefined
+  };
+  jest
+    .spyOn(sdkrequest, 'getSDK')
+    .mockImplementation(() => Promise.resolve(fakeSDKResponse));
+
+  const mockDoneStep3 = ({
+    choosePayer,
+    usedPayers,
+    dropDown,
+    streamPayers,
+    streamEmployer
+  }) => {
+    expect(typeof choosePayer).toBe('function');
+    expect(typeof usedPayers).toBe('object');
+    expect(typeof dropDown).toBe('boolean');
+    expect(typeof streamPayers).toBe('object');
+    expect(typeof streamEmployer).toBe('object');
+  };
+
+  await act(async () => {
+    render(
+      <SDK
+        handleInitErrors={() => {}}
+        doneStep3={mockDoneStep3}
+        renderChoosePayer={false}
+      />,
+      container
     );
+  });
+  // Confirm there is no choose-payer container
+  expect(container.querySelector('#choose-payer')).toBe(null);
 
-    const mockDoneStep3 = ({ choosePayer, usedPayers, dropDown, streamPayers, streamEmployer }) => {
-        
-        expect(typeof choosePayer).toBe("function")
-        expect(typeof usedPayers).toBe("object")
-        expect(typeof dropDown).toBe("boolean")
-        expect(typeof streamPayers).toBe("object")
-        expect(typeof streamEmployer).toBe("object")
-    }
+  sdkrequest.getSDK.mockRestore();
+});
 
-    await act(async () => {
-        render(<SDK 
-            handleInitErrors={() => {}} 
-            doneStep3={mockDoneStep3}
-            renderChoosePayer={false} />, container)
-    });
-    // Confirm there is no choose-payer container
-    expect(container.querySelector("#choose-payer")).toBe(null);
+it('Passes logo_url correctly to doneStep4', async () => {
+  const fakeSDKResponse = {
+    user: {
+      email: 'test@example.com',
+      policy_holders: []
+    },
+    payers: [{ id: 1, onboard_form: {} }],
+    tenant: {
+      name: 'Test Tenant',
+      logo_url: 'https://example.com/logo.png'
+    },
+    employer: {},
+    error: undefined
+  };
 
-    sdkrequest.getSDK.mockRestore();
+  jest
+    .spyOn(sdkrequest, 'getSDK')
+    .mockImplementation(() => Promise.resolve(fakeSDKResponse));
+
+  const mockDoneStep4 = ({ streamTenant, logoUrl }) => {
+    expect(streamTenant).toEqual(fakeSDKResponse.tenant);
+    expect(logoUrl).toBe(fakeSDKResponse.tenant.logo_url);
+  };
+
+  await act(async () => {
+    render(
+      <SDK
+        handleInitErrors={() => {}}
+        renderPayerForm={false}
+        doneStep4={mockDoneStep4}
+      />,
+      container
+    );
+  });
+
+  sdkrequest.getSDK.mockRestore();
 });
