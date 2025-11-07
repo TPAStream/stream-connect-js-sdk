@@ -18,7 +18,8 @@ Using TPAStream as a CDN
             user: {
                 firstName: 'Joe', 
                 lastName: 'Sajor', 
-                email: 'some-email@place.com' // You're going to need to provide This
+                memberSystemKey: '123456789',  // this is your unique id for this user
+                email: 'some-email@place.com' // required
             },
             isDemo: false,
             sdkToken: 'VeryLegitKey',
