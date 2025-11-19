@@ -94,7 +94,7 @@ class SDK extends Component {
         streamPolicyHolder: phData,
         endMessage: endMessage || phData.login_correction_message,
         step: 5,
-        credentialsValid: phData.login_problem === 'valid',
+        credentialsValid: phData.loginProblemIsValid(),
         finishedEasyEnrollPending: pending && phData.login_problem === null,
         taskId: null
       });

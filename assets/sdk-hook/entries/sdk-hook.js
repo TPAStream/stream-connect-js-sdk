@@ -444,7 +444,7 @@ export default class StreamConnect {
               tenant.name
             }${' '} shortly after they appear on the carrier website.`
           : endMessage || phData.login_correction_message,
-      credentialsValid: phData.login_problem === 'valid',
+      credentialsValid: phData.loginProblemIsValid(),
       finishedEasyEnrollPending: pending && phData.login_problem === null,
       returnToEnterCredentials: this.returnToEnterCredentials.bind(this),
       taskId: null
