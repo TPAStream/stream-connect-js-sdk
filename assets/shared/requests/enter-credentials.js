@@ -1,5 +1,14 @@
 import { sdkAxios } from '../services/axios';
 
+const VALID_LOGIN_PROBLEMS = new Set([
+  'valid',
+  'incomplete',
+  'inactive',
+  'mfa_carrier',
+  'migrating',
+  'needs_two_factor'
+]);
+
 export const postCredentials = async ({
   params,
   policyHolderId,
@@ -37,7 +46,7 @@ export const getPolicyHolder = async ({
   employerId,
   email
 }) => {
-  const policyHolderResponse = await sdkAxios.get(
+  const response = await sdkAxios.get(
     `policy_holder_sdk/policy_holder/${policyHolderId}`,
     {
       params: {
@@ -46,5 +55,9 @@ export const getPolicyHolder = async ({
       }
     }
   );
-  return policyHolderResponse.data.data;
+
+  const ph = response.data.data;
+  ph.loginProblemIsValid = () =>
+    ph.login_problem && VALID_LOGIN_PROBLEMS.has(ph.login_problem);
+  return ph;
 };

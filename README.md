@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.7.4
+
+Fix invalid message with 2fa-only carriers
+
 ### 0.7.3
 
 ## Philosophy
