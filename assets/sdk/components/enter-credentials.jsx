@@ -227,6 +227,10 @@ export default class EnterCredentials extends Component {
       returnToStep2,
       donePopUp
     } = this.props;
+    const suggestedUsername =
+      formData?.username ||
+      (streamPolicyHolder && streamPolicyHolder.username) ||
+      '';
     return (
       <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
         {returnToStep3 ? (
@@ -267,7 +271,7 @@ export default class EnterCredentials extends Component {
           <Form
             schema={schema}
             uiSchema={uiSchema}
-            formData={formData}
+            formData={{ ...formData, username: suggestedUsername }}
             showErrorList={false}
             onSubmit={this.handleSubmit}
             onChange={this.handleChange}

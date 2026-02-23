@@ -4,11 +4,9 @@
 
 ## Version
 
-### 0.7.4
+### 0.7.5
 
-Fix invalid message with 2fa-only carriers
-
-### 0.7.3
+Autofill username on fix credentials if it exists
 
 ## Philosophy
 
@@ -18,7 +16,12 @@ In the spirit of creating a seemless process we will also be forgoing the verifi
 
 ## Change Log
 
+### 0.7.4
+
+    * Fix invalid message with 2fa-only carriers
+
 ### v0.7.3
+
     * add logo_url to the doneCreatedForm callback
 
 ### v0.7.2
