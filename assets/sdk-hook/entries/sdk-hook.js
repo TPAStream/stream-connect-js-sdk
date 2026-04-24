@@ -42,6 +42,7 @@ export default class StreamConnect {
     });
     this.props = {
       apiToken,
+      connectAccessToken,
       tenant,
       employer,
       user,
@@ -110,6 +111,11 @@ export default class StreamConnect {
   };
 
   beginFixCredentials = () => {
+    if (!this.props.connectAccessToken) {
+      throw new Error(
+        'You must have a connect access token enabled and set to use fix-credentials functionality. See https://github.com/TPAStream/stream-connect-js-sdk/blob/master/docs/connect-access-token.md'
+      );
+    }
     this.setState({ step: steps.step2 });
     return this.state;
   };
