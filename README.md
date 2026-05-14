@@ -4,9 +4,9 @@
 
 ## Version
 
-### 0.7.5
+### 0.7.6
 
-Autofill username on fix credentials if it exists
+Surface the carrier's specific error message in the interoperability payer form
 
 ## Philosophy
 
@@ -15,6 +15,10 @@ This SDK is designed to implement the [EasyEnrollment platform](https://www.easy
 In the spirit of creating a seemless process we will also be forgoing the verification of emails for users using easyenrollment. Instead, we will be relying on the implementers to provide valid emails, first names, and last names in order to create an association of information to a user.
 
 ## Change Log
+
+### 0.7.5
+
+    * Autofill username on fix credentials if it exists
 
 ### 0.7.4
 

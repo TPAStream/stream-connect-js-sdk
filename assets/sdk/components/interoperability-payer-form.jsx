@@ -46,7 +46,7 @@ export default class InteroperabilityPayerForm extends Component {
     event.preventDefault();
     const { streamPayer, email, enableInteropSinglePage } = this.props;
     this.setState({ connectingToInterop: true });
-    beginInterop({ email: email }).then(
+    return beginInterop({ email: email }).then(
       data => {
         this.setState({ connectingToInterop: true });
         if (enableInteropSinglePage) {
@@ -62,8 +62,12 @@ export default class InteroperabilityPayerForm extends Component {
         }
       },
       error => {
+        const message =
+          error?.response?.data?.error ||
+          error?.message ||
+          'Something went wrong. Please try again.';
         this.setState({
-          errorMessage: error,
+          errorMessage: message,
           connectingToInterop: false
         });
       }
@@ -74,7 +78,7 @@ export default class InteroperabilityPayerForm extends Component {
     const {
       tenantAccept,
       tpastreamTermsAccept,
-      error,
+      errorMessage,
       connectingToInterop
     } = this.state;
     const {
@@ -85,7 +89,11 @@ export default class InteroperabilityPayerForm extends Component {
     } = this.props;
     return (
       <form id="easy-enroll-form" onSubmit={this.handleSubmit.bind(this)}>
-        {error && <div>{error}</div>}
+        {errorMessage && (
+          <div className="patient-access-api-error" role="alert">
+            Your carrier responded: <strong>{errorMessage}</strong>
+          </div>
+        )}
         <h2
           id="interoperability-api-notification"
           style={{ padding: 0, margin: 0 }}
