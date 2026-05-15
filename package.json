@@ -1,6 +1,6 @@
 {
     "name": "stream-connect-sdk",
-    "version": "0.7.6",
+    "version": "0.7.7",
     "description": "A JavaScript SDK implementing TPAStream's Connect Platform",
     "scripts": {
         "build": "webpack --config webpack.prod-sdk.js --mode=production",
@@ -48,9 +48,8 @@
     "dependencies": {
         "@fortawesome/free-solid-svg-icons": "^5.13.0",
         "@fortawesome/react-fontawesome": "^0.1.6",
-        "axios": "^0.21.1",
+        "axios": "^1.7.9",
         "font-awesome": "^4.7.0",
-        "jquery": "^3.4.1",
         "query-string": "^6.6.0",
         "react": "^16.11.0",
         "react-dom": "^16.8.6",

@@ -2,9 +2,16 @@ import '@babel/polyfill';
 import React from 'react';
 import { render } from 'react-dom';
 import SDK from '../components/sdk';
-import $ from 'jquery';
+const onDOMReady = cb => {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cb, { once: true });
+  } else {
+    cb();
+  }
+};
 
-let version = '0.7.5';
+let version = '0.7.7';
+console.log(`TPAStream Connect SDK v${version}`);
 
 function uuidv4() {
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
@@ -224,7 +231,7 @@ const StreamConnect = ({
       window.location.pathname + '?' + searchParams.toString();
     history.pushState(null, '', newRelativePathQuery);
   }
-  $(function() {
+  onDOMReady(() => {
     render(
       <SDK
         user={user}

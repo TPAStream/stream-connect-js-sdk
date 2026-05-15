@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 let sdkAxios = axios.create({
-  crossdomain: true,
   headers: { 'X-Is-Demo': '1', 'X-SDK-Version': 'N/A' }
 });
 
@@ -16,7 +15,6 @@ const sdkAxiosMaker = ({
 }) => {
   sdkAxios = axios.create({
     baseURL: _overrideBaseUrl || 'https://app.tpastream.com/sdk-api',
-    crossdomain: true,
     headers: {
       'X-TPAStream-Token': apiToken,
       'X-SDK-Version': version,
@@ -34,7 +32,7 @@ const sdkAxiosMaker = ({
   sdkAxios.interceptors.response.use(
     response => {
       if (response.headers['x-set-connect-access-token']) {
-        sdkAxios.defaults.headers['X-Connect-Access-Token'] =
+        sdkAxios.defaults.headers.common['X-Connect-Access-Token'] =
           response.headers['x-set-connect-access-token'];
       }
       return response;

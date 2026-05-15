@@ -73,10 +73,46 @@ const AdditionalSchema = tenant => {
 export default class EnterCredentials extends Component {
   constructor(props) {
     super(props);
+    const {
+      streamPayer,
+      streamTenant,
+      userAddedUISchema,
+      formData
+    } = this.props;
+    let schema = null;
+    let uiSchema = null;
+    if (streamPayer && streamPayer.onboard_form) {
+      const properties = streamPayer.onboard_form.schema.properties;
+      const schemaKeys = Object.keys(properties);
+      let required = [];
+      for (const key of schemaKeys) {
+        if (properties[key].required !== void 0) {
+          delete properties[key].required;
+          required.push(key);
+        }
+      }
+      const fullSchema = {
+        ...properties,
+        ...AdditionalSchema(streamTenant)
+      };
+      const fullUiSchema = {
+        ...streamPayer.onboard_ui_schema,
+        ...AdditionalUiSchema({
+          toggleTermsOfUse: this.toggleTermsOfUse.bind(this),
+          userAddedUISchema
+        })
+      };
+      schema = {
+        type: 'object',
+        required: required,
+        properties: fullSchema
+      };
+      uiSchema = fullUiSchema;
+    }
     this.state = {
-      schema: null,
-      uiSchema: null,
-      formData: this.props.formData || null,
+      schema: schema,
+      uiSchema: uiSchema,
+      formData: formData || null,
       submitDisabled: false
     };
   }
@@ -88,47 +124,15 @@ export default class EnterCredentials extends Component {
   }
 
   componentDidMount() {
-    this.props.doneStep4({ streamPayer: this.props.streamPayer });
-  }
-
-  componentWillMount() {
-    const {
-      streamPayer,
-      streamTenant,
-      userAddedUISchema,
-      formData
-    } = this.props;
-    const schema = streamPayer.onboard_form.schema.properties;
-    const schemaKeys = Object.keys(schema);
-    let required = []; // new way required is added to properties
-    for (const key of schemaKeys) {
-      if (schema[key].required !== void 0) {
-        delete schema[key].required; // We don't want required on the schema itself. So let's remove it
-        required.push(key);
-      }
+    // Mirror the render-time fallback: if there's no usable streamPayer
+    // / onboard_form, we're showing the "carrier isn't available" message
+    // instead of the form, so we shouldn't tell the wizard step 4 is
+    // done. doneStep4 advances state on the assumption that the user
+    // landed on a real form.
+    if (!this.props.streamPayer || !this.props.streamPayer.onboard_form) {
+      return;
     }
-    const uiSchema = streamPayer.onboard_ui_schema;
-    const fullSchema = {
-      ...schema,
-      ...AdditionalSchema(streamTenant)
-    };
-    const fullUiSchema = {
-      ...uiSchema,
-      ...AdditionalUiSchema({
-        toggleTermsOfUse: this.toggleTermsOfUse.bind(this),
-        userAddedUISchema
-      })
-    };
-    this.setState({
-      schema: {
-        type: 'object',
-        required: required,
-        properties: fullSchema
-      },
-      uiSchema: fullUiSchema,
-      formData: formData,
-      submitDisabled: false
-    });
+    this.props.doneStep4({ streamPayer: this.props.streamPayer });
   }
 
   validateForm = (formData, errors) => {
@@ -231,6 +235,14 @@ export default class EnterCredentials extends Component {
       formData?.username ||
       (streamPolicyHolder && streamPolicyHolder.username) ||
       '';
+    if (!streamPayer || !streamPayer.onboard_form) {
+      return (
+        <div>
+          This account's carrier isn't available in this widget. Please contact
+          your administrator.
+        </div>
+      );
+    }
     return (
       <div style={{ marginTop: '15px' }} id="easy-enroll-form-page">
         {returnToStep3 ? (
