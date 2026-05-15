@@ -29,7 +29,7 @@ export default class InteroperabilityPayerForm extends Component {
         this.setState({ errorMessage: data.error, connectingToInterop: false });
         this.props.handlePostError({ errorMessage: data.error });
       } else if (data.status === 'IN_PROGRESS') {
-        console.log('Interop in progress, waiting for completion');
+        // Still polling; the next setInterval tick will re-check.
       } else {
         const errorMessage = 'Unknown State of Interop flow';
         clearInterval(this.interval);
@@ -118,8 +118,7 @@ export default class InteroperabilityPayerForm extends Component {
                   checked={tpastreamTermsAccept}
                   onChange={event =>
                     this.setState({
-                      tpastreamTermsAccept:
-                        event.target.value == 'on' ? true : false
+                      tpastreamTermsAccept: event.target.value === 'on'
                     })
                   }
                   required
@@ -142,7 +141,7 @@ export default class InteroperabilityPayerForm extends Component {
                   checked={tenantAccept}
                   onChange={event =>
                     this.setState({
-                      tenantAccept: event.target.value == 'on' ? true : false
+                      tenantAccept: event.target.value === 'on'
                     })
                   }
                 />

@@ -250,6 +250,12 @@ class SDK extends Component {
   setStep4 = ({ payer, dependent, policyHolder }) => {
     const { streamPayer, streamUser, streamEmployer } = this.state;
     const searchParams = new URLSearchParams(window.location.search);
+    if (policyHolder && !payer) {
+      this.setStepConfigError(
+        "This account's carrier isn't enabled for this employer. Please contact your administrator."
+      );
+      return;
+    }
     if (policyHolder) {
       this.setState({
         streamPolicyHolder: policyHolder,
@@ -257,7 +263,7 @@ class SDK extends Component {
       });
     }
     if (payer) {
-      if (streamPayer && streamPayer.id == payer.id) {
+      if (streamPayer && streamPayer.id === payer.id) {
         this.setState({
           loading: false,
           dependent: dependent ? dependent : this.state.dependent,
