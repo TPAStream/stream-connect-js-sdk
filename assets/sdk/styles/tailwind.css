@@ -1,0 +1,67 @@
+/* Tailwind utilities. Preflight is disabled in tailwind.config.js
+ * — see the comment there for why. We re-establish the rules our
+ * primitives depend on inside .tpa-sdk-root below.
+ *
+ * Every selector in the scoped reset is wrapped in :where() so its
+ * specificity collapses to 0. This is load-bearing: without :where(),
+ * a rule like `.tpa-sdk-root button { color: inherit }` (specificity
+ * 0,1,1) would beat Tailwind utilities like `.tpa-text-white` (0,1,0)
+ * and the primary button text would render black on blue instead of
+ * white on blue. :where() removes the wrapper from the specificity
+ * tally entirely, so utilities win.
+ */
+
+@tailwind components;
+@tailwind utilities;
+
+:where(
+    .tpa-sdk-root,
+    .tpa-sdk-root *,
+    .tpa-sdk-root *::before,
+    .tpa-sdk-root *::after
+  ) {
+  box-sizing: border-box;
+}
+
+.tpa-sdk-root {
+  /* Plaid-Link aesthetic baseline. Theme tokens are CSS variables so
+   * the SDK's `primaryColor` init prop overrides them at runtime. */
+  --tpa-color-primary-50: 239 246 255; /* blue-50  */
+  --tpa-color-primary-100: 219 234 254; /* blue-100 */
+  --tpa-color-primary-500: 59 130 246; /* blue-500 */
+  --tpa-color-primary-600: 37 99 235; /* blue-600 */
+  --tpa-color-primary-700: 29 78 216; /* blue-700 */
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  color: rgb(31 41 55); /* slate-800 */
+  line-height: 1.5;
+  text-align: left;
+}
+
+:where(.tpa-sdk-root button) {
+  font-family: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  /* Don't force `color: inherit` here — Tailwind text-* utilities on
+   * the button itself need to win unaided. Inheritance from the
+   * parent already gives unstyled buttons the right color. */
+}
+
+:where(.tpa-sdk-root input, .tpa-sdk-root select, .tpa-sdk-root textarea) {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+:where(.tpa-sdk-root a) {
+  color: rgb(var(--tpa-color-primary-600));
+  text-decoration: underline;
+}
+
+/* The host page may have a global `* { box-sizing: ... }` or `button
+ * { background: ... }` rule that bleeds into our subtree. Re-set the
+ * same handful of properties Tailwind preflight would normally set,
+ * scoped to .tpa-sdk-root only. */

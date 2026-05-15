@@ -1,39 +1,42 @@
-/*
- * The Webpack configuration file for the front end JavaScript using React.
- * For background on the concerns that led to this being a separate Webpack
- * config, see:
- * https://stackoverflow.com/questions/50805626/webpack-4-multiple-sets-of-entries-with-code-splitting-unique-to-each
+/**
+ * Webpack config for the SDK CommonJS bundle (sdk.js).
+ *
+ * The bundle is consumed two ways:
+ * 1. As a npm package (libraryTarget: 'commonjs2'). Stream wraps it
+ *    per-version in assets/sdk_cdn/sdk-cdn-vXYZ.jsx for the CDN drop.
+ * 2. Via the /sdk-test sandbox in stevedev — see
+ *    stream/templates/sdk_test.html, which shims module.exports to
+ *    load this file as a plain <script>.
  */
 
 const webpack = require('webpack');
 
 module.exports = {
-    entry: './assets/sdk/entries/sdk.jsx',
-    resolve: {
-        extensions: ['.js', '.jsx']
-    },
-    module: {
-        rules: [
-            {
-                test: /.jsx?$/,
-                exclude: /node_modules\/(?!(query-string|split-on-first|strict-uri-encode)\/).*/,
-                use: {
-                    loader: 'babel-loader',
-                    options: {
-                        presets: ["@babel/preset-env", "@babel/preset-react"]
-                    }
-                }
-            }
-        ]
-    },
-    plugins: [
-        new webpack.ProvidePlugin({})
-    ],
-    output: {
-        path: __dirname,
-        filename: 'sdk.js',
-        libraryTarget: 'commonjs2',
-    },
-    externals: {},
-    node: {}
+  entry: './assets/sdk/entries/sdk.tsx',
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(t|j)sx?$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader'
+        }
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', 'postcss-loader']
+      }
+    ]
+  },
+  plugins: [new webpack.ProvidePlugin({})],
+  output: {
+    path: __dirname,
+    filename: 'sdk.js',
+    libraryTarget: 'commonjs2'
+  },
+  externals: {},
+  node: {}
 };

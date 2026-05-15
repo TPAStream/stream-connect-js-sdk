@@ -4,17 +4,53 @@
 
 ## Version
 
-### 0.7.7
+### 0.8.0
 
-Defensive fix for the Fix-Credentials flow (no white-screen on unresolvable carriers), plus dependency hygiene, lint cleanup, and added test coverage. Logs the SDK version on entry-point load.
+Polished default appearance, React 19 + TypeScript, real-time credential-validation streaming, and a substantial dependency cleanup. The init() contract is backward-compatible: every option supported in 0.7.7 keeps working, including the custom render props (`renderChoosePayer`, `renderPayerForm`, `renderEndWidget`).
 
 ## Philosophy
 
-This SDK is designed to implement the [EasyEnrollment platform](https://www.easyenrollment.net) into our clients own hosted web-portals. We want to make it fit as seemlessly as possible with the current experience of their sites; because of this, we have provided functionality to add callbacks to the end of each of the necessary flows and we are as unopinionated as possible about the styling of the SDK's flow.
-
-In the spirit of creating a seemless process we will also be forgoing the verification of emails for users using easyenrollment. Instead, we will be relying on the implementers to provide valid emails, first names, and last names in order to create an association of information to a user.
+This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) into the host application's own pages. From 0.8.0 onward, the SDK ships with a polished default appearance so it looks good out of the box on any host page, with no required CSS work. Branding is configurable via `theme.primaryColor`, and the existing custom render props remain available for integrators who want full control over a particular step.
 
 ## Change Log
+
+### 0.8.0
+
+  Look and feel
+
+    * Polished default appearance — cards, generous whitespace, system-font stack, accessible focus rings. No host-page CSS required; the SDK is visually self-contained
+    * New `theme.primaryColor` init option (hex like `#2563eb`) recolors buttons, links, focus rings, and progress bars
+
+  Stack
+
+    * React 19, full TypeScript port
+    * Tailwind utility classes (`tpa-` prefix) for styling, scoped to a single `.tpa-sdk-root` subtree to prevent host-page CSS collisions
+    * Headless UI primitives for accessible Dialog and Combobox
+    * React Hook Form + Zod for the carrier credential form
+    * Removed: `@fortawesome/*`, `font-awesome`, `react-jsonschema-form`, `react-popup`, `react-select`, `react-highlight-words`, `query-string`, `@babel/polyfill`, `regenerator-runtime`
+
+  Credential validation
+
+    * Server-Sent Events stream replaces polling. State transitions arrive as they happen instead of on a 5-second cadence
+    * Backed by the new `/v3/sdk/progress/<task_id>/stream` endpoint; auth uses the SDK's existing `X-TPAStream-Token` + `X-Connect-Access-Token` header chain
+    * `RealTimeVerification` and `TwoFactorAuth` are visually unchanged
+
+  Init() options
+
+    * `realTimeVerification` now defaults to `true` if unset. The 0.7.x runtime defaulted it to `false` (despite the docs always listing `true`); with the SSE consumer in place, real-time validation feedback is the right default for almost every integration. Pass `realTimeVerification: false` explicitly to keep the old submit-and-trust behavior
+    * `enableInterop` is deprecated in favor of `enablePatientAccessAPI`. The legacy name keeps working indefinitely; using it logs a one-time deprecation warning to the console
+    * `enableInteropSinglePage` is deprecated in favor of `enablePatientAccessAPISinglePage`, same indefinite-support rule
+    * No other init() option changed. All `done*` callbacks, the three `render*` toggles, `theme`, `userSchema`, `_overrideBaseUrl`, and the rest keep the same shape and names
+    * New: `theme.primaryColor`
+    * New: `enablePatientAccessAPI` and `enablePatientAccessAPISinglePage`
+
+  Migration notes
+
+    * If you use the default render path, the new appearance applies automatically with no code changes
+    * If you use custom render props (`renderChoosePayer={false}` / `renderPayerForm={false}` / `renderEndWidget={false}`), the data shape passed into your components is unchanged
+    * If you previously omitted `realTimeVerification`, the form will now wait on a real-time validation result and surface MFA prompts inline. To preserve the prior submit-and-trust flow without modification, set `realTimeVerification: false` explicitly
+    * The SDK no longer needs Bootstrap CSS on the host page. Pages that already load Bootstrap can continue to do so without conflict
+    * 0.7.x remains supported for integrators not ready to upgrade
 
 ### 0.7.7
 
