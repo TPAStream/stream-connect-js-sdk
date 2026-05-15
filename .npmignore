@@ -7,3 +7,4 @@ docs
 sdk-hook/
 jest.config.js
 sdk.js.LICENSE.txt
+static/
