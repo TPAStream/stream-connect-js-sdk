@@ -13,7 +13,16 @@ interface InteroperabilityPayerFormProps {
   tenantTerms: string | null;
   email: string;
   enablePatientAccessAPISinglePage?: boolean;
-  handleTermsClick: () => void;
+  /** Saved checkbox state to re-hydrate from after a Terms round trip
+   * (this form unmounts while the TermsOfUse screen is shown). */
+  initialTenantAccept?: boolean;
+  initialTpastreamTermsAccept?: boolean;
+  /** Called when the user clicks "Terms of Use" — receives the current
+   * accept state so the orchestrator can stash it for re-hydration. */
+  handleTermsClick: (currentState: {
+    tenantAccept: boolean;
+    tpastreamTermsAccept: boolean;
+  }) => void;
   validateCreds: (args: {
     params: Record<string, unknown>;
     errorCallBack: (data: { errorMessage?: string }) => void;
@@ -31,13 +40,17 @@ export const InteroperabilityPayerForm = (
     tenantTerms,
     email,
     enablePatientAccessAPISinglePage,
+    initialTenantAccept,
+    initialTpastreamTermsAccept,
     handleTermsClick,
     validateCreds,
     handlePostError
   } = props;
 
-  const [tenantAccept, setTenantAccept] = useState(false);
-  const [tpastreamTermsAccept, setTpastreamTermsAccept] = useState(false);
+  const [tenantAccept, setTenantAccept] = useState(!!initialTenantAccept);
+  const [tpastreamTermsAccept, setTpastreamTermsAccept] = useState(
+    !!initialTpastreamTermsAccept
+  );
   const [connecting, setConnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -49,31 +62,45 @@ export const InteroperabilityPayerForm = (
   }, []);
 
   const checkDone = () => {
-    getInteropState({ email }).then((data) => {
-      if (data.status === 'SUCCESS') {
+    getInteropState({ email })
+      .then((data) => {
+        if (data.status === 'SUCCESS') {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          setConnecting(false);
+          validateCreds({
+            params: {},
+            errorCallBack: () => {},
+            interopPhId: data.ph_id
+          });
+        } else if (data.status === 'FAILURE') {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          setConnecting(false);
+          const message = data.error || 'Connection failed';
+          setErrorMessage(message);
+          handlePostError({ errorMessage: message });
+        } else if (data.status === 'IN_PROGRESS') {
+          // keep polling
+        } else {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          const message = 'Unknown state of interop flow';
+          setConnecting(false);
+          setErrorMessage(message);
+          handlePostError({ errorMessage: message });
+        }
+      })
+      .catch((error) => {
+        // Polling failed (network/auth/server error). Stop the
+        // interval and surface a recoverable error rather than
+        // leaving the user spinning on "connecting" while unhandled
+        // promise rejections accumulate in the console.
         if (intervalRef.current) clearInterval(intervalRef.current);
         setConnecting(false);
-        validateCreds({
-          params: {},
-          errorCallBack: () => {},
-          interopPhId: data.ph_id
-        });
-      } else if (data.status === 'FAILURE') {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        setConnecting(false);
-        const message = data.error || 'Connection failed';
+        const message =
+          error?.response?.data?.message ||
+          'Connection check failed. Please try again.';
         setErrorMessage(message);
         handlePostError({ errorMessage: message });
-      } else if (data.status === 'IN_PROGRESS') {
-        // keep polling
-      } else {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        const message = 'Unknown state of interop flow';
-        setConnecting(false);
-        setErrorMessage(message);
-        handlePostError({ errorMessage: message });
-      }
-    });
+      });
   };
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -164,7 +191,12 @@ export const InteroperabilityPayerForm = (
               I have read and agree to the{' '}
               <button
                 type="button"
-                onClick={handleTermsClick}
+                onClick={() =>
+                  handleTermsClick({
+                    tenantAccept,
+                    tpastreamTermsAccept
+                  })
+                }
                 className="tpa-text-primary-600 tpa-underline"
               >
                 Terms of Use

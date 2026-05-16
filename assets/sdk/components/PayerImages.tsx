@@ -312,7 +312,7 @@ export const FixPayerImages = ({
                   <img
                     src={logo}
                     alt=""
-                    className={`tpa-max-w-16 tpa-max-h-8 tpa-flex-shrink-0 ${disabled ? 'tpa-opacity-55' : ''}`}
+                    className={`tpa-max-w-[4rem] tpa-max-h-8 tpa-flex-shrink-0 ${disabled ? 'tpa-opacity-50' : ''}`}
                   />
                 )}
                 <span className="tpa-font-semibold tpa-text-slate-900 tpa-truncate">

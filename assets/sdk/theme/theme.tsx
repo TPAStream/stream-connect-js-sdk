@@ -18,8 +18,6 @@ import {
 export interface SDKTheme {
   /** Hex like '#2563eb' or rgb triplet '37 99 235'. */
   primaryColor?: string;
-  /** Default radius for cards/buttons/inputs. Tailwind token name. */
-  radius?: 'sm' | 'md' | 'lg';
 }
 
 const ThemeContext = createContext<SDKTheme>({});

@@ -25,7 +25,7 @@ export const Card = ({
     interactive
       ? 'hover:tpa-shadow-card-hover tpa-transition-shadow tpa-cursor-pointer'
       : '',
-    disabled ? 'tpa-opacity-55 tpa-pointer-events-none' : '',
+    disabled ? 'tpa-opacity-50 tpa-pointer-events-none' : '',
     className
   ]
     .filter(Boolean)

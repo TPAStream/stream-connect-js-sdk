@@ -7,14 +7,13 @@ import { CheckCircleIcon, SpinnerIcon } from '../icons';
 
 /**
  * Floating panel pinned to the top-right of the SDK root. Shows one
- * card per in-flight validation. Cards auto-dismiss on success after
- * a short hold; failures stay until the user clicks them away. When
- * a validation needs 2FA input, the card pulses and clicking it
- * opens the modal.
+ * card per in-flight validation as status-only chips: success cards
+ * auto-dismiss after a short hold, failures stay until the user clicks
+ * them away. 2FA is handled inline in the hero element, not via this
+ * panel.
  *
- * The panel is rendered alongside the wizard step state, so the user
- * can keep adding carriers / fixing other credentials while
- * background validations run.
+ * Rendered alongside the wizard step state so the user can keep adding
+ * carriers / fixing other credentials while background validations run.
  */
 
 const SUCCESS_DISMISS_MS = 4000;

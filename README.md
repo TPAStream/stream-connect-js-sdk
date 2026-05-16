@@ -48,7 +48,7 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
     * If you use the default render path, the new appearance applies automatically with no code changes
     * If you use custom render props (`renderChoosePayer={false}` / `renderPayerForm={false}` / `renderEndWidget={false}`), the data shape passed into your components is unchanged
-    * If you previously omitted `realTimeVerification`, the form will now wait on a real-time validation result and surface MFA prompts inline. To preserve the prior submit-and-trust flow without modification, set `realTimeVerification: false` explicitly
+    * If you previously omitted `realTimeVerification`, validation is still on by default. The transport is now SSE-backed and the UI is non-blocking: after submit, the user is returned to the picker / manage page while the hero + corner panel tracks validation in real time (MFA prompts surface inline). To preserve the prior 0.7-style submit-and-trust flow without modification, set `realTimeVerification: false` explicitly
     * The SDK no longer needs Bootstrap CSS on the host page. Pages that already load Bootstrap can continue to do so without conflict
     * 0.7.x remains supported for integrators not ready to upgrade
 
@@ -180,6 +180,10 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 [SDK Flow Details](docs/sdk-flow.md)
 
 [QuickStart Guide](docs/quickstart.md)
+
+[Theme](docs/theme.md)
+
+[Migrating from 0.7.x to 0.8](docs/migration-0.7-to-0.8.md)
 
 [SDK-Hook Guide](sdk-hook/docs/README.md)
 

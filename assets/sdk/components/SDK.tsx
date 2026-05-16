@@ -423,18 +423,36 @@ export const SDK = (props: SDKProps) => {
           policyHolderId: interopPhId,
           email: state.streamUser.email,
           employerId: state.streamEmployer.id
-        }).then((phData) => {
-          setState((s) => ({
-            ...s,
-            termsOfUse: false,
-            taskId: null,
-            taskToken: null,
-            credentialsValid: true,
-            policyHolderId: interopPhId,
-            streamPolicyHolder: phData,
-            step: 5
-          }));
-        });
+        })
+          .then((phData) => {
+            setState((s) => ({
+              ...s,
+              termsOfUse: false,
+              taskId: null,
+              taskToken: null,
+              credentialsValid: true,
+              policyHolderId: interopPhId,
+              streamPolicyHolder: phData,
+              step: 5
+            }));
+          })
+          .catch(() => {
+            // OAuth succeeded server-side but the post-success PH lookup
+            // failed. Advance to step 5 with credentialsValid still set
+            // (the upstream interop SUCCESS already confirmed the link)
+            // so the user reaches the end widget instead of stranding on
+            // the previous step. The end widget renders from the in-memory
+            // PH summary that was already fetched at init.
+            setState((s) => ({
+              ...s,
+              termsOfUse: false,
+              taskId: null,
+              taskToken: null,
+              credentialsValid: true,
+              policyHolderId: interopPhId,
+              step: 5
+            }));
+          });
         return;
       }
 
@@ -535,21 +553,40 @@ export const SDK = (props: SDKProps) => {
           policyHolderId,
           email: state.streamUser.email,
           employerId: state.streamEmployer.id
-        }).then((phData) => {
-          setState((s) => ({
-            ...s,
-            termsOfUse: false,
-            taskId: null,
-            taskToken: null,
-            credentialsValid:
-              phData.login_problem !== null
-                ? !phData.login_needs_correction
-                : true,
-            policyHolderId,
-            streamPolicyHolder: phData,
-            step: 5
-          }));
-        });
+        })
+          .then((phData) => {
+            setState((s) => ({
+              ...s,
+              termsOfUse: false,
+              taskId: null,
+              taskToken: null,
+              credentialsValid:
+                phData.login_problem !== null
+                  ? !phData.login_needs_correction
+                  : true,
+              policyHolderId,
+              streamPolicyHolder: phData,
+              step: 5
+            }));
+          })
+          .catch((err) => {
+            // PH refresh failed after credential submit. Advance to
+            // step 5 anyway (with credentialsValid optimistically true
+            // since the post itself succeeded) so the user sees the end
+            // widget instead of being stranded on the credential form
+            // with no feedback. handleFormErrors gets the error so the
+            // host page can log/notify.
+            props.handleFormErrors?.(err);
+            setState((s) => ({
+              ...s,
+              termsOfUse: false,
+              taskId: null,
+              taskToken: null,
+              credentialsValid: true,
+              policyHolderId,
+              step: 5
+            }));
+          });
       });
     },
     [

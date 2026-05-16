@@ -314,7 +314,15 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
               tenantTerms={tenantTerms}
               email={props.email}
               enablePatientAccessAPISinglePage={usePAASingle}
-              handleTermsClick={() => props.toggleTermsOfUse()}
+              // Pass saved checkbox state through both directions so a
+              // Terms-of-Use round trip preserves the user's selections.
+              // The PAA form has its own local checkbox state (not RHF)
+              // so we plumb the pair via formData like the regular form.
+              initialTenantAccept={!!formData?.tenantAccept}
+              initialTpastreamTermsAccept={!!formData?.tpastreamTermsAccept}
+              handleTermsClick={(currentState) =>
+                props.toggleTermsOfUse(currentState)
+              }
               validateCreds={props.validateCreds}
               handlePostError={({ errorMessage }) =>
                 setErrorMessage(errorMessage)
@@ -341,6 +349,10 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                     }
                     if (field.type === 'select' && field.options) {
                       const selectId = `tpa-select-${field.key}`;
+                      const selectErrorId = `${selectId}-error`;
+                      const selectError = errors[field.key]?.message as
+                        | string
+                        | undefined;
                       return (
                         <div key={field.key}>
                           <label
@@ -352,6 +364,10 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                           <select
                             id={selectId}
                             {...register(field.key)}
+                            aria-invalid={selectError ? true : undefined}
+                            aria-describedby={
+                              selectError ? selectErrorId : undefined
+                            }
                             className="tpa-w-full tpa-rounded-md tpa-border tpa-border-slate-300 tpa-px-3 tpa-py-2.5 focus:tpa-outline-none focus-visible:tpa-border-primary-500 focus-visible:tpa-ring-2 focus-visible:tpa-ring-primary-500"
                           >
                             <option value="">Select…</option>
@@ -361,9 +377,13 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                               </option>
                             ))}
                           </select>
-                          {errors[field.key]?.message && (
-                            <p className="tpa-mt-1.5 tpa-text-sm tpa-text-red-600">
-                              {errors[field.key]?.message as string}
+                          {selectError && (
+                            <p
+                              id={selectErrorId}
+                              className="tpa-mt-1.5 tpa-text-sm tpa-text-red-600"
+                              role="alert"
+                            >
+                              {selectError}
                             </p>
                           )}
                         </div>

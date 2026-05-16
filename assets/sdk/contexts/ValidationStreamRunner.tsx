@@ -37,18 +37,31 @@ export const ValidationStreamRunner = ({
   const subscriptions = useRef<Map<string, () => void>>(new Map());
 
   useEffect(() => {
-    // Open a subscription for any validation we don't already have one for.
+    // Open a subscription for any validation we don't already have one
+    // for. pending_async is treated as terminal-for-subscription-purposes
+    // (the SSE stream is gone; the user will see the final state on the
+    // next session) so we don't re-open subscriptions to it.
     for (const v of validations) {
       if (subscriptions.current.has(v.id)) continue;
-      if (v.state === 'success' || v.state === 'failure') continue;
+      if (
+        v.state === 'success' ||
+        v.state === 'failure' ||
+        v.state === 'pending_async'
+      )
+        continue;
       const unsub = openStream(v);
       subscriptions.current.set(v.id, unsub);
     }
     // Tear down subscriptions for validations no longer in the list,
-    // or that have reached a terminal state.
+    // or that have reached a terminal state (including pending_async).
     const liveIds = new Set(
       validations
-        .filter((v) => v.state !== 'success' && v.state !== 'failure')
+        .filter(
+          (v) =>
+            v.state !== 'success' &&
+            v.state !== 'failure' &&
+            v.state !== 'pending_async'
+        )
         .map((v) => v.id)
     );
     for (const [id, unsub] of subscriptions.current.entries()) {
@@ -120,8 +133,13 @@ export const ValidationStreamRunner = ({
         markPendingAsync(v.id);
       },
       onError: () => {
-        // Quietly drop on connection error. The user can still take
-        // action via the carrier site directly.
+        // SSE fetch failed or the stream broke partway through. We
+        // don't know if the validation will still complete server-side,
+        // so move it to pending_async ("we'll let you know when it's
+        // done") rather than leaving the user on "Connecting…" forever.
+        // The reconcile loop above skips pending_async, so we won't
+        // immediately re-open and loop on the same error.
+        markPendingAsync(v.id);
       }
     });
 

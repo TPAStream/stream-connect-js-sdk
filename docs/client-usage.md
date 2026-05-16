@@ -1,6 +1,6 @@
 
 # Client Usage
-We have decided that the best possible way to implement this SDK is a simple config pattern. A prospective user will communicate with us to recieve an SDK sdkToken as well as employer system keys. 
+We have decided that the best possible way to implement this SDK is a simple config pattern. A prospective user will communicate with us to receive an SDK sdkToken as well as employer system keys.
 
 A mock implementation might look something like the following:
 
@@ -9,21 +9,28 @@ Using TPAStream as a CDN
     <script src="https://app.tpastream.com/static/js/sdk.js"></script>
     <script>
         window.StreamConnect({
-            el: '#react-hook', // This is where we nest all the pages for the form. You will pass in a selector.
+            el: '#react-hook', // CSS selector; the SDK renders under this element.
             employer: {
                 systemKey: 'some-system-key',
                 vendor: 'internal',
                 name: 'some-employer-name'
             },
             user: {
-                firstName: 'Joe', 
-                lastName: 'Sajor', 
-                email: 'some-email@place.com' // You're going to need to provide This
+                firstName: 'Joe',
+                lastName: 'Sajor',
+                email: 'some-email@place.com'
             },
             isDemo: false,
             sdkToken: 'VeryLegitKey',
+            // Optional 0.8 additions:
+            theme: { primaryColor: '#2563eb' },
+            enablePatientAccessAPI: true,
+            // Behavior toggles (defaults shown):
             realTimeVerification: true,
             renderChoosePayer: true,
+            renderPayerForm: true,
+            renderEndWidget: true,
+            // Lifecycle callbacks:
             doneGetSDK: ({ user, payers, tenant, employer }) => {},
             doneChoosePayer: () => {},
             doneTermsOfService: () => {},
@@ -32,19 +39,19 @@ Using TPAStream as a CDN
             doneRealTime: () => {},
             doneEasyEnroll: ({ employer, payer, tenant, policyHolder, user }) => {},
             donePopUp: () => {},
-            handleFormErrors: (error, {response, request, config}) => {} // This is a callback which will basically act as a try catch for form issues
-            userSchema: {} // This is advanced functionality for those who know react-jsonform-schema
+            handleFormErrors: (error, {response, request, config}) => {}
         })
     </script>
 ```
 
 As shown above the SDK is mounted by calling `window.StreamConnect({})` and passing in the desired parameters.
 
-As of SDK version 0.4.7 the CDN provider is now versioned and will support up to 10 minor versions behind.
- * Importing the various versions of the SDK is handled in `src` attribute on your script tag
-    * `"https://app.tpastream.com/static/js/sdk.js"` --> Grabs the latest version of the SDK
-    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` --> For a specific version. Examples below.
-        * `"https://app.tpastream.com/static/js/sdk-v-0.4.7.js"`
+As of SDK version 0.4.7 the CDN provider is versioned. Past versions remain available indefinitely.
+ * The version is selected by the `src` attribute on your script tag.
+    * `"https://app.tpastream.com/static/js/sdk.js"` -> Latest published version of the SDK.
+    * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` -> A specific version. Examples:
+        * `"https://app.tpastream.com/static/js/sdk-v-0.8.0.js"`
+        * `"https://app.tpastream.com/static/js/sdk-v-0.7.7.js"` (last 0.7.x)
 
 NPM package
 ```javascript
@@ -80,21 +87,39 @@ StreamConnect({
 | `user.phoneNumber`            | The user's phone number                                                                                 | String  | `user: { phoneNumber: '000-000-0000' }`               | N\A       |
 | `user.dateOfBirth`            | The user's date of birth                                                                                | String  | `user: { dateOfBirth: 'YYYY-MM-DD' }`                 | N\A       |
 | `sdkToken`*                   | The SDK Token. This has to be configured before-hand. It isn't a secret.                                | String  | `sdkToken: 'VeryLegitKey'`                            | N\A       |
-| `connectAccessToken`          | A generated token if advanced security is enabled. See [Connect Access Token](./connect-access-token.md)   | String  | `connectAccessToken: ''`                              | N\A       |
-| `includePayerBlogs`           | Enable optional payer updates blog on each enrollment form. Has some additional info about the payer.   | String  | `includePayerBlogs: false`                            | `false`   |
-| `enableInterop` | The redirect URL sent to the SDK interop system post authentication on a payer website. See [Interop](./interop.md) | Boolean | `enableInterop: true` | `false` |
-| `enableInteropSinglePage` | Same as `enableInterop` but does not open a new tab. See [Interop](./interop.md). If this is enabled it overrides `enableInterop` | Boolean | `enableInteropSinglePage: true` | `false` |
-| `forceEndStep` | A value passed into the instance widget to immediate force the end widget to render instead of any other step | Boolean | `entrySdkStateId: 'somestateid'` | `''` |
-| `entrySdkStateId` | A value which overrides the SDK generated stateId. To be used to preserve SDK flow logs while `webViewDelegation` is `true`. Do not use this otherwise. | String | `forceEndStep: true` | `false` |
-| `webViewDelegation` | A value passed into the instance widget to enable sdk redirection delegation to a top-level webview initing the sdk. Instead of going to the normal `sdk_interop_done` page or returning to `window.location` send the sdk final redirection for interoperability to `/patientacessapi/sdk-interop-done-delegation/<string:sdk_state_id>/<int:ph_id>` to be parsed and handled by an implementer's top level app. | Boolean | `webViewDelegation: true` | `false` |
-| `isDemo`                      | This let's you tell the SDK to not work with real data. Instead letting an implementer work on styling. | Boolean | `isDemo: true`                                        | `false`   |
-| `realTimeVerification`        | For realtime validation of logins. If disabled all creds will be assumed correct by the sdk. Default `true` (unchanged since 0.7.7). The 0.8 SDK uses an SSE stream instead of the 0.7 polling loop, and the in-flight validation renders in the non-blocking hero + corner-panel UI.            | Boolean | `realTimeVerification: true`                          | `true`    |
-| `realtimeTimeout`        | **Deprecated in 0.8.** Was the polling-loop timeout in 0.7.x. The 0.8 SDK uses SSE with a server-side stream deadline (~10 minutes) and no longer reads this option. Accepted for back-compat but has no effect.       | Number | `realtimeTimeout: 600`                          | n/a    |
-| `renderChoosePayer`           | For rendering the choose payer widget. If disabled create a custom choose payer, via `doneChoosePayer`  | Boolean | `renderChoosePayer: false`                            | `true`    |
-| `renderPayerForm`             | For rendering the payer form widget. If disabled create a custom payer form, via `doneCreatedForm`      | Boolean | `renderPayerForm: false`                              | `true`    |
-| `renderEndWidget`             | For rendering the end widget. If disabled create a custom end widget, via `doneEasyEnroll`              | Boolean | `renderEndWidget: false`                              | `true`    |
-| `userSchema`                  | [react-jsonschema-form](https://react-jsonschema-form.readthedocs.io/en/latest/) for `ui:schema`        | Object  | `userSchema: {}`                                      | `{}`      |
-| `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials) in the SDK                                    | Boolean | `fixCredentials: true` | `false` |
+| `apiToken`*                   | The SDK token. Same value as `sdkToken`; pass either. If both are set, `apiToken` wins. Not a secret.   | String  | `apiToken: 'VeryLegitKey'`                            | N\A       |
+| `connectAccessToken`          | A generated token if advanced security is enabled. See [Connect Access Token](./connect-access-token.md). The 0.8 SDK also accepts a fresh `?accessToken=...` on the URL after a Patient Access API redirect; if present, it overrides this option for that load and is stripped from the URL via `history.replaceState`. | String  | `connectAccessToken: ''`                              | N\A       |
+| `includePayerBlogs`           | Enable optional payer updates blog on each enrollment form. Has some additional info about the payer.   | Boolean | `includePayerBlogs: false`                            | `false`   |
+| `theme`                       | Branding overrides applied as scoped CSS variables on the SDK root subtree. See [Theme](./theme.md).    | Object  | `theme: { primaryColor: '#2563eb' }`                  | `{}`      |
+| `theme.primaryColor`          | Hex color (e.g. `#2563eb`) used to recolor buttons, links, focus rings, and progress bars. Scoped to the SDK subtree; will not bleed into host-page CSS. | String  | `theme: { primaryColor: '#2563eb' }`                  | (built-in indigo) |
+| `enablePatientAccessAPI`      | Enables Patient Access API payers (carriers that authenticate via a redirect to the carrier website rather than collecting credentials inline). See [Interop](./interop.md). | Boolean | `enablePatientAccessAPI: true` | `false` |
+| `enablePatientAccessAPISinglePage` | Same as `enablePatientAccessAPI` but performs the redirect in the current tab instead of opening a new window. If true, takes precedence over `enablePatientAccessAPI`. | Boolean | `enablePatientAccessAPISinglePage: true` | `false` |
+| `enableInterop`               | **Deprecated** alias for `enablePatientAccessAPI`. Still works indefinitely; using it logs a one-time console warning. | Boolean | `enableInterop: true` | `false` |
+| `enableInteropSinglePage`     | **Deprecated** alias for `enablePatientAccessAPISinglePage`. Same behavior. | Boolean | `enableInteropSinglePage: true` | `false` |
+| `forceEndStep` | Skip directly to the end widget on load. Accepts the legacy boolean form (`true` -> end widget) and the explicit step-number form (`5` is the FinishedEasyEnroll step). The SDK also auto-applies this when the URL contains `?forceTPAStreamSdkEnd=1` (the flag is then stripped from the address bar). | Boolean \| Number | `forceEndStep: true` or `forceEndStep: 5` | `false` |
+| `entrySdkStateId` | Overrides the SDK-generated state id. Used to preserve SDK flow logs across a `webViewDelegation` round trip. Do not set otherwise. | String | `entrySdkStateId: 'somestateid'` | N\A |
+| `webViewDelegation` | Enables redirection delegation to a top-level webview hosting the SDK. The interop final redirect goes to `/patientaccessapi/sdk-interop-done-delegation/<string:sdk_state_id>/<int:ph_id>` for the host app to parse instead of `sdk_interop_done` or `window.location`. | Boolean | `webViewDelegation: true` | `false` |
+| `isDemo`                      | Tells the SDK not to work with real data; useful while iterating on styling. Demo mode cannot save or validate credentials. | Boolean | `isDemo: true`                                        | `false`   |
+| `realTimeVerification`        | Enables credential-validation UI feedback. Default is `true` (unchanged since 0.7.7). The 0.8 SDK uses a Server-Sent Events stream instead of the 0.7 polling loop, and validation renders in the non-blocking hero + corner-panel UI rather than blocking the carrier picker. Pass `false` to submit and immediately advance with no validation UI. | Boolean | `realTimeVerification: true`                          | `true`    |
+| `realtimeTimeout`             | **Deprecated in 0.8.** Was the polling-loop timeout in 0.7.x. The 0.8 SDK uses SSE with a server-side stream deadline (~10 minutes) and no longer reads this option. Accepted for back-compat but has no effect. | Number | `realtimeTimeout: 600`                          | n/a    |
+| `renderChoosePayer`           | Render the built-in choose-payer widget. If `false`, the widget is omitted and you must drive payer selection from the `doneChoosePayer` callback. | Boolean | `renderChoosePayer: false`                            | `true`    |
+| `renderPayerForm`             | Render the built-in credentials form. If `false`, drive it from `doneCreatedForm`. | Boolean | `renderPayerForm: false`                              | `true`    |
+| `renderEndWidget`             | Render the built-in end widget. If `false`, drive it from `doneEasyEnroll`. | Boolean | `renderEndWidget: false`                              | `true`    |
+| `userSchema`                  | **Changed in 0.8.** In 0.7.x this drove `react-jsonschema-form` UI-schema customization for the credentials form. `react-jsonschema-form` was removed in 0.8, so `userSchema` no longer affects rendering; the object is forwarded into the credential-submit payload for downstream consumers, and the SDK emits a one-time console warning when set. File an issue if you relied on UI-schema-driven extra fields. | Object  | `userSchema: {}`                                      | `{}`      |
+| `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials.md) in the SDK. Requires `connectAccessToken`. | Boolean | `fixCredentials: true` | `false` |
+| `maxRetries`                  | Maximum number of credential-form re-submission attempts before the SDK gives up and surfaces the error. | Number  | `maxRetries: 3` | (SDK default) |
+| `_overrideBaseUrl`            | Override the API base URL the SDK talks to. Used by the `/sdk-test` sandbox and integration tests; do not set in production. | String  | `_overrideBaseUrl: 'https://stevedev.tpastream.com'` | (`app.tpastream.com`) |
+
+## Redirect query parameters (Patient Access API)
+
+When the Patient Access API flow returns the user from a carrier site back to the page hosting the SDK, the redirect URL can carry two query parameters that the 0.8 SDK reads automatically on init:
+
+* **`?accessToken=...`**: a fresh connect-access token minted by `app.tpastream.com` after the carrier redirect completes. The SDK reads it on load, uses it for the remainder of the session, and (regardless of whether `connectAccessToken` was already set in the init object) takes the URL value as the freshest. The token is single-use.
+* **`?forceTPAStreamSdkEnd=1`**: set by the redirect URL the SDK constructs when `enablePatientAccessAPISinglePage` is `true`. Tells this load to skip straight to the end widget instead of restarting at choose-payer.
+
+Both parameters are stripped from the URL via `history.replaceState` after the SDK reads them. `replaceState` (not `pushState`) is used deliberately: the back button cannot restore the original URL, so the single-use access token cannot leak via history navigation, browser autofill, or referrer headers.
+
+You do not need to handle these parameters yourself; this section documents them so that integrators who inspect the URL or rely on `popstate` events know what to expect.
 
 ## Callbacks
 The main way an implementor will be interacting and modifying the `stream-connect-js-sdk` is via our various callbacks placed at key flowpoints of the SDK. In these callbacks the implementors are recommended to use `JavaScript` to style the various widgets as well as handle any additional custom logic which they deem necessary. These callbacks also include various amounts of information which can be helpful when trying to integrate fully with the TPAStream system.
@@ -265,9 +290,9 @@ StreamConnect({
 ```
 
 ### `donePostCredentials`
-`donePostCredentials` Callback occurs when the user is finished setting their credentials and the SDK is posting the new creds. This allows an implementor to intercept the SDK post request and save the values the user inputted into the form
+`donePostCredentials` fires when the user submits the credentials form and the SDK is posting the new creds. The callback gives implementors a chance to intercept the post payload (for example to persist to your own backend) before the SDK moves on to the validation step.
 
-These values can vary pretty widley passed on carrier. Here are the main stays though.
+These values vary by carrier. Common fields:
 * `params`
     * `username`
     * `password`
@@ -282,6 +307,8 @@ These values can vary pretty widley passed on carrier. Here are the main stays t
     * `security_question_second_choice`
     * `security_question_third`
     * `security_question_third_choice`
+
+In 0.8, the credential-submit response also includes a `task_token` (a short-lived task-scoped JWT bound to the validation task) that the SDK uses internally to subscribe to the `/v3/sdk/progress/<task_id>/stream` SSE channel. Implementors do not need to handle the token themselves; the SDK uses it transparently. The token is audience-locked to `sdk:sse:progress`, valid for 10 minutes, and tied to the submitting user.
 
 Example Usage:
 ```javascript

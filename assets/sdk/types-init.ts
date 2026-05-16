@@ -26,7 +26,6 @@ export interface InitUser {
 
 export interface InitTheme {
   primaryColor?: string;
-  radius?: 'sm' | 'md' | 'lg';
 }
 
 export interface SDKInitOptions {

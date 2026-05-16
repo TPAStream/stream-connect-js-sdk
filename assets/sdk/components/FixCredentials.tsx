@@ -77,27 +77,31 @@ export const FixCredentials = (props: FixCredentialsProps) => {
         </Stack>
       )}
 
-      <Stack gap="sm">
-        <Stack gap="xs">
-          <Title order={recent.length > 0 ? 3 : 2}>
-            {recent.length > 0 ? 'Your other carriers' : 'Your carriers'}
-          </Title>
-          <Text size="sm" color="muted">
-            {rest.length > 0
-              ? 'Tap any carrier below to update its sign-in info.'
-              : allPhs.length === 0
-                ? "You haven't connected any carriers yet."
-                : null}
-          </Text>
+      {/* Suppress the "Your other carriers" / "Your carriers" section
+          entirely when there's nothing to render under it AND we're
+          not in the empty-state case. Otherwise a customer with only
+          recently-added PHs sees a bare heading with no body. */}
+      {(rest.length > 0 || allPhs.length === 0) && (
+        <Stack gap="sm">
+          <Stack gap="xs">
+            <Title order={recent.length > 0 ? 3 : 2}>
+              {recent.length > 0 ? 'Your other carriers' : 'Your carriers'}
+            </Title>
+            <Text size="sm" color="muted">
+              {rest.length > 0
+                ? 'Tap any carrier below to update its sign-in info.'
+                : "You haven't connected any carriers yet."}
+            </Text>
+          </Stack>
+          {rest.length > 0 && (
+            <FixPayerImages
+              policyHolders={rest}
+              payers={streamPayers}
+              choosePolicyHolder={props.choosePolicyHolder}
+            />
+          )}
         </Stack>
-        {rest.length > 0 && (
-          <FixPayerImages
-            policyHolders={rest}
-            payers={streamPayers}
-            choosePolicyHolder={props.choosePolicyHolder}
-          />
-        )}
-      </Stack>
+      )}
     </Stack>
   );
 };

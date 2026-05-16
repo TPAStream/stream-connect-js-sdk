@@ -12,22 +12,22 @@ Here is what the test htmlscript looks like.
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <script src="https://app.tpastream.com/static/js/sdk.js"></script>
     </head>
     <body></body>
 </html>
 ```
 
-`<script src="https://app.tpastream.com/static/js/sdk.js"></script>` in the head  will bring down the latest version of the StreamConnect SDK. If for any reason you require a previous version or wish to set the SDK to a specific version change the src to something like 
-`<script src="https://app.tpastream.com/static/js/sdk-v-0.5.4.js"></script>`. The SDK CDN provides up to 10 minor version prior.
+`<script src="https://app.tpastream.com/static/js/sdk.js"></script>` in the head will bring down the latest version of the StreamConnect SDK. If you need to pin to a specific version, change the src to something like
+`<script src="https://app.tpastream.com/static/js/sdk-v-0.8.0.js"></script>`. Pinned versions remain available indefinitely.
+
+The 0.8 SDK is visually self-contained: it does not require Bootstrap, jQuery, FontAwesome, or any other host-page CSS. Host pages that already load Bootstrap can keep doing so without conflict; the SDK styles are scoped to a single `.tpa-sdk-root` subtree so they will not collide with host CSS.
 
 ## Step 2 -- Add element for SDK to hook to and init SDK
 ```html
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
@@ -55,7 +55,6 @@ If you then open up the above html in a browser you should see something close t
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
@@ -92,7 +91,6 @@ if the error naturally resolves as you add the rest of the configuration.
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
@@ -127,7 +125,6 @@ your current email.
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <script src="https://app.tpastream.com/static/js/sdk.js"></script>
         <script>
             window.StreamConnect({
