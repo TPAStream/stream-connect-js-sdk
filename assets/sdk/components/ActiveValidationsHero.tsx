@@ -125,6 +125,7 @@ const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
       items={items}
       value={picked}
       onChange={submit}
+      label="Verification method"
       placeholder="Send a code to…"
     />
   );
@@ -154,6 +155,7 @@ const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
     <form onSubmit={submit} className="tpa-flex tpa-gap-2 tpa-items-end">
       <div className="tpa-flex-1">
         <TextInput
+          label="Verification code"
           placeholder="123456"
           value={code}
           onChange={(e) => setCode(e.target.value)}

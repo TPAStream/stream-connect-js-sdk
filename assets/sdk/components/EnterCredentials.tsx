@@ -255,7 +255,22 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
 
   useEffect(() => {
     if (!streamPayer || !streamPayer.onboard_form) return;
-    props.doneStep4?.({ streamPayer });
+    // Match the legacy 0.7.x doneCreatedForm/doneStep4 payload shape
+    // that custom render-prop integrators read from. Even when the
+    // built-in form renders (renderPayerForm: true), customers wire
+    // this callback for analytics, styling hooks, or to read the
+    // schema. Sending only { streamPayer } would silently drop the
+    // legacy contract.
+    props.doneStep4?.({
+      streamPayer,
+      formJsonSchema: streamPayer.onboard_form,
+      tenantTerms,
+      streamTenant,
+      toggleTermsOfUse: props.toggleTermsOfUse,
+      returnToChoosePayer: returnToStep3 || (() => {}),
+      validateCreds: props.validateCreds,
+      email: props.email
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamPayer]);
 

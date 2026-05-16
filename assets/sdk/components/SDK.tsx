@@ -449,6 +449,16 @@ export const SDK = (props: SDKProps) => {
           // a user who fixes their last broken PH lands on an empty
           // list and a hero — the hero is right but the missing list
           // entry feels like the SDK forgot what they just did.
+
+          // Pick the return step from the flow the user actually came
+          // from, not the init-level fixCredentials option. In fix
+          // mode the user can choose "Reconnect existing" (state.PH set
+          // → return to step 2) OR "Add new carrier" (state.PH null
+          // → return to step 3, the carrier picker). Honoring just
+          // props.fixCredentials would bounce "Add new" users back to
+          // the FixCredentials list instead of the picker they expect.
+          const returnStep =
+            props.fixCredentials && state.policyHolderId ? 2 : 3;
           getFixCredentials({ email: state.streamUser.email })
             .then(({ user }) => {
               setState((s) => ({
@@ -460,7 +470,7 @@ export const SDK = (props: SDKProps) => {
                 taskId: null,
                 taskToken: null,
                 streamUser: user,
-                step: props.fixCredentials ? 2 : 3,
+                step: returnStep,
                 formData: null
               }));
             })
@@ -475,7 +485,7 @@ export const SDK = (props: SDKProps) => {
                 streamPolicyHolder: null,
                 taskId: null,
                 taskToken: null,
-                step: props.fixCredentials ? 2 : 3,
+                step: returnStep,
                 formData: null
               }));
             });
@@ -673,11 +683,31 @@ export const SDK = (props: SDKProps) => {
           // BUT: EnterCredentials needs the full payer payload
           // (onboard_form, supports_interoperability_apis, etc.) which
           // the init-response payer doesn't carry. Fetch via getPayer
-          // first, mirror the multi-payer path through setStep4.
+          // first, mirror the multi-payer path through setStep4 —
+          // including the PAA single-page `referer` so the backend
+          // generates an authorization URL with the return-to-end-widget
+          // redirect context. Without this the single-page PAA flow
+          // can't resume correctly after carrier auth for one-payer
+          // employers.
+          const singlePayerUsePAASingle =
+            props.resolvedPAASingle ??
+            props.enablePatientAccessAPISinglePage ??
+            props.enableInteropSinglePage;
+          const singlePayerReferer = singlePayerUsePAASingle
+            ? props.webViewDelegation
+              ? 'sdk_interop_done_delegation'
+              : window.location.origin +
+                window.location.pathname +
+                window.location.search +
+                (window.location.search
+                  ? '&forceTPAStreamSdkEnd=1'
+                  : '?forceTPAStreamSdkEnd=1')
+            : undefined;
           getPayer({
             payerId: payers[0]!.id,
             employerId: employer.id,
-            email: user.email
+            email: user.email,
+            referer: singlePayerReferer
           })
             .then((payerResponse) => {
               setState((s) => ({
@@ -842,9 +872,13 @@ export const SDK = (props: SDKProps) => {
           tenantTerms: state.streamTenant.terms_of_use,
           streamTenant: state.streamTenant,
           // Back-compat with 0.7.7 which surfaced `logoUrl` as a
-          // top-level convenience field. Custom render-prop integrators
-          // that read it directly keep working.
-          logoUrl: state.streamPayer.logo_url,
+          // top-level convenience field sourced from the *tenant* logo
+          // (the deleted 0.7.7 test asserted logoUrl === tenant.logo_url).
+          // Custom render-prop integrators that read it for tenant
+          // branding keep working.
+          logoUrl:
+            (state.streamTenant as { logo_url?: string } | null)?.logo_url ??
+            null,
           toggleTermsOfUse,
           returnToChoosePayer: setStep3,
           validateCreds,
