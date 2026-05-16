@@ -26,7 +26,10 @@ youremail@gmail.com -> youremail+testingsdk@gmail.com
 ```
 
 ## I'd like to use React Native
-See our [React Native Docs](../sdk-hook/docs/README.md)
+
+Embed the SDK in a WebView via [`react-native-webview`](https://github.com/react-native-webview/react-native-webview) and ferry callbacks to the native shell via `postMessage`. The [Quickstart](./quickstart.md#react-native) has a full walkthrough, and the [SDK Hook docs](../sdk-hook/docs/README.md#recommended-webview-pattern-for-react-native) cover Patient Access API redirects and the SDK's complete callback surface.
+
+The older `stream-connect-sdk-hook` npm package (v0.6.x) is deprecated as of 0.6.3. Existing integrations keep working but won't receive feature updates: no SSE-driven validation, no inline 2FA, no fix-credentials status badges, no PAA support. New integrations should use the WebView pattern.
 
 ## I'd like to create a more customized flow for how a user enters credentials and validation.
 The default recommendation for customizing the SDK flow is to use the various sdk [Callbacks](client-usage.md#callbacks).

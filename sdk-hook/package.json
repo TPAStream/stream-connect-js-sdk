@@ -1,7 +1,7 @@
 {
   "name": "stream-connect-sdk-hook",
-  "version": "0.6.2",
-  "description": "A JavaScript SDK implementing TPAStream's Connect Platform Via React Hooks",
+  "version": "0.6.3",
+  "description": "[DEPRECATED] Headless React Native / Hook wrapper for the TPAStream Connect Platform. New integrations should embed the main `stream-connect-sdk` package in a WebView instead. See https://github.com/TPAStream/stream-connect-js-sdk/blob/master/sdk-hook/docs/README.md for the WebView pattern.",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk-hook.js --mode=production"
   },

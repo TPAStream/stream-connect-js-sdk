@@ -27,3 +27,12 @@ After the carrier redirect completes, the SDK reads two URL parameters automatic
 * `?forceTPAStreamSdkEnd=1`: set in the single-page variant to tell the next load to skip straight to the end widget.
 
 Both are stripped from the URL via `history.replaceState` so they cannot leak via browser history or autofill. See [Client Usage > Redirect query parameters](./client-usage.md#redirect-query-parameters-patient-access-api) for the full mechanics.
+
+## See also
+
+* [Connect Access Token](./connect-access-token.md): how the
+  `?accessToken=` minting fits into the broader connect-token security
+  model
+* [Fix Credentials](./fix-credentials.md): Patient Access API carriers
+  show up in the same fix-credentials list with the same status badges
+  as inline-credential carriers

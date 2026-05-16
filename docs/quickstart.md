@@ -163,9 +163,85 @@ You will see `Internal Key` as a section. Grab the key directly across from that
 
 # Step 6 -- Init
 
-Now that you have set up the configuraiton as follows you should be able to reload that page you setup before and init the SDK.
+Now that you have set up the configuration as follows you should be able to reload the page you set up before and init the SDK. From 0.8 onward the SDK ships with a polished default appearance, so you should see a usable enrollment widget without any host-page CSS work.
 
-The SDK is now a relatively unstyled blank template, but it will now function to submit carrier credentials.
+For brand-color matching see [Theme](./theme.md). For the per-callback contract and the full list of init options see [Client Usage](./client-usage.md). If you're coming from 0.7.x, the [Migration guide](./migration-0.7-to-0.8.md) calls out the handful of behaviors that changed.
 
-To style the SDK you will use the various callbacks which are configured at each of the steps for the SDK.
-For more details on how to implement the more advance SDK functionality see [Client Usage](client-usage.md)
+## Mobile (Android, iOS, React Native)
+
+The SDK is web-first. The recommended mobile integration pattern is to embed the SDK page in a WebView and ferry callbacks to the native host via `postMessage` / message handlers. This gives the mobile app the polished 0.8 UI for free without a parallel native codebase.
+
+### React Native
+
+[`react-native-webview`](https://github.com/react-native-webview/react-native-webview) is the standard library:
+
+```jsx
+import { WebView } from 'react-native-webview';
+
+export const ConnectScreen = ({ onComplete }) => {
+  const handleMessage = (event) => {
+    const message = JSON.parse(event.nativeEvent.data);
+    if (message.type === 'doneEasyEnroll') {
+      onComplete(message.data);
+    }
+  };
+
+  return (
+    <WebView
+      source={{ uri: 'https://your-backend.example.com/connect-sdk' }}
+      onMessage={handleMessage}
+      javaScriptEnabled
+      domStorageEnabled
+      originWhitelist={['*']}
+    />
+  );
+};
+```
+
+Your `/connect-sdk` page should host the standard SDK init from Step 5 above, plus a `postMessage` forwarder so terminal-state callbacks reach the native shell:
+
+```html
+doneEasyEnroll: (data) => {
+  window.ReactNativeWebView?.postMessage(
+    JSON.stringify({ type: 'doneEasyEnroll', data })
+  );
+}
+```
+
+Full RN walkthrough including PAA-redirect handling is in [`sdk-hook/docs/README.md`](../sdk-hook/docs/README.md#recommended-webview-pattern-for-react-native).
+
+> **Note on `stream-connect-sdk-hook`**: the separate headless hook package on npm (v0.6.x) is deprecated in favor of the WebView pattern above. Existing integrations keep working but won't receive feature updates. See the hook docs for the deprecation notice and migration guidance.
+
+### Android (Java)
+
+```java
+public class ViewWeb extends Activity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.content);
+        WebView webview = (WebView) findViewById(R.id.webView);
+        webview.getSettings().setJavaScriptEnabled(true);
+        webview.loadUrl("https://your-backend.example.com/connect-sdk");
+    }
+}
+```
+
+### iOS (Swift / WKWebView)
+
+```swift
+import UIKit
+import WebKit
+
+class ViewController: UIViewController, WKUIDelegate, WKNavigationDelegate {
+    @IBOutlet weak var webView: WKWebView!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        webView.uiDelegate = self
+        webView.navigationDelegate = self
+        let url = URL(string: "https://your-backend.example.com/connect-sdk")!
+        webView.load(URLRequest(url: url))
+    }
+}
+```

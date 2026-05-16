@@ -39,3 +39,22 @@ StreamConnect({
 ```
 
 This JWT expires after 1 hour.
+
+## Mid-session token refresh (0.8+)
+
+After a Patient Access API redirect completes, `app.tpastream.com`
+appends a fresh `?accessToken=...` query parameter to the return
+URL. The 0.8 SDK reads it automatically on init and uses it for the
+rest of the session, overriding any stale `connectAccessToken` baked
+into the page. The token is stripped from the URL via
+`history.replaceState` so it can't leak via browser history or
+referrer headers. See [Client Usage > Redirect query
+parameters](./client-usage.md#redirect-query-parameters-patient-access-api)
+for the full mechanics.
+
+## See also
+
+* [Fix Credentials](./fix-credentials.md): the primary consumer of
+  `connectAccessToken`
+* [Patient Access API (Interop)](./interop.md): the redirect flow
+  that drives the mid-session refresh above
