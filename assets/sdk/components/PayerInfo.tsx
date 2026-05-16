@@ -81,7 +81,9 @@ export const PayerInfo = ({
         primaryLabel="Ok"
         secondaryLabel="Go to carrier site"
         onSecondary={() => {
-          window.open(payer.register_url, '_blank');
+          // noopener+noreferrer so the carrier page can't reach back
+          // through window.opener to navigate the host site.
+          window.open(payer.register_url, '_blank', 'noopener,noreferrer');
         }}
       >
         If you've not yet made an account with {payer.website_home_url_netloc},

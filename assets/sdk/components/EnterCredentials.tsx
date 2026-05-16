@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { type ZodTypeAny, z } from 'zod';
 import type { StreamPayer, StreamPolicyHolder, StreamTenant } from '../types';
@@ -28,12 +28,15 @@ interface EnterCredentialsProps {
   enablePatientAccessAPI?: boolean;
   enablePatientAccessAPISinglePage?: boolean;
   includePayerBlogs?: boolean;
-  /** Customer-side UI schema overrides; passed through but not yet
-   * mapped to RHF fields. The legacy SDK forwarded this to rjsf which
-   * had its own schema language. We expose a hook for customer-extra
-   * fields in a future point release; for now their values just get
-   * folded into the submission payload below. */
-  userAddedUISchema?: object;
+  /** Customer-side UI schema overrides. The 0.7.x SDK forwarded this
+   * to react-jsonschema-form, which had its own UI-schema language.
+   * 0.8 uses React Hook Form + Zod; rjsf is gone. Any top-level
+   * key/value pairs the customer sets here are folded into the
+   * submission payload as extra fields (matching the most common
+   * 0.7.x usage: injecting tenant-specific identifiers). A console
+   * warning fires once per mount so integrators relying on rjsf
+   * UI-schema rendering know their override won't paint controls. */
+  userAddedUISchema?: Record<string, unknown>;
   returnToStep3?: false | (() => void);
   returnToStep2?: false | (() => void);
   validateCreds: (args: {
@@ -191,6 +194,20 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
   const usePAASingle =
     enablePatientAccessAPISinglePage ?? enableInteropSinglePage;
 
+  // One-time warning: rjsf-shaped UI overrides won't render in 0.8.
+  // Plain key/value pairs still fold into the submission payload.
+  const warnedAboutUserSchema = useRef(false);
+  if (
+    props.userAddedUISchema &&
+    Object.keys(props.userAddedUISchema).length > 0 &&
+    !warnedAboutUserSchema.current
+  ) {
+    warnedAboutUserSchema.current = true;
+    console.warn(
+      '[stream-connect-sdk] `userSchema` is forwarded into the submission payload but no longer drives form rendering (rjsf was removed in 0.8). If you depended on UI-schema-driven extra fields, file an issue.'
+    );
+  }
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -207,7 +224,8 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     register,
     handleSubmit,
     formState: { errors },
-    control
+    control,
+    getValues
   } = useForm<FormValues>({
     resolver: formState ? zodResolver(formState.zodSchema) : undefined,
     defaultValues: {
@@ -239,6 +257,9 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     setSubmitting(true);
     setErrorMessage(null);
     const params = {
+      // Customer-supplied extras land first so canonical fields below
+      // win on key collision (e.g. customer can't override username).
+      ...(props.userAddedUISchema || {}),
       username: values.username,
       password: values.password,
       date_of_birth: values.dateOfBirth || null,
@@ -389,7 +410,7 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                           <button
                             type="button"
                             className="tpa-text-primary-600 tpa-underline"
-                            onClick={() => props.toggleTermsOfUse()}
+                            onClick={() => props.toggleTermsOfUse(getValues())}
                           >
                             Terms of Use
                           </button>

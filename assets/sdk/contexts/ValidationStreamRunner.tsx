@@ -30,7 +30,8 @@ export const ValidationStreamRunner = ({
   email,
   employerId
 }: ValidationStreamRunnerProps) => {
-  const { validations, applyStateUpdate } = useActiveValidations();
+  const { validations, applyStateUpdate, markPendingAsync } =
+    useActiveValidations();
   // Track which validations we've already subscribed to so React
   // strict-mode double-mount doesn't open two streams per task.
   const subscriptions = useRef<Map<string, () => void>>(new Map());
@@ -112,10 +113,11 @@ export const ValidationStreamRunner = ({
       onTimeout: () => {
         // Move to pending_async — backend timeout for the SSE stream
         // (10 min). The task may still complete later but we won't
-        // know until the user reopens the page.
-        applyStateUpdate(v.id, {
-          state: 'PENDING'
-        });
+        // know until the user reopens the page. Use the dedicated
+        // action rather than dispatching a wire state, because the
+        // wire vocabulary doesn't have a "still pending after the
+        // SSE stream closed" value (the stream just times out).
+        markPendingAsync(v.id);
       },
       onError: () => {
         // Quietly drop on connection error. The user can still take

@@ -67,7 +67,7 @@ export interface SDKInitOptions {
   forceEndStep?: number;
   entrySdkStateId?: string;
   webViewDelegation?: boolean;
-  userSchema?: object;
+  userSchema?: Record<string, unknown>;
   theme?: InitTheme;
 
   // Lifecycle callbacks

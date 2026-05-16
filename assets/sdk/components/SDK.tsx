@@ -138,6 +138,17 @@ export const SDK = (props: SDKProps) => {
     }
   }, [validations, props.doneRealtime]);
 
+  // Stable per-instance state-id. The 0.7.x entry generated one with
+  // crypto.getRandomValues; we use crypto.randomUUID where available.
+  // Customers can override by passing entrySdkStateId. The X-SDK-State-Id
+  // header lets server logs correlate every request in one wizard run.
+  const sdkStateId = useRef<string>(
+    props.entrySdkStateId ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sdk-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+  );
+
   // Initialize the axios client once on mount with the customer's tokens.
   useEffect(() => {
     sdkAxiosMaker({
@@ -145,7 +156,7 @@ export const SDK = (props: SDKProps) => {
       connectAccessToken: props.connectAccessToken,
       version: VERSION,
       isDemo: props.isDemo,
-      sdkStateId: props.entrySdkStateId,
+      sdkStateId: sdkStateId.current,
       tenant: props.tenant,
       _overrideBaseUrl: props._overrideBaseUrl
     });
@@ -153,7 +164,6 @@ export const SDK = (props: SDKProps) => {
     props.apiToken,
     props.connectAccessToken,
     props.isDemo,
-    props.entrySdkStateId,
     props.tenant,
     props._overrideBaseUrl
   ]);
@@ -260,7 +270,9 @@ export const SDK = (props: SDKProps) => {
 
       setState((s) => ({ ...s, loading: true }));
       const usePAASingle =
-        props.resolvedPAASingle ?? props.enableInteropSinglePage;
+        props.resolvedPAASingle ??
+        props.enablePatientAccessAPISinglePage ??
+        props.enableInteropSinglePage;
       const referer = usePAASingle
         ? props.webViewDelegation
           ? 'sdk_interop_done_delegation'
@@ -296,6 +308,7 @@ export const SDK = (props: SDKProps) => {
       state.streamEmployer,
       state.streamPayer,
       props.resolvedPAASingle,
+      props.enablePatientAccessAPISinglePage,
       props.enableInteropSinglePage,
       props.webViewDelegation,
       setStepConfigError
@@ -403,11 +416,17 @@ export const SDK = (props: SDKProps) => {
       }
 
       if (props.isDemo) {
+        // Demo always lands on the success branch of FinishedEasyEnroll.
+        // Without credentialsValid, the now-default realTimeVerification:true
+        // path renders the failure branch because state.credentialsValid is
+        // null. Pin true here so the demo widget reflects a clean run.
         setState((s) => ({
           ...s,
           termsOfUse: false,
           policyHolderId: state.policyHolderId,
           taskId: props.realTimeVerification ? 'DEMO' : null,
+          credentialsValid: true,
+          finishedEasyEnrollPending: false,
           step: 5
         }));
         return;
@@ -629,9 +648,28 @@ export const SDK = (props: SDKProps) => {
           return;
         }
         if (payers.length === 1) {
-          // setStep4 needs streamUser/streamEmployer in state. Set them first
-          // (already done above), then advance.
-          setTimeout(() => setStep4({ payer: payers[0]! }), 0);
+          // Inline the step-4 transition rather than going through
+          // setStep4. setStep4's useCallback closes over state.streamUser
+          // / state.streamEmployer, which are still null at the time
+          // this callback was created (the previous setState merging
+          // them in hasn't flushed yet). Going through setStep4 here
+          // hits its `!state.streamUser || !state.streamEmployer`
+          // early-return and the loading screen sticks forever for
+          // single-payer employers.
+          setState((s) => ({
+            ...s,
+            loading: false,
+            streamUser: user,
+            streamPayers: payers,
+            streamTenant: tenant,
+            streamEmployer: employer,
+            streamPayer: payers[0]!,
+            termsOfUse: false,
+            step: 4,
+            twoFactorAuth: null,
+            twoFactorAuthState: null,
+            taskId: null
+          }));
         } else {
           setState((s) => ({
             ...s,

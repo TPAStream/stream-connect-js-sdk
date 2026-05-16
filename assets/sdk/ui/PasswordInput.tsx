@@ -2,6 +2,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   forwardRef,
+  useId,
   useState
 } from 'react';
 
@@ -46,19 +47,28 @@ const EyeIcon = ({ open }: { open: boolean }) => (
 );
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-  ({ label, hint, error, className = '', ...rest }, ref) => {
+  ({ label, hint, error, className = '', id, ...rest }, ref) => {
     const [show, setShow] = useState(false);
+    // Generate a stable id so the label's htmlFor binds to the input.
+    // Without this, clicking the label doesn't focus the field and
+    // assistive tech sees the label and the input as unrelated nodes.
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
 
     return (
       <div className="tpa-w-full">
         {label && (
-          <label className="tpa-block tpa-text-sm tpa-font-medium tpa-text-slate-700 tpa-mb-1.5">
+          <label
+            htmlFor={inputId}
+            className="tpa-block tpa-text-sm tpa-font-medium tpa-text-slate-700 tpa-mb-1.5"
+          >
             {label}
           </label>
         )}
         <div className="tpa-relative">
           <input
             ref={ref}
+            id={inputId}
             type={show ? 'text' : 'password'}
             className={[
               'tpa-w-full tpa-rounded-md tpa-border tpa-px-3 tpa-py-2.5 tpa-pr-10',

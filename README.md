@@ -32,8 +32,8 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
   Credential validation
 
     * Server-Sent Events stream replaces polling. State transitions arrive as they happen instead of on a 5-second cadence
-    * Backed by the new `/v3/sdk/progress/<task_id>/stream` endpoint; auth uses the SDK's existing `X-TPAStream-Token` + `X-Connect-Access-Token` header chain
-    * `RealTimeVerification` and `TwoFactorAuth` are visually unchanged
+    * Backed by the new `/v3/sdk/progress/<task_id>/stream` endpoint. Auth is a short-lived task-scoped JWT minted by the Flask credential-submit endpoint and forwarded as a `?token=…` query param on the SSE subscription. The token is audience-locked to `sdk:sse:progress`, bound to (user_id, task_id), and expires after 10 minutes
+    * Multiple validations can run in parallel; each owns its own SSE subscription. The credential-submit response also returns a `task_token` field for SDK consumers
 
   Init() options
 

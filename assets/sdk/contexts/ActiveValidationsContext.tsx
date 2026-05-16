@@ -66,6 +66,7 @@ type Action =
       data: ValidateCredsResponse;
     }
   | { type: 'mark_submitting'; taskId: string }
+  | { type: 'mark_pending_async'; taskId: string }
   | { type: 'remove'; taskId: string }
   | { type: 'reset' };
 
@@ -123,6 +124,12 @@ const reducer = (state: State, action: Action): State => {
           v.id === action.taskId ? { ...v, state: 'submitting' } : v
         )
       };
+    case 'mark_pending_async':
+      return {
+        validations: state.validations.map((v) =>
+          v.id === action.taskId ? { ...v, state: 'pending_async' } : v
+        )
+      };
     case 'remove':
       return {
         validations: state.validations.filter((v) => v.id !== action.taskId)
@@ -139,6 +146,7 @@ interface ActiveValidationsContextValue {
   addValidation: (v: Omit<ActiveValidation, 'startedAt' | 'id'>) => void;
   applyStateUpdate: (taskId: string, data: ValidateCredsResponse) => void;
   markSubmitting: (taskId: string) => void;
+  markPendingAsync: (taskId: string) => void;
   remove: (taskId: string) => void;
   reset: () => void;
 }
@@ -148,6 +156,7 @@ const ActiveValidationsContext = createContext<ActiveValidationsContextValue>({
   addValidation: () => {},
   applyStateUpdate: () => {},
   markSubmitting: () => {},
+  markPendingAsync: () => {},
   remove: () => {},
   reset: () => {}
 });
@@ -182,6 +191,10 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
     dispatch({ type: 'mark_submitting', taskId });
   }, []);
 
+  const markPendingAsync = useCallback((taskId: string) => {
+    dispatch({ type: 'mark_pending_async', taskId });
+  }, []);
+
   const remove = useCallback((taskId: string) => {
     dispatch({ type: 'remove', taskId });
   }, []);
@@ -194,6 +207,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       addValidation,
       applyStateUpdate,
       markSubmitting,
+      markPendingAsync,
       remove,
       reset
     }),
@@ -202,6 +216,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       addValidation,
       applyStateUpdate,
       markSubmitting,
+      markPendingAsync,
       remove,
       reset
     ]

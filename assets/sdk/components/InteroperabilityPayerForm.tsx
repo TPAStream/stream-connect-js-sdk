@@ -90,7 +90,13 @@ export const InteroperabilityPayerForm = (
         }
       } else {
         if (streamPayer.interoperability_authorization_url) {
-          window.open(streamPayer.interoperability_authorization_url);
+          // noopener+noreferrer so the carrier OAuth page can't reach
+          // back through window.opener to navigate the host site.
+          window.open(
+            streamPayer.interoperability_authorization_url,
+            '_blank',
+            'noopener,noreferrer'
+          );
         }
         intervalRef.current = setInterval(checkDone, 5000);
       }
