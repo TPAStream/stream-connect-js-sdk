@@ -94,7 +94,7 @@ const toneClasses: Record<HeroTone, { card: string; icon: string }> = {
 };
 
 const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
-  const { markSubmitting } = useActiveValidations();
+  const { markSubmitting, markSubmitError } = useActiveValidations();
   const [picked, setPicked] = useState<ComboboxItem | null>(null);
   const methods = v.twoFactorAuthData?.info?.method_list || [];
   const items: ComboboxItem[] = methods.map((m) => ({ value: m, label: m }));
@@ -103,13 +103,21 @@ const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
     if (!chosen) return;
     setPicked(chosen);
     markSubmitting(v.taskId);
-    // Best-effort fire-and-forget. The next SSE event will advance
-    // the validation's state regardless of whether we await this.
+    // On success the next SSE event advances the validation state.
+    // On failure we revert from submitting back to method_choice and
+    // surface the error inline — otherwise the card would say
+    // "Working on it…" forever with no way for the user to retry.
     putTask({
       taskId: v.taskId,
       policyHolderId: v.policyHolderId,
       params: { user_email: v.email, method: chosen.value }
-    }).catch(() => {});
+    }).catch((err: unknown) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Couldn't reach the carrier. Please try again.";
+      markSubmitError(v.taskId, message);
+      setPicked(null);
+    });
   };
 
   return (
@@ -123,7 +131,7 @@ const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
 };
 
 const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
-  const { markSubmitting } = useActiveValidations();
+  const { markSubmitting, markSubmitError } = useActiveValidations();
   const [code, setCode] = useState('');
 
   const submit = (e: React.FormEvent) => {
@@ -134,7 +142,12 @@ const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
       taskId: v.taskId,
       policyHolderId: v.policyHolderId,
       params: { user_email: v.email, code: code.trim() }
-    }).catch(() => {});
+    }).catch((err: unknown) => {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Couldn't reach the carrier. Please try again.";
+      markSubmitError(v.taskId, message);
+    });
   };
 
   return (
@@ -194,6 +207,14 @@ const ValidationHeroCard = ({ v }: { v: ActiveValidation }) => {
               className="tpa-mt-2 tpa-text-red-700 tpa-font-medium"
             >
               {v.endMessage}
+            </Text>
+          )}
+          {v.submitError && (
+            <Text
+              size="sm"
+              className="tpa-mt-2 tpa-text-red-700 tpa-font-medium"
+            >
+              {v.submitError}
             </Text>
           )}
         </div>

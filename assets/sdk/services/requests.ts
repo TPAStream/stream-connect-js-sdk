@@ -140,8 +140,13 @@ export const getPolicyHolder = async ({
   );
   const ph = response.data.data as StreamPolicyHolder;
   // Attach the helper the legacy controller calls inline.
+  // login_problem === null means "no problem at all" (clean account);
+  // a non-null value names a specific issue and is only "valid" if it
+  // falls into the explicitly-OK set (e.g. needs-mfa-on-next-login).
+  // Without the null-is-valid branch, a freshly-validated PH whose
+  // server-side check cleared without raising would be marked failure.
   ph.loginProblemIsValid = () =>
-    !!ph.login_problem && VALID_LOGIN_PROBLEMS.has(ph.login_problem);
+    ph.login_problem === null || VALID_LOGIN_PROBLEMS.has(ph.login_problem);
   return ph;
 };
 

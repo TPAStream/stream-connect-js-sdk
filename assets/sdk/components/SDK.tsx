@@ -656,20 +656,37 @@ export const SDK = (props: SDKProps) => {
           // hits its `!state.streamUser || !state.streamEmployer`
           // early-return and the loading screen sticks forever for
           // single-payer employers.
-          setState((s) => ({
-            ...s,
-            loading: false,
-            streamUser: user,
-            streamPayers: payers,
-            streamTenant: tenant,
-            streamEmployer: employer,
-            streamPayer: payers[0]!,
-            termsOfUse: false,
-            step: 4,
-            twoFactorAuth: null,
-            twoFactorAuthState: null,
-            taskId: null
-          }));
+          //
+          // BUT: EnterCredentials needs the full payer payload
+          // (onboard_form, supports_interoperability_apis, etc.) which
+          // the init-response payer doesn't carry. Fetch via getPayer
+          // first, mirror the multi-payer path through setStep4.
+          getPayer({
+            payerId: payers[0]!.id,
+            employerId: employer.id,
+            email: user.email
+          })
+            .then((payerResponse) => {
+              setState((s) => ({
+                ...s,
+                loading: false,
+                streamUser: user,
+                streamPayers: payers,
+                streamTenant: tenant,
+                streamEmployer: employer,
+                streamPayer: payerResponse,
+                termsOfUse: false,
+                step: 4,
+                twoFactorAuth: null,
+                twoFactorAuthState: null,
+                taskId: null
+              }));
+            })
+            .catch(() => {
+              setStepConfigError(
+                "Couldn't load carrier configuration. Please reload."
+              );
+            });
         } else {
           setState((s) => ({
             ...s,

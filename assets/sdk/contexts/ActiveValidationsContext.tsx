@@ -51,6 +51,10 @@ export interface ActiveValidation {
    * the worker yielded — carries `info.method_list` etc. */
   twoFactorAuthData?: ValidateCredsResponse;
   endMessage?: string | null;
+  /** Set when a user-initiated submit (method pick / code entry)
+   * failed at the network layer so we can revert from submitting
+   * back to the choice/entry state and surface the error inline. */
+  submitError?: string | null;
   startedAt: number;
 }
 
@@ -67,6 +71,7 @@ type Action =
     }
   | { type: 'mark_submitting'; taskId: string }
   | { type: 'mark_pending_async'; taskId: string }
+  | { type: 'mark_submit_error'; taskId: string; message: string }
   | { type: 'remove'; taskId: string }
   | { type: 'reset' };
 
@@ -130,6 +135,25 @@ const reducer = (state: State, action: Action): State => {
           v.id === action.taskId ? { ...v, state: 'pending_async' } : v
         )
       };
+    case 'mark_submit_error':
+      return {
+        validations: state.validations.map((v) => {
+          if (v.id !== action.taskId) return v;
+          // Revert from submitting back to whichever step the user
+          // was on so they can retry. method_list presence tells us
+          // the picker step; otherwise assume code-entry. If we have
+          // no twoFactorAuthData at all, fall back to pending — the
+          // SSE stream will continue advancing the state.
+          const hasMethodList =
+            !!v.twoFactorAuthData?.info?.method_list?.length;
+          const revertTo: ValidationUxState = v.twoFactorAuthData
+            ? hasMethodList
+              ? 'method_choice'
+              : 'awaiting_code'
+            : 'pending';
+          return { ...v, state: revertTo, submitError: action.message };
+        })
+      };
     case 'remove':
       return {
         validations: state.validations.filter((v) => v.id !== action.taskId)
@@ -147,6 +171,7 @@ interface ActiveValidationsContextValue {
   applyStateUpdate: (taskId: string, data: ValidateCredsResponse) => void;
   markSubmitting: (taskId: string) => void;
   markPendingAsync: (taskId: string) => void;
+  markSubmitError: (taskId: string, message: string) => void;
   remove: (taskId: string) => void;
   reset: () => void;
 }
@@ -157,6 +182,7 @@ const ActiveValidationsContext = createContext<ActiveValidationsContextValue>({
   applyStateUpdate: () => {},
   markSubmitting: () => {},
   markPendingAsync: () => {},
+  markSubmitError: () => {},
   remove: () => {},
   reset: () => {}
 });
@@ -195,6 +221,10 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
     dispatch({ type: 'mark_pending_async', taskId });
   }, []);
 
+  const markSubmitError = useCallback((taskId: string, message: string) => {
+    dispatch({ type: 'mark_submit_error', taskId, message });
+  }, []);
+
   const remove = useCallback((taskId: string) => {
     dispatch({ type: 'remove', taskId });
   }, []);
@@ -208,6 +238,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       applyStateUpdate,
       markSubmitting,
       markPendingAsync,
+      markSubmitError,
       remove,
       reset
     }),
@@ -217,6 +248,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       applyStateUpdate,
       markSubmitting,
       markPendingAsync,
+      markSubmitError,
       remove,
       reset
     ]

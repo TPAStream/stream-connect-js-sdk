@@ -229,10 +229,14 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
   } = useForm<FormValues>({
     resolver: formState ? zodResolver(formState.zodSchema) : undefined,
     defaultValues: {
-      ...(formData || {}),
+      // Spread saved formData LAST so a Terms-of-Use round trip's
+      // captured values win over the static defaults. Without this,
+      // the checkbox defaults would overwrite a user's checked state
+      // when they return from the terms view.
       username: suggestedUsername,
       termsAndServices: false,
-      tenantAcknowledgement: false
+      tenantAcknowledgement: false,
+      ...(formData || {})
     }
   });
 
@@ -336,12 +340,17 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                       );
                     }
                     if (field.type === 'select' && field.options) {
+                      const selectId = `tpa-select-${field.key}`;
                       return (
                         <div key={field.key}>
-                          <label className="tpa-block tpa-text-sm tpa-font-medium tpa-text-slate-700 tpa-mb-1.5">
+                          <label
+                            htmlFor={selectId}
+                            className="tpa-block tpa-text-sm tpa-font-medium tpa-text-slate-700 tpa-mb-1.5"
+                          >
                             {field.title}
                           </label>
                           <select
+                            id={selectId}
                             {...register(field.key)}
                             className="tpa-w-full tpa-rounded-md tpa-border tpa-border-slate-300 tpa-px-3 tpa-py-2.5 focus:tpa-outline-none focus-visible:tpa-border-primary-500 focus-visible:tpa-ring-2 focus-visible:tpa-ring-primary-500"
                           >
