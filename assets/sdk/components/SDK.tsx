@@ -338,71 +338,6 @@ export const SDK = (props: SDKProps) => {
     ]
   );
 
-  const handleRealtimeCompletion = useCallback(
-    (args: {
-      policyHolderId: number;
-      credentialsValid?: boolean | null;
-      pending?: boolean;
-      validationState?: string;
-      endMessage?: string;
-      twoFactorAuth?: ValidateCredsResponse;
-    }) => {
-      if (!state.streamUser || !state.streamEmployer) return;
-      const {
-        credentialsValid,
-        pending,
-        endMessage,
-        twoFactorAuth,
-        validationState
-      } = args;
-
-      setState((s) => ({ ...s, loading: true }));
-
-      if (props.isDemo) {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          streamPolicyHolder: { demo: true } as unknown as StreamPolicyHolder,
-          endMessage: null,
-          step: 5,
-          credentialsValid: true,
-          finishedEasyEnrollPending: false,
-          taskId: null
-        }));
-        return;
-      }
-
-      if (twoFactorAuth) {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          step: 5,
-          twoFactorAuth,
-          twoFactorAuthState: validationState ?? null
-        }));
-        return;
-      }
-
-      getPolicyHolder({
-        policyHolderId: args.policyHolderId,
-        email: state.streamUser.email,
-        employerId: state.streamEmployer.id
-      }).then((phData) => {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          streamPolicyHolder: phData,
-          endMessage: endMessage || phData.login_correction_message || null,
-          step: 5,
-          credentialsValid: phData.loginProblemIsValid(),
-          finishedEasyEnrollPending: !!pending && phData.login_problem === null,
-          taskId: null
-        }));
-      });
-    },
-    [state.streamUser, state.streamEmployer, props.isDemo]
-  );
-
   const validateCreds = useCallback(
     (args: {
       params: Record<string, unknown>;
@@ -689,10 +624,20 @@ export const SDK = (props: SDKProps) => {
         }
 
         if (props.forceEndStep && !restartFlow) {
+          // The boolean form (`forceEndStep: true` legacy 0.7.x signature)
+          // and the explicit-step number form are both supported. Truthy
+          // boolean collapses to step 5 (FinishedEasyEnroll). For a number,
+          // honor the requested step so customers can land on, e.g., step
+          // 3 (choose-payer) on a deeplink. Clamp to known steps so a bad
+          // value falls back to 5.
+          const target =
+            typeof props.forceEndStep === 'number' && props.forceEndStep >= 1
+              ? props.forceEndStep
+              : 5;
           setState((s) => ({
             ...s,
             loading: false,
-            step: 5,
+            step: target,
             credentialsValid: true
           }));
           return;
@@ -896,6 +841,10 @@ export const SDK = (props: SDKProps) => {
           formJsonSchema: state.streamPayer.onboard_form,
           tenantTerms: state.streamTenant.terms_of_use,
           streamTenant: state.streamTenant,
+          // Back-compat with 0.7.7 which surfaced `logoUrl` as a
+          // top-level convenience field. Custom render-prop integrators
+          // that read it directly keep working.
+          logoUrl: state.streamPayer.logo_url,
           toggleTermsOfUse,
           returnToChoosePayer: setStep3,
           validateCreds,

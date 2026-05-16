@@ -93,7 +93,18 @@ interface FormState {
 }
 
 const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
-  const properties = payer.onboard_form?.schema?.properties || {};
+  const schemaObj = payer.onboard_form?.schema as
+    | { properties?: Record<string, unknown>; required?: string[] }
+    | undefined;
+  const properties = schemaObj?.properties || {};
+  // Standard JSON Schema puts required field names in a top-level
+  // `required: [...]` array. rjsf also allows `required: true` on
+  // individual property objects (non-standard). Honor BOTH so existing
+  // carrier schemas authored under either convention keep validating
+  // required fields in 0.8.
+  const schemaRequired = Array.isArray(schemaObj?.required)
+    ? new Set(schemaObj.required)
+    : new Set<string>();
   const requiredKeys = new Set<string>();
   const shape: Record<string, ZodTypeAny> = {};
   const fields: FormState['fields'] = [];
@@ -101,7 +112,9 @@ const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
   for (const [key, prop] of Object.entries(properties)) {
     // biome-ignore lint/suspicious/noExplicitAny: property is dynamic
     const p = prop as any;
-    const isRequired = p?.required !== undefined ? !!p.required : false;
+    const isRequired =
+      schemaRequired.has(key) ||
+      (p?.required !== undefined ? !!p.required : false);
     if (isRequired) requiredKeys.add(key);
     shape[key] = propertyToZod(p, isRequired);
 
@@ -246,7 +259,15 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamPayer]);
 
-  if (!streamPayer || !streamPayer.onboard_form) {
+  // PAA carriers authenticate via redirect and don't ship an
+  // onboard_form (there's no inline credentials form to render). Don't
+  // short-circuit them to the "carrier unavailable" alert; the
+  // InteroperabilityPayerForm branch below handles them.
+  const wantsPAARedirect =
+    !!streamPayer &&
+    !!(enablePatientAccessAPI ?? enableInterop) &&
+    !!streamPayer.supports_interoperability_apis;
+  if (!streamPayer || (!streamPayer.onboard_form && !wantsPAARedirect)) {
     return (
       <Card>
         <Alert variant="warning" title="Carrier unavailable">

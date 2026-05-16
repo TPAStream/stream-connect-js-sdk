@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import {
   type ActiveValidation,
   useActiveValidations
@@ -134,7 +134,7 @@ const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
   const { markSubmitting, markSubmitError } = useActiveValidations();
   const [code, setCode] = useState('');
 
-  const submit = (e: React.FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
     markSubmitting(v.taskId);

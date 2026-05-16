@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { UserEditIcon, UserPlusIcon } from '../icons';
-import { Card } from '../ui/Card';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
 
@@ -11,7 +10,7 @@ interface SelectEnrollProcessProps {
 }
 
 interface OptionTileProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   description: string;
   onClick: () => void;

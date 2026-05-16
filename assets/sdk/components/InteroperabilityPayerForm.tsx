@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { beginInterop, getInteropState } from '../services/requests';
 import type { StreamPayer, StreamTenant } from '../types';
 import { Alert } from '../ui/Alert';
@@ -103,7 +103,7 @@ export const InteroperabilityPayerForm = (
       });
   };
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setConnecting(true);
     setErrorMessage(null);

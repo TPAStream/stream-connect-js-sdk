@@ -7,12 +7,15 @@ import type { SDKInitOptions } from '../types-init';
 
 const VERSION = '0.8.0-alpha.1';
 
-// Cache one React root per container element. Some host pages call
+// Track one React root per container element. Some host pages call
 // StreamConnect() more than once against the same `el` (e.g. on a
-// route change, or after toggling visibility). createRoot on an
-// already-mounted container is a React 19 hard warning AND leaks the
-// old root; reusing the existing root for subsequent calls makes
-// re-init a no-op rerender instead.
+// route change, after toggling visibility, or with new user/employer
+// after the host's auth state changes). createRoot on an already-mounted
+// container is a React 19 hard warning AND leaks the old root, so we
+// explicitly unmount the previous root and create a fresh one. Reusing
+// the cached root would let the SDK's `initialized.current` guard keep
+// the previous session's wizard state and active validations alive
+// across what the customer expects to be a clean re-init.
 const rootCache = new WeakMap<Element, Root>();
 
 const onDOMReady = (cb: () => void) => {
@@ -180,11 +183,19 @@ const StreamConnect = (options: SDKInitOptions) => {
       );
       return;
     }
-    let root = rootCache.get(container);
-    if (!root) {
-      root = createRoot(container);
-      rootCache.set(container, root);
+    // Tear down any previous root on this container before mounting a
+    // fresh one. This guarantees the SDK reinitializes cleanly when
+    // host pages call StreamConnect() again with new identity (token,
+    // user, employer) or after a visibility toggle. The WeakMap cache
+    // is what keeps multiple concurrent SDK instances on different `el`
+    // selectors isolated from each other.
+    const previousRoot = rootCache.get(container);
+    if (previousRoot) {
+      previousRoot.unmount();
+      rootCache.delete(container);
     }
+    const root = createRoot(container);
+    rootCache.set(container, root);
     root.render(
       <ThemeProvider theme={normalized.theme}>
         <ActiveValidationsProvider>
