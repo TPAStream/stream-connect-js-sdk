@@ -66,9 +66,19 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
   // Default realTimeVerification to true. The 0.7.x default was false
   // because polling /sdk-api/validate-credentials every 5 seconds was
   // costly enough that opting in made sense. With the SSE consumer
-  // landed in 0.8.0 the cost is negligible — most integrations want
+  // landed in 0.8.0 the cost is negligible. Most integrations want
   // validation feedback by default rather than submit-and-pray.
   out.realTimeVerification = opts.realTimeVerification !== false;
+  // Map the human-friendly callback names to the internal doneStep*
+  // names the SDK component reads. The 0.7.x entry did this mapping
+  // before passing props through; without it, an integrator passing
+  // `init({ doneFixCredentials: fn })` per the public README would
+  // see fn never invoked. Canonical name wins if both are set.
+  out.doneStep1 ??= opts.doneSelectEnrollProcess;
+  out.doneStep2 ??= opts.doneFixCredentials;
+  out.doneStep3 ??= opts.doneChoosePayer;
+  out.doneStep4 ??= opts.doneCreatedForm;
+  out.doneRealtime ??= opts.doneRealTime;
   return out;
 };
 

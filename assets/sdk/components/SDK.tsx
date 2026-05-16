@@ -121,6 +121,23 @@ export const SDK = (props: SDKProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validations]);
 
+  // Fire the legacy `doneRealtime` callback once per validation as it
+  // enters the realtime phase. The 0.7.x SDK fired this at mount of
+  // the (now-deleted) RealTimeVerification component; the equivalent
+  // moment in 0.8 is when a validation first appears in the active set.
+  // Tracked in a ref so we don't re-fire on every render of the
+  // validations array.
+  const announcedRealtime = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!props.doneRealtime) return;
+    for (const v of validations) {
+      if (!announcedRealtime.current.has(v.taskId)) {
+        announcedRealtime.current.add(v.taskId);
+        props.doneRealtime();
+      }
+    }
+  }, [validations, props.doneRealtime]);
+
   // Initialize the axios client once on mount with the customer's tokens.
   useEffect(() => {
     sdkAxiosMaker({
