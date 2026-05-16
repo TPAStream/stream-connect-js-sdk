@@ -477,6 +477,14 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                           I have read and agree to the{' '}
                           <button
                             type="button"
+                            // tabIndex={-1} so Tab cycles directly from
+                            // the checkbox to the next form control —
+                            // the inline link is still mouse-clickable
+                            // but doesn't fragment the keyboard flow.
+                            // The terms text is also surfaced by the
+                            // tenantAcknowledgement checkbox above, so
+                            // skipping this link doesn't hide content.
+                            tabIndex={-1}
                             className="tpa-text-primary-600 tpa-underline"
                             onClick={() => props.toggleTermsOfUse(getValues())}
                           >

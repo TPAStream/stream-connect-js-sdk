@@ -191,6 +191,10 @@ export const InteroperabilityPayerForm = (
               I have read and agree to the{' '}
               <button
                 type="button"
+                // Skip in tab order so Tab cycles directly from the
+                // checkbox to the next form control. Mouse click still
+                // opens the terms overlay.
+                tabIndex={-1}
                 onClick={() =>
                   handleTermsClick({
                     tenantAccept,

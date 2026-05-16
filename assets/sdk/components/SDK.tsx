@@ -859,15 +859,6 @@ export const SDK = (props: SDKProps) => {
     }
 
     if (state.step === 4 && state.streamPayer && state.streamTenant) {
-      if (state.termsOfUse) {
-        return (
-          <TermsOfUse
-            termsHtmlString={state.termsHtmlString || ''}
-            onClose={() => toggleTermsOfUse(state.formData ?? undefined)}
-            doneTermsOfService={props.doneTermsOfService}
-          />
-        );
-      }
       if (props.renderPayerForm === false) {
         props.doneStep4?.({
           streamPayer: state.streamPayer,
@@ -889,39 +880,52 @@ export const SDK = (props: SDKProps) => {
         });
         return <div />;
       }
+      // Render the credentials form unconditionally; the Terms-of-Use
+      // overlay portals on top of it via a Dialog when state.termsOfUse
+      // is true. This keeps the form mounted (user inputs + checkbox
+      // state survive without a formData round trip) and avoids the
+      // jarring full-screen swap the 0.7.x flow had.
       return (
-        <EnterCredentials
-          streamPayer={state.streamPayer}
-          streamPolicyHolder={state.streamPolicyHolder}
-          tenantTerms={state.streamTenant.terms_of_use}
-          formData={state.formData}
-          email={state.streamUser?.email || ''}
-          streamTenant={state.streamTenant}
-          toggleTermsOfUse={toggleTermsOfUse}
-          enableInterop={props.enableInterop}
-          enableInteropSinglePage={props.enableInteropSinglePage}
-          enablePatientAccessAPI={props.enablePatientAccessAPI}
-          enablePatientAccessAPISinglePage={
-            props.enablePatientAccessAPISinglePage
-          }
-          includePayerBlogs={props.includePayerBlogs}
-          userAddedUISchema={props.userSchema}
-          returnToStep3={
-            state.streamPayers &&
-            state.streamPayers.length > 1 &&
-            state.policyHolderId === null
-              ? setStep3
-              : false
-          }
-          returnToStep2={
-            props.fixCredentials && state.policyHolderId !== null
-              ? setStep2
-              : false
-          }
-          validateCreds={validateCreds}
-          doneStep4={props.doneStep4}
-          donePopUp={props.donePopUp}
-        />
+        <>
+          <EnterCredentials
+            streamPayer={state.streamPayer}
+            streamPolicyHolder={state.streamPolicyHolder}
+            tenantTerms={state.streamTenant.terms_of_use}
+            formData={state.formData}
+            email={state.streamUser?.email || ''}
+            streamTenant={state.streamTenant}
+            toggleTermsOfUse={toggleTermsOfUse}
+            enableInterop={props.enableInterop}
+            enableInteropSinglePage={props.enableInteropSinglePage}
+            enablePatientAccessAPI={props.enablePatientAccessAPI}
+            enablePatientAccessAPISinglePage={
+              props.enablePatientAccessAPISinglePage
+            }
+            includePayerBlogs={props.includePayerBlogs}
+            userAddedUISchema={props.userSchema}
+            returnToStep3={
+              state.streamPayers &&
+              state.streamPayers.length > 1 &&
+              state.policyHolderId === null
+                ? setStep3
+                : false
+            }
+            returnToStep2={
+              props.fixCredentials && state.policyHolderId !== null
+                ? setStep2
+                : false
+            }
+            validateCreds={validateCreds}
+            doneStep4={props.doneStep4}
+            donePopUp={props.donePopUp}
+          />
+          <TermsOfUse
+            open={state.termsOfUse}
+            termsHtmlString={state.termsHtmlString || ''}
+            onClose={() => toggleTermsOfUse()}
+            doneTermsOfService={props.doneTermsOfService}
+          />
+        </>
       );
     }
 
