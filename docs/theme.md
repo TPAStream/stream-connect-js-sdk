@@ -38,7 +38,9 @@ If you need to override a color the `primaryColor` knob does not touch, file an 
 
 ## Scoping
 
-All theme overrides are applied via CSS custom properties on the `.tpa-sdk-root` element the SDK mounts inside your `el` selector. They do not leak to any sibling or ancestor element on the host page. The SDK's own Tailwind utility classes are namespaced with the `tpa-` prefix and scoped to the same subtree, so the SDK will not clobber host-page styles and vice versa.
+All theme overrides are applied via CSS custom properties on the `.tpa-sdk-root` element the SDK mounts inside your `el` selector. They do not leak to any sibling or ancestor element on the host page.
+
+The SDK's own Tailwind utility classes use the `tpa-` prefix to avoid name collisions with host-page CSS. The utility classes themselves are global (anywhere `.tpa-text-white` appears in the DOM, the rule applies), but the prefix means a host page that doesn't use `tpa-*` class names will never collide. The reset and theme variables are wrapped in `.tpa-sdk-root` so they only affect the SDK subtree.
 
 ## What's coming
 

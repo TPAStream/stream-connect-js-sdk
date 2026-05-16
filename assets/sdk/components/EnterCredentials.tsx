@@ -297,16 +297,19 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     setSubmitting(true);
     setErrorMessage(null);
     const params = {
-      // Customer-supplied extras land first so canonical fields below
-      // win on key collision (e.g. customer can't override username).
+      // Customer-supplied extras land first; carrier form values land
+      // next; canonical SDK-controlled fields are spread LAST so they
+      // can't be overwritten by either source. A carrier schema with a
+      // `payer_id` / `accept` / `tenants_accept` field would otherwise
+      // clobber the SDK's value via the trailing `...values`.
       ...(props.userAddedUISchema || {}),
+      ...values,
       username: values.username,
       password: values.password,
       date_of_birth: values.dateOfBirth || null,
       payer_id: streamPayer.id,
       accept: values.termsAndServices,
-      tenants_accept: [values.tenantAcknowledgement],
-      ...values
+      tenants_accept: [values.tenantAcknowledgement]
     };
     props.validateCreds({
       params,

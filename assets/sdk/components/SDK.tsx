@@ -637,11 +637,14 @@ export const SDK = (props: SDKProps) => {
           // The boolean form (`forceEndStep: true` legacy 0.7.x signature)
           // and the explicit-step number form are both supported. Truthy
           // boolean collapses to step 5 (FinishedEasyEnroll). For a number,
-          // honor the requested step so customers can land on, e.g., step
-          // 3 (choose-payer) on a deeplink. Clamp to known steps so a bad
-          // value falls back to 5.
+          // honor the requested step ONLY if it maps to a known wizard
+          // step — otherwise the render switch falls through to the
+          // "Failed to find an associated step" error state. Anything
+          // not in KNOWN_STEPS falls back to 5.
+          const KNOWN_STEPS = new Set([1, 2, 3, 4, 5]);
           const target =
-            typeof props.forceEndStep === 'number' && props.forceEndStep >= 1
+            typeof props.forceEndStep === 'number' &&
+            KNOWN_STEPS.has(props.forceEndStep)
               ? props.forceEndStep
               : 5;
           setState((s) => ({

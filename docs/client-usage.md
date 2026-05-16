@@ -107,7 +107,7 @@ StreamConnect({
 | `renderEndWidget`             | Render the built-in end widget. If `false`, drive it from `doneEasyEnroll`. | Boolean | `renderEndWidget: false`                              | `true`    |
 | `userSchema`                  | **Changed in 0.8.** In 0.7.x this drove `react-jsonschema-form` UI-schema customization for the credentials form. `react-jsonschema-form` was removed in 0.8, so `userSchema` no longer affects rendering; the object is forwarded into the credential-submit payload for downstream consumers, and the SDK emits a one-time console warning when set. File an issue if you relied on UI-schema-driven extra fields. | Object  | `userSchema: {}`                                      | `{}`      |
 | `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials.md) in the SDK. Requires `connectAccessToken`. | Boolean | `fixCredentials: true` | `false` |
-| `maxRetries`                  | Maximum number of credential-form re-submission attempts before the SDK gives up and surfaces the error. | Number  | `maxRetries: 3` | (SDK default) |
+| `maxRetries`                  | **Deprecated in 0.8.** Was the retry count for the 0.7.x polling validation loop. The 0.8 SDK uses SSE with no client-side retry knob; this option is accepted for back-compat but has no effect. | Number  | `maxRetries: 3` | n/a |
 | `_overrideBaseUrl`            | Override the API base URL the SDK talks to. Used by the `/sdk-test` sandbox and integration tests; do not set in production. | String  | `_overrideBaseUrl: 'https://stevedev.tpastream.com'` | (`app.tpastream.com`) |
 
 ## Redirect query parameters (Patient Access API)

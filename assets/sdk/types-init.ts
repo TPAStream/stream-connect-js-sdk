@@ -96,6 +96,9 @@ export interface SDKInitOptions {
   doneStep3?: (data?: unknown) => void;
   doneStep4?: (data?: unknown) => void;
   doneRealtime?: () => void;
+  /** @deprecated Was the retry count for the 0.7.x polling validation
+   * loop. The 0.8 SDK uses SSE with no client-side retry knob; this
+   * option is accepted for back-compat but no longer affects behavior. */
   maxRetries?: number;
 
   /** Override for tests + the /sdk-test sandbox. */

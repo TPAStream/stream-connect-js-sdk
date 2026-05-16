@@ -4,7 +4,7 @@
 
 ## Version
 
-### 0.8.0
+### 0.8.0 (currently published as `0.8.0-alpha.1` on npm + CDN)
 
 Polished default appearance, React 19 + TypeScript, real-time credential-validation streaming, and a substantial dependency cleanup. The init() contract is backward-compatible: every option supported in 0.7.7 keeps working, including the custom render props (`renderChoosePayer`, `renderPayerForm`, `renderEndWidget`).
 
@@ -24,7 +24,7 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
   Stack
 
     * React 19, full TypeScript port
-    * Tailwind utility classes (`tpa-` prefix) for styling, scoped to a single `.tpa-sdk-root` subtree to prevent host-page CSS collisions
+    * Tailwind utility classes with the `tpa-` prefix to avoid host-page collisions. The reset + theme variables are wrapped under `.tpa-sdk-root` so they don't leak outside the SDK subtree; the utility classes themselves are prefixed but global, so a host page that already uses `.tpa-*` class names would still collide (none observed in real customer integrations)
     * Headless UI primitives for accessible Dialog and Combobox
     * React Hook Form + Zod for the carrier credential form
     * Removed: `@fortawesome/*`, `font-awesome`, `react-jsonschema-form`, `react-popup`, `react-select`, `react-highlight-words`, `query-string`, `@babel/polyfill`, `regenerator-runtime`
@@ -40,7 +40,9 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
     * `realTimeVerification` default is unchanged from 0.7.7 (still `true`). What's changed is the *transport*: validation state now arrives over SSE instead of a 5-second polling loop, and surfaces in the non-blocking hero + corner-panel UI rather than blocking the carrier picker. Pass `realTimeVerification: false` explicitly to preserve the old submit-and-trust behavior with no validation UI feedback
     * `enableInterop` is deprecated in favor of `enablePatientAccessAPI`. The legacy name keeps working indefinitely; using it logs a one-time deprecation warning to the console
     * `enableInteropSinglePage` is deprecated in favor of `enablePatientAccessAPISinglePage`, same indefinite-support rule
-    * No other init() option changed. All `done*` callbacks, the three `render*` toggles, `theme`, `userSchema`, `_overrideBaseUrl`, and the rest keep the same shape and names
+    * `realtimeTimeout` and `maxRetries` are accepted but no-op in 0.8 (both were knobs for the deleted 0.7.x polling loop). The SSE transport replaces them
+    * `userSchema` is still accepted but no longer drives form rendering (the `react-jsonschema-form` dep it relied on was removed). Customer-supplied keys are forwarded into the credential-submit payload as extra fields; a console warning fires once per init if `userSchema` is non-empty
+    * All other init() options keep the same shape and names: `done*` callbacks, the three `render*` toggles, `theme`, `_overrideBaseUrl`, `forceEndStep`, and the rest
     * New: `theme.primaryColor`
     * New: `enablePatientAccessAPI` and `enablePatientAccessAPISinglePage`
 

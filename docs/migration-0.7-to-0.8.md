@@ -12,7 +12,7 @@ If you do nothing, the 0.8 SDK will run with your existing 0.7.x init object. Th
 
 ### Stack
 - React 19, full TypeScript port.
-- Tailwind utility classes (`tpa-` prefix) for styling, scoped to a single `.tpa-sdk-root` subtree to prevent host-page CSS collisions.
+- Tailwind utility classes with the `tpa-` prefix to avoid name collisions with host-page CSS. The reset and theme variables are scoped under `.tpa-sdk-root` so they only affect the SDK subtree; the utility classes themselves are global but prefixed, so they only apply where the prefixed class names appear in the DOM.
 - Headless UI primitives for accessible Dialog and Combobox.
 - React Hook Form + Zod for the carrier credential form.
 - **Removed dependencies**: `@fortawesome/*`, `font-awesome`, `react-jsonschema-form`, `react-popup`, `react-select`, `react-highlight-words`, `query-string`, `@babel/polyfill`, `regenerator-runtime`.

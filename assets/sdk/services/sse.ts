@@ -51,6 +51,12 @@ export const consumeSSE = async ({
       credentials: 'omit'
     });
   } catch (err) {
+    // AbortController.abort() during normal cleanup (unmount or after
+    // a validation reaches terminal state) rejects the in-flight
+    // fetch with an AbortError. That's not a real failure — mirror
+    // the reader-loop catch below and stay silent so callers don't
+    // flip an intentionally-unsubscribed validation into pending_async.
+    if ((err as { name?: string })?.name === 'AbortError') return;
     onError?.(err);
     return;
   }

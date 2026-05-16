@@ -296,6 +296,11 @@ export const FixPayerImages = ({
             onKeyDown={(e) => {
               if (disabled || !resolved) return;
               if (e.key === 'Enter' || e.key === ' ') {
+                // Space on a div[role=button] would otherwise scroll
+                // the host page while activating the tile. Native
+                // <button> handles this automatically; for our div
+                // proxy we have to opt in.
+                e.preventDefault();
                 if (ph.login_problem === 'migrating') {
                   choosePolicyHolder({ payer: resolved, dependent: false });
                 } else {
