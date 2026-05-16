@@ -2,7 +2,7 @@
  * Webpack config for the SDK CommonJS bundle (sdk.js).
  *
  * The bundle is consumed two ways:
- * 1. As a npm package (libraryTarget: 'commonjs2'). Stream wraps it
+ * 1. As an npm package (libraryTarget: 'commonjs2'). Stream wraps it
  *    per-version in assets/sdk_cdn/sdk-cdn-vXYZ.jsx for the CDN drop.
  * 2. Via the /sdk-test sandbox in stevedev — see
  *    stream/templates/sdk_test.html, which shims module.exports to

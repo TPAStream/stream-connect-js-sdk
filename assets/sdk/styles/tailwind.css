@@ -65,3 +65,80 @@
  * { background: ... }` rule that bleeds into our subtree. Re-set the
  * same handful of properties Tailwind preflight would normally set,
  * scoped to .tpa-sdk-root only. */
+
+/* Minimal prose styling for server-supplied HTML content (Terms of
+ * Use, payer blog markdown). We don't ship the @tailwindcss/typography
+ * plugin because it's a 50KB+ dep for two render sites; the rules
+ * below cover the elements we actually see in this content
+ * (paragraphs, headings, lists, links, code) with sensible spacing
+ * and sizing. Scoped to .tpa-prose to avoid bleeding into the rest
+ * of the SDK chrome. */
+.tpa-prose :where(p) {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+.tpa-prose :where(p:first-child) {
+  margin-top: 0;
+}
+.tpa-prose :where(p:last-child) {
+  margin-bottom: 0;
+}
+.tpa-prose :where(h1, h2, h3, h4) {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.tpa-prose :where(h1) {
+  font-size: 1.5em;
+}
+.tpa-prose :where(h2) {
+  font-size: 1.25em;
+}
+.tpa-prose :where(h3) {
+  font-size: 1.1em;
+}
+.tpa-prose :where(ul, ol) {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+.tpa-prose :where(ul) {
+  list-style-type: disc;
+}
+.tpa-prose :where(ol) {
+  list-style-type: decimal;
+}
+.tpa-prose :where(li) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.tpa-prose :where(strong, b) {
+  font-weight: 600;
+}
+.tpa-prose :where(em, i) {
+  font-style: italic;
+}
+.tpa-prose :where(a) {
+  color: rgb(var(--tpa-color-primary-600));
+  text-decoration: underline;
+}
+.tpa-prose :where(code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+  background: rgb(241 245 249);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25em;
+}
+.tpa-prose :where(blockquote) {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 3px solid rgb(203 213 225);
+  color: rgb(71 85 105);
+  font-style: italic;
+}
+/* tpa-prose-sm is the size variant used in PayerInfo + TermsOfUse. */
+.tpa-prose-sm {
+  font-size: 0.875em;
+  line-height: 1.6;
+}

@@ -100,19 +100,26 @@ export const SDK = (props: SDKProps) => {
   const { addValidation, validations } = useActiveValidations();
   const useNonBlockingValidation = props.realTimeVerification !== false;
 
-  // Refresh the user's PH list whenever a validation reaches a
-  // terminal state. The runner already calls getPolicyHolder for
-  // the individual PH (to refine credentialsValid in the context),
-  // but the FixCredentials list renders from streamUser.policy_holders
-  // which doesn't include the newly-minted last_successful_crawl_end
-  // until we refetch the user. Without this, a freshly-validated PH
-  // shows "Connected" but no "Last synced" timestamp.
+  // Refresh the user's PH list whenever a validation FIRST reaches a
+  // terminal state. The runner already calls getPolicyHolder for the
+  // individual PH (to refine credentialsValid in the context), but the
+  // FixCredentials list renders from streamUser.policy_holders which
+  // doesn't include the newly-minted last_successful_crawl_end until
+  // we refetch the user. Track which task ids we've already refreshed
+  // so a stale terminal-state validation in the array doesn't trigger
+  // a refetch on every unrelated state change. Without this guard, a
+  // single failed validation lingering in the panel caused every later
+  // SSE event on any *other* validation to refetch the whole user.
+  const refreshedForTaskIds = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const hasJustCompleted = validations.some(
-      (v) => v.state === 'success' || v.state === 'failure'
+    const newlyCompleted = validations.filter(
+      (v) =>
+        (v.state === 'success' || v.state === 'failure') &&
+        !refreshedForTaskIds.current.has(v.taskId)
     );
-    if (!hasJustCompleted) return;
+    if (newlyCompleted.length === 0) return;
     if (!state.streamUser) return;
+    for (const v of newlyCompleted) refreshedForTaskIds.current.add(v.taskId);
     getFixCredentials({ email: state.streamUser.email })
       .then(({ user }) => {
         setState((s) => (s.streamUser ? { ...s, streamUser: user } : s));
@@ -191,19 +198,27 @@ export const SDK = (props: SDKProps) => {
   const setStep2 = useCallback(() => {
     setState((s) => ({ ...s, loading: true }));
     if (!state.streamUser) return;
-    getFixCredentials({ email: state.streamUser.email }).then(({ user }) => {
-      setState((s) => ({
-        ...s,
-        loading: false,
-        step: 2,
-        termsOfUse: false,
-        streamPayer: null,
-        policyHolderId: null,
-        streamPolicyHolder: null,
-        streamUser: user
-      }));
-    });
-  }, [state.streamUser]);
+    getFixCredentials({ email: state.streamUser.email })
+      .then(({ user }) => {
+        setState((s) => ({
+          ...s,
+          loading: false,
+          step: 2,
+          termsOfUse: false,
+          streamPayer: null,
+          policyHolderId: null,
+          streamPolicyHolder: null,
+          streamUser: user
+        }));
+      })
+      .catch(() => {
+        // Without this catch the spinner would never clear if the
+        // fix-credentials API failed — user is stuck on loading.
+        setStepConfigError(
+          "Couldn't load your carriers. Please reload the page."
+        );
+      });
+  }, [state.streamUser, setStepConfigError]);
 
   const setStep3 = useCallback(() => {
     setState((s) => ({
@@ -289,19 +304,27 @@ export const SDK = (props: SDKProps) => {
         employerId: state.streamEmployer.id,
         email: state.streamUser.email,
         referer
-      }).then((payerResponse) => {
-        setState((s) => ({
-          ...s,
-          loading: false,
-          dependent: dependent ?? s.dependent,
-          streamPayer: payerResponse,
-          termsOfUse: false,
-          step: 4,
-          twoFactorAuth: null,
-          twoFactorAuthState: null,
-          taskId: null
-        }));
-      });
+      })
+        .then((payerResponse) => {
+          setState((s) => ({
+            ...s,
+            loading: false,
+            dependent: dependent ?? s.dependent,
+            streamPayer: payerResponse,
+            termsOfUse: false,
+            step: 4,
+            twoFactorAuth: null,
+            twoFactorAuthState: null,
+            taskId: null
+          }));
+        })
+        .catch(() => {
+          // Without this catch the spinner would never clear if the
+          // getPayer API call rejected — user is stuck on loading.
+          setStepConfigError(
+            "Couldn't load carrier configuration. Please try again."
+          );
+        });
     },
     [
       state.streamUser,
@@ -550,14 +573,22 @@ export const SDK = (props: SDKProps) => {
       if (!state.termsHtmlString) {
         if (!state.streamUser) return;
         setState((s) => ({ ...s, loading: true }));
-        getTerms({ email: state.streamUser.email }).then((html) => {
-          setState((s) => ({
-            ...s,
-            loading: false,
-            termsOfUse: !s.termsOfUse,
-            termsHtmlString: html
-          }));
-        });
+        getTerms({ email: state.streamUser.email })
+          .then((html) => {
+            setState((s) => ({
+              ...s,
+              loading: false,
+              termsOfUse: !s.termsOfUse,
+              termsHtmlString: html
+            }));
+          })
+          .catch(() => {
+            // Without this catch the loading spinner would persist if
+            // the terms fetch failed — user clicks "Terms of Use" and
+            // the SDK never recovers. Clear loading + leave the user
+            // on the credential form.
+            setState((s) => ({ ...s, loading: false }));
+          });
       } else {
         setState((s) => ({ ...s, termsOfUse: !s.termsOfUse }));
       }

@@ -86,8 +86,18 @@ const stateFromWire = (
     case 'WAITING_FOR_TWO_FACTOR_CODE':
       return { state: 'awaiting_code' };
     case 'SUCCESS':
-    case 'TWO_FACTOR_AUTH_COMPLETE':
+    case 'TWO_FACTOR_AUTH_COMPLETE': {
+      // The worker can return SUCCESS for "crawl finished" even if the
+      // credentials themselves were rejected — credentials_are_valid is
+      // the gate that distinguishes "we ran a clean validation" from
+      // "we tried and the carrier said no". Treat false explicitly as
+      // failure so the hero / panel show the right copy and don't
+      // claim success on a soft fail.
+      if (data.credentials_are_valid === false) {
+        return { state: 'failure', endMessage: data.message };
+      }
       return { state: 'success' };
+    }
     case 'FAILURE':
       return { state: 'failure', endMessage: data.message };
     default:
@@ -117,7 +127,12 @@ const reducer = (state: State, action: Action): State => {
                   next.state === 'awaiting_code'
                     ? action.data
                     : v.twoFactorAuthData,
-                endMessage: next.endMessage ?? v.endMessage
+                endMessage: next.endMessage ?? v.endMessage,
+                // Any SSE-driven state transition clears a prior
+                // submitError — if the server advanced the validation
+                // the user-visible error from a stale submit no longer
+                // applies.
+                submitError: null
               }
             : v
         )
@@ -126,7 +141,13 @@ const reducer = (state: State, action: Action): State => {
     case 'mark_submitting':
       return {
         validations: state.validations.map((v) =>
-          v.id === action.taskId ? { ...v, state: 'submitting' } : v
+          v.id === action.taskId
+            ? // Clear any prior submitError when the user retries —
+              // otherwise the hero would render the stale message
+              // alongside the new "Working on it…" spinner and persist
+              // after a successful retry.
+              { ...v, state: 'submitting', submitError: null }
+            : v
         )
       };
     case 'mark_pending_async':

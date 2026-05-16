@@ -66,6 +66,23 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Read the current theme's CSS-variable overrides as an inline-style
+ * object. Components that render OUTSIDE the .tpa-sdk-root subtree —
+ * notably any Headless UI primitive that portals to document.body —
+ * must re-apply these vars themselves; the class alone only picks up
+ * the *default* shades from the stylesheet, not the customer's
+ * primaryColor override.
+ */
+export const useThemeCSSVars = (): CSSProperties => {
+  const theme = useTheme();
+  return useMemo<CSSProperties>(() => {
+    if (!theme?.primaryColor) return {};
+    const shades = buildPrimaryShades(theme.primaryColor);
+    return (shades || {}) as CSSProperties;
+  }, [theme?.primaryColor]);
+};
+
 export const ThemeProvider = ({ theme, children }: ThemeProviderProps) => {
   const cssVars = useMemo<CSSProperties>(() => {
     if (!theme?.primaryColor) return {};

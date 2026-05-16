@@ -45,6 +45,9 @@ export interface SDKInitOptions {
 
   // Behavior
   realTimeVerification?: boolean;
+  /** @deprecated Was the polling-loop timeout in the 0.7.x SDK. The
+   * 0.8 SDK uses SSE with a server-side stream deadline; this option
+   * is accepted for back-compat but no longer affects timing. */
   realtimeTimeout?: number;
   /** Default true — render the choose-payer step inline. Pass false
    * to receive a callback in `doneStep3` and render it yourself. */
@@ -64,7 +67,11 @@ export interface SDKInitOptions {
   enablePatientAccessAPI?: boolean;
   enablePatientAccessAPISinglePage?: boolean;
 
-  forceEndStep?: number;
+  /** Accepts boolean (legacy 0.7.x signature — true → end widget) or
+   * number (specific step to land on, typically 5 for the FinishedEasyEnroll
+   * widget). The boolean form is preserved for back-compat with existing
+   * `forceEndStep: true` integrations and is treated as truthy → 5. */
+  forceEndStep?: boolean | number;
   entrySdkStateId?: string;
   webViewDelegation?: boolean;
   userSchema?: Record<string, unknown>;

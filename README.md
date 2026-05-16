@@ -37,7 +37,7 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
   Init() options
 
-    * `realTimeVerification` now defaults to `true` if unset. The 0.7.x runtime defaulted it to `false` (despite the docs always listing `true`); with the SSE consumer in place, real-time validation feedback is the right default for almost every integration. Pass `realTimeVerification: false` explicitly to keep the old submit-and-trust behavior
+    * `realTimeVerification` default is unchanged from 0.7.7 (still `true`). What's changed is the *transport*: validation state now arrives over SSE instead of a 5-second polling loop, and surfaces in the non-blocking hero + corner-panel UI rather than blocking the carrier picker. Pass `realTimeVerification: false` explicitly to preserve the old submit-and-trust behavior with no validation UI feedback
     * `enableInterop` is deprecated in favor of `enablePatientAccessAPI`. The legacy name keeps working indefinitely; using it logs a one-time deprecation warning to the console
     * `enableInteropSinglePage` is deprecated in favor of `enablePatientAccessAPISinglePage`, same indefinite-support rule
     * No other init() option changed. All `done*` callbacks, the three `render*` toggles, `theme`, `userSchema`, `_overrideBaseUrl`, and the rest keep the same shape and names

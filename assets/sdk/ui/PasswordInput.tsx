@@ -54,6 +54,14 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
     // assistive tech sees the label and the input as unrelated nodes.
     const generatedId = useId();
     const inputId = id ?? generatedId;
+    // Per-input IDs for the error + hint paragraphs so we can point
+    // aria-describedby at whichever is rendered. Screen readers
+    // announce the description after the field name/value, so this is
+    // how the actual error/hint text gets read alongside the invalid
+    // state instead of just "invalid entry, edit text".
+    const errorId = `${inputId}-error`;
+    const hintId = `${inputId}-hint`;
+    const describedBy = error ? errorId : hint ? hintId : undefined;
 
     return (
       <div className="tpa-w-full">
@@ -82,6 +90,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
               .filter(Boolean)
               .join(' ')}
             aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy}
             {...rest}
           />
           <button
@@ -94,12 +103,18 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           </button>
         </div>
         {error && (
-          <p className="tpa-mt-1.5 tpa-text-sm tpa-text-red-600" role="alert">
+          <p
+            id={errorId}
+            className="tpa-mt-1.5 tpa-text-sm tpa-text-red-600"
+            role="alert"
+          >
             {error}
           </p>
         )}
         {!error && hint && (
-          <p className="tpa-mt-1.5 tpa-text-sm tpa-text-slate-500">{hint}</p>
+          <p id={hintId} className="tpa-mt-1.5 tpa-text-sm tpa-text-slate-500">
+            {hint}
+          </p>
         )}
       </div>
     );

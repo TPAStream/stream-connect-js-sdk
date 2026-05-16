@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client';
+import { type Root, createRoot } from 'react-dom/client';
 import '../styles/tailwind.css';
 import { SDK } from '../components/SDK';
 import { ActiveValidationsProvider } from '../contexts/ActiveValidationsContext';
@@ -6,6 +6,14 @@ import { ThemeProvider } from '../theme/theme';
 import type { SDKInitOptions } from '../types-init';
 
 const VERSION = '0.8.0-alpha.1';
+
+// Cache one React root per container element. Some host pages call
+// StreamConnect() more than once against the same `el` (e.g. on a
+// route change, or after toggling visibility). createRoot on an
+// already-mounted container is a React 19 hard warning AND leaks the
+// old root; reusing the existing root for subsequent calls makes
+// re-init a no-op rerender instead.
+const rootCache = new WeakMap<Element, Root>();
 
 const onDOMReady = (cb: () => void) => {
   if (document.readyState === 'loading') {
@@ -63,11 +71,11 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
   out.renderChoosePayer = opts.renderChoosePayer !== false;
   out.renderPayerForm = opts.renderPayerForm !== false;
   out.renderEndWidget = opts.renderEndWidget !== false;
-  // Default realTimeVerification to true. The 0.7.x default was false
-  // because polling /sdk-api/validate-credentials every 5 seconds was
-  // costly enough that opting in made sense. With the SSE consumer
-  // landed in 0.8.0 the cost is negligible. Most integrations want
-  // validation feedback by default rather than submit-and-pray.
+  // Default realTimeVerification to true — matches the 0.7.7 entry
+  // point's default. (Earlier drafts of the 0.8 changelog incorrectly
+  // claimed the 0.7.x default was false; the source contradicts that.)
+  // The transport changed (SSE replaces polling) but the default did
+  // not. Pass false explicitly to disable the validation UI feedback.
   out.realTimeVerification = opts.realTimeVerification !== false;
   // Map the human-friendly callback names to the internal doneStep*
   // names the SDK component reads. The 0.7.x entry did this mapping
@@ -94,10 +102,11 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
  *    constructs in setStep4 when `enablePatientAccessAPISinglePage` is
  *    true. Tells this load to skip straight to the end widget.
  *
- * Both are stripped from the URL via history.pushState so a refresh
- * doesn't re-trigger them. The strip happens regardless of whether the
- * value was actually applied — leaving `?accessToken=…` in the address
- * bar after a successful redirect would leak it to anything that logs
+ * Both are stripped from the URL via history.replaceState so a refresh
+ * doesn't re-trigger them AND the back button can't restore the
+ * token-bearing URL. The strip happens regardless of whether the value
+ * was actually applied — leaving `?accessToken=…` in the address bar
+ * after a successful redirect would leak it to anything that logs
  * window.location.
  */
 const consumeRedirectParams = (): {
@@ -123,7 +132,11 @@ const consumeRedirectParams = (): {
     const qs = search.toString();
     const newUrl =
       window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
-    window.history.pushState(null, '', newUrl);
+    // replaceState (not pushState) so the back button can't return to
+    // the original URL containing ?accessToken=… — that token is
+    // single-use and shouldn't be reachable via history navigation
+    // (browser autofill, address bar, referrer leak, etc.).
+    window.history.replaceState(null, '', newUrl);
   }
   return { accessToken, shouldForceEnd };
 };
@@ -147,12 +160,13 @@ const StreamConnect = (options: SDKInitOptions) => {
   if (accessToken) {
     normalized.connectAccessToken = accessToken;
   }
-  if (shouldForceEnd) {
-    // Match the legacy entry's `!!shouldForceEnd || !!forceEndStep`
-    // semantic — flag is truthy if either source set it. Use 5
-    // (the wizard's terminal step) so the controller's existing
-    // forceEndStep branch lands on the FinishedEasyEnroll widget.
-    normalized.forceEndStep = normalized.forceEndStep || 5;
+  // Normalize forceEndStep to a number. Both the legacy 0.7.x boolean
+  // (`forceEndStep: true`) and the new explicit-step number form are
+  // accepted; truthy collapses to 5 (the FinishedEasyEnroll step) and
+  // the URL-side `forceTPAStreamSdkEnd` flag triggers the same path.
+  if (shouldForceEnd || normalized.forceEndStep) {
+    normalized.forceEndStep =
+      typeof normalized.forceEndStep === 'number' ? normalized.forceEndStep : 5;
   }
 
   onDOMReady(() => {
@@ -166,7 +180,11 @@ const StreamConnect = (options: SDKInitOptions) => {
       );
       return;
     }
-    const root = createRoot(container);
+    let root = rootCache.get(container);
+    if (!root) {
+      root = createRoot(container);
+      rootCache.set(container, root);
+    }
     root.render(
       <ThemeProvider theme={normalized.theme}>
         <ActiveValidationsProvider>

@@ -87,6 +87,14 @@ export const InteroperabilityPayerForm = (
           window.location.replace(
             streamPayer.interoperability_authorization_url
           );
+        } else {
+          // No auth URL means the payer's PAA config is incomplete on
+          // the backend side. Without surfacing this the form stays in
+          // "connecting" forever with no error and no way to retry.
+          setConnecting(false);
+          setErrorMessage(
+            "This carrier's connection is misconfigured. Please contact your administrator."
+          );
         }
       } else {
         if (streamPayer.interoperability_authorization_url) {
@@ -97,8 +105,16 @@ export const InteroperabilityPayerForm = (
             '_blank',
             'noopener,noreferrer'
           );
+          intervalRef.current = setInterval(checkDone, 5000);
+        } else {
+          // Same as the single-page branch — without an auth URL the
+          // user can't be redirected to the carrier and the poll loop
+          // below would tick forever against nothing.
+          setConnecting(false);
+          setErrorMessage(
+            "This carrier's connection is misconfigured. Please contact your administrator."
+          );
         }
-        intervalRef.current = setInterval(checkDone, 5000);
       }
     } catch (error: unknown) {
       const e = error as {
