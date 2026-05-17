@@ -4,7 +4,7 @@
 
 Mount the SDK by calling `StreamConnect({...})` with your config. The minimum you need is `el` (where to mount), `employer`, `user`, and `apiToken`. Everything else has sane defaults.
 
-![SDK default UI](./flow-screenshots/choose-payer.png)
+![SDK default UI](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/choose-payer.png)
 
 ## Quickstart
 

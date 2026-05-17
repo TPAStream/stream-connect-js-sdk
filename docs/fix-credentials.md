@@ -30,6 +30,12 @@ StreamConnect({
 
 ## What the user sees
 
+When a returning user opens the SDK in fix-credentials mode, the
+first screen offers two paths: add a new carrier, or manage existing
+ones.
+
+![Select enroll process](https://tpastream-public.s3.amazonaws.com/sdk-docs/fix-credentials/select-enroll-widget.png)
+
 The fix-credentials view lists every policy-holder the user has
 connected. Each carrier renders as a tile with:
 

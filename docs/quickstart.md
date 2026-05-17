@@ -48,7 +48,7 @@ that an implementor starts the SDK init with `isDemo` set to true as shown above
 *Demo mode is incapable of saving credentials or validating credentials.
 
 If you then open up the above html in a browser you should see something close to the following.
-![Demo Init Page](quickstart-screenshots/demo-init-page.png)
+![Demo Init Page](https://tpastream-public.s3.amazonaws.com/sdk-docs/quickstart-screenshots/demo-init-page.png)
 
 ## Step 3 -- Add sdk Token
 ```html
@@ -71,7 +71,7 @@ If you then open up the above html in a browser you should see something close t
 ```
 
 After setting the `sdkToken` you will see the following page on your html.
-![Init Error Page](quickstart-screenshots/error-init-page.png)
+![Init Error Page](https://tpastream-public.s3.amazonaws.com/sdk-docs/quickstart-screenshots/error-init-page.png)
 
 That is ok! In order to initialize the SDK you will need to have quite a few more values. So for now it won't properly init.
 

@@ -7,7 +7,11 @@ This is the first widget to render on the page. It will appear as one of two for
 If the SDK is configured to demo mode you can see what each individual style will look like. Once the user clicks on one of these images or selects from the dropdown, the next widget renders: `enter-credentials`.
 
 Here is what choose-payer might looks like (DISCLAIMER: All screenshots are configured in demo-mode and thus have incomplete data)
-![Choose Payer](flow-screenshots/choose-payer.png)
+![Choose Payer](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/choose-payer.png)
+
+The dropdown variant looks like this when the listbox is open:
+
+![Choose Payer (dropdown)](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/choose-payer-dropdown.png)
 
 ## Enter Credentials
 The second widget to render on the page is the `enter-credentials` widget. This widget handles the form for the specific carrier site. This page will have fields for usernames, passwords, security questions, dates of birth, and terms of service acceptance.
@@ -17,15 +21,15 @@ The SDK will handle all the validation of the form. You can interface more thoro
 This widget is also home to some sub-widgets which have their own callbacks: `terms-of-service` and `pop-up`.
 
 Here is what a form might look like
-![Enter Credentials](flow-screenshots/enter-credentials.png)
+![Enter Credentials](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/enter-credentials.png)
 
 ## Enter Credentials Sub-Widgets
 #### Pop Up
 This widget is accessed by clicking the question mark on the page. This pop-up has a link to the carrier site.
-![Pop Up](flow-screenshots/pop-up.png)
+![Pop Up](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/pop-up.png)
 #### Terms of Service
 This widget contains the TPAStream terms of service
-![Terms of Service](flow-screenshots/terms-of-service.png)
+![Terms of Service](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/terms-of-service.png)
 
 ## Real Time Validation
 
