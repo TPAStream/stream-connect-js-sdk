@@ -19,7 +19,7 @@ Here is what the test htmlscript looks like.
 ```
 
 `<script src="https://app.tpastream.com/static/js/sdk.js"></script>` in the head will bring down the latest version of the StreamConnect SDK. If you need to pin to a specific version, change the src to something like
-`<script src="https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"></script>` (the current 0.8 publish; once 0.8.0 ships, swap to `sdk-v-0.8.0.js`). Pinned versions remain available indefinitely.
+`<script src="https://app.tpastream.com/static/js/sdk-v-0.8.0.js"></script>`. Pinned versions remain available indefinitely.
 
 The 0.8 SDK is visually self-contained: it does not require Bootstrap, jQuery, FontAwesome, or any other host-page CSS. Host pages that already load Bootstrap can keep doing so without conflict. SDK styles use a `tpa-` class prefix to avoid name collisions with host CSS, and the reset/theme variables are wrapped under `.tpa-sdk-root` so they only affect the SDK subtree.
 

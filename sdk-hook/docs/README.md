@@ -53,10 +53,8 @@ that bootstraps the SDK with your tokens server-side:
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Pin to a specific version. `sdk-v-0.8.0-alpha.1.js` is the
-         current 0.8 publish; once 0.8.0 ships, swap to
-         `sdk-v-0.8.0.js`. -->
-    <script src="https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"></script>
+    <!-- Pin to a specific version. -->
+    <script src="https://app.tpastream.com/static/js/sdk-v-0.8.0.js"></script>
   </head>
   <body>
     <div id="sdk-hook"></div>

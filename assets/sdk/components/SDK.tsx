@@ -40,7 +40,7 @@ import { FixCredentials } from './FixCredentials';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.0-alpha.1';
+const VERSION = '0.8.0';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller

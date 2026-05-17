@@ -9,7 +9,7 @@ import type { SDKInitOptions } from '../types-init';
 // stylesheet so customers driving their own UI via the renderXxx
 // callbacks aren't forced to ship our ~50 KB of Tailwind output.
 
-const VERSION = '0.8.0-alpha.1';
+const VERSION = '0.8.0';
 
 // Track one React root per container element. Some host pages call
 // StreamConnect() more than once against the same `el` (e.g. on a
