@@ -1,4 +1,145 @@
-# SDK Hook Usage Docs
+# SDK Hook (Deprecated)
+
+> **`stream-connect-sdk-hook` is deprecated.** New integrations should
+> embed the main `stream-connect-sdk` package in a WebView (the
+> [WebView pattern](#recommended-webview-pattern-for-react-native)
+> below). The published v0.6.2 tarball on npm keeps working for
+> existing integrations.
+>
+> Note: the source in this repository (`assets/sdk-hook/`) currently
+> can't be rebuilt because it imports from `assets/shared/` which the
+> 0.8 web-SDK rewrite deleted. We're not republishing — the
+> deprecation message lives in the docs, not in a runtime
+> `console.warn`. If the hook ever needs a fix, the shared helpers
+> would need to be restored or inlined first.
+
+## Why deprecate
+
+When the hook was first written (2019, pre-0.6), there was no clean
+way to embed the SDK's React UI inside a React Native app, so we
+shipped a headless wrapper that called `/sdk-api/*` directly and let
+the RN app render its own form. That hook hasn't had a feature update
+since 2022 and is on a different release line from the main SDK:
+
+* No SSE-driven real-time validation (still uses 5-second polling
+  with a 5-minute max retry loop)
+* No inline 2FA, no fix-credentials status-badge view, no Patient
+  Access API support
+* Still uses `react-jsonschema-form` for form rendering (the main
+  SDK dropped this in 0.8 in favor of React Hook Form + Zod)
+* Different step machine (`step1` → `step6` vs. the main SDK's
+  `step1` → `step5`)
+
+The modern pattern for mobile SDKs (Plaid, Stripe Connect, Stytch,
+etc.) is to embed the canonical web flow in a WebView. The host app
+keeps native shell rendering and ferries data via postMessage. That
+gives RN integrators the polished 0.8 UI for free and lets us
+maintain one codebase instead of two.
+
+## Recommended WebView pattern for React Native
+
+[`react-native-webview`](https://github.com/react-native-webview/react-native-webview)
+is the standard library for this in RN; this example shows how to
+host the SDK and receive the `doneEasyEnroll` callback.
+
+### 1. Host the SDK on a URL your app can load
+
+The SDK ships as a `<script>` plus an `el` mount point. For a mobile
+integration, you typically host a tiny HTML page on your own backend
+that bootstraps the SDK with your tokens server-side:
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Pin to a specific version. `sdk-v-0.8.0-alpha.1.js` is the
+         current 0.8 publish; once 0.8.0 ships, swap to
+         `sdk-v-0.8.0.js`. -->
+    <script src="https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"></script>
+  </head>
+  <body>
+    <div id="sdk-hook"></div>
+    <script>
+      window.StreamConnect({
+        el: '#sdk-hook',
+        apiToken: '<your-sdk-token>',
+        connectAccessToken: '<mint-server-side-per-request>',
+        employer: { systemKey: '<key>', vendor: 'internal', name: '<name>' },
+        user: {
+          firstName: '<from your auth context>',
+          lastName: '<from your auth context>',
+          email: '<from your auth context>',
+        },
+        // Forward terminal-state callbacks to the RN host via postMessage
+        // so the native shell can navigate / dismiss the WebView.
+        doneEasyEnroll: (data) => {
+          window.ReactNativeWebView?.postMessage(
+            JSON.stringify({ type: 'doneEasyEnroll', data })
+          );
+        },
+        handleInitErrors: (err) => {
+          window.ReactNativeWebView?.postMessage(
+            JSON.stringify({ type: 'initError', error: String(err) })
+          );
+        },
+      });
+    </script>
+  </body>
+</html>
+```
+
+Anything from the SDK's full callback surface can be forwarded the
+same way (see [client-usage.md](../../docs/client-usage.md) for the
+complete list).
+
+### 2. Load it in `react-native-webview`
+
+```jsx
+import { WebView } from 'react-native-webview';
+
+export const ConnectScreen = ({ onComplete }) => {
+  const handleMessage = (event) => {
+    const message = JSON.parse(event.nativeEvent.data);
+    if (message.type === 'doneEasyEnroll') {
+      onComplete(message.data);
+    }
+  };
+
+  return (
+    <WebView
+      source={{ uri: 'https://your-backend.example.com/connect-sdk' }}
+      onMessage={handleMessage}
+      // Required for `window.ReactNativeWebView.postMessage` to be
+      // injected into the page context.
+      javaScriptEnabled
+      domStorageEnabled
+      // Allow the SDK's PAA-redirect flow to open the carrier auth page.
+      originWhitelist={['*']}
+    />
+  );
+};
+```
+
+### 3. Handle Patient Access API redirects
+
+If you use `enablePatientAccessAPI: true`, the carrier sends the user
+to its own login page and then redirects back. In a WebView, the
+return URL needs to be loadable inside the WebView (don't open it in
+the system browser, you'll lose the SDK state). The simplest path is
+to handle the carrier OAuth in the same WebView and let the SDK's
+`?accessToken=` URL parameter pick up where the user left off. See
+[Patient Access API docs](../../docs/interop.md) for the redirect
+mechanics.
+
+## Legacy hook API (still works on the 0.6.x line)
+
+Everything below documents the hook as it exists in npm today
+(`stream-connect-sdk-hook@0.6.2`, the version published on npm). It is preserved for integrators
+who built against the 0.6.x line and aren't ready to migrate. New
+integrations should use the WebView pattern above instead.
+
+---
 
 This is a pure no component set of interfaces to instance and run the StreamConnect sdk.
 Specifically it is recommended to use this package for react-native implementations of

@@ -28,7 +28,15 @@ This widget contains the TPAStream terms of service
 ![Terms of Service](flow-screenshots/terms-of-service.png)
 
 ## Real Time Validation
-This widget is an intermediate widget between submitting credentials and the SDK end state. It exists to act as a loading page while the TPAStream crawl engine is tyring to validate the credentials. *This logic can take up to 200 seconds before it decides the end status*
+
+In 0.8 this is no longer a blocking intermediate widget. After the user submits credentials, the SDK opens a Server-Sent Events subscription to `/v3/sdk/progress/<task_id>/stream` and surfaces validation progress in a non-blocking hero element plus a corner-panel UI, while the rest of the flow remains interactive. Multiple validations can run in parallel; each one owns its own SSE subscription.
+
+Auth on the SSE channel is a short-lived task-scoped JWT (audience `sdk:sse:progress`, bound to the user + validation task, 10-minute TTL) returned in the credential-submit response as `task_token`. The SDK forwards it as a `?token=...` query param on the SSE subscription; integrators do not need to handle the token directly.
+
+State transitions arrive as they happen rather than on the 5-second polling cadence used in 0.7.x. The server-side stream has a hard ~10-minute deadline; if validation hasn't terminated by then the server emits a `timeout` event and closes the stream. The SDK transitions that validation to a `pending_async` state which keeps it visible in the hero / corner-panel UI (the wizard does NOT auto-advance to FinishedEasyEnroll). The user can keep using the SDK; when they return later, the next call to the backend will reflect whatever terminal state the validation reached.
+
+`doneRealTime` still fires for back-compat. The `realtimeTimeout` init option is accepted but ignored (the timeout is now server-side).
+
 ![Realtime Validation](flow-screenshots/realtime-validation.png)
 
 ## Done Easy Enroll

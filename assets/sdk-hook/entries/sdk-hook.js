@@ -13,6 +13,23 @@ import { validateCredentials } from '../../shared/requests/validate-credentials'
 
 let version = '0.6.2';
 
+// NOTE: This file imports from ../../shared which the 0.8 web-SDK
+// rewrite deleted, so the hook's webpack build is broken from this
+// repo until/unless those helpers are restored or inlined. The
+// published `stream-connect-sdk-hook@0.6.2` tarball on npm was built
+// from an older revision that still had `assets/shared` and is
+// unaffected; existing integrations install fine and keep working.
+// We're soft-deprecating the package via the docs (see
+// `sdk-hook/docs/README.md` for the deprecation banner + recommended
+// WebView pattern) rather than republishing a new version, because
+// republishing here would require either restoring the deleted
+// `assets/shared` tree or inlining ~500 lines of legacy 0.7-era code
+// into `assets/sdk-hook/`, both of which work against the cleanup
+// intent of the 0.8 rewrite for a package we don't want to keep
+// iterating on. Tracking issue if we ever change our minds:
+// https://github.com/TPAStream/stream-connect-js-sdk/issues
+
+
 const steps = {
   step1: 'select-enroll-process',
   step2: 'fix-credentials',

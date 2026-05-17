@@ -1,0 +1,205 @@
+/* Tailwind utilities. Preflight is disabled in tailwind.config.js
+ * — see the comment there for why. We re-establish the rules our
+ * primitives depend on inside .tpa-sdk-root below.
+ *
+ * Every selector in the scoped reset is wrapped in :where() so its
+ * specificity collapses to 0. This is load-bearing: without :where(),
+ * a rule like `.tpa-sdk-root button { color: inherit }` (specificity
+ * 0,1,1) would beat Tailwind utilities like `.tpa-text-white` (0,1,0)
+ * and the primary button text would render black on blue instead of
+ * white on blue. :where() removes the wrapper from the specificity
+ * tally entirely, so utilities win.
+ */
+
+@tailwind components;
+@tailwind utilities;
+
+:where(
+    .tpa-sdk-root,
+    .tpa-sdk-root *,
+    .tpa-sdk-root *::before,
+    .tpa-sdk-root *::after
+  ) {
+  box-sizing: border-box;
+  /* Tailwind's preflight (disabled here) sets `border: 0 solid currentColor`
+   * as a baseline so that utilities like `tpa-border` (which only set
+   * border width + color) produce a visible border. Without this
+   * baseline, browser default `border-style: none` wins and the
+   * border disappears. Re-establish the baseline scoped to the SDK
+   * subtree so cards / inputs / secondary buttons render their
+   * borders. `:where()` keeps specificity at 0 so utilities still win
+   * collisions. */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
+
+/* Preflight margin reset: zero browser UA margins on text-bearing
+ * elements scoped to the SDK subtree. Without this, h1-h6 / p / dl /
+ * dd / dt / blockquote / pre / figure all keep their browser defaults
+ * (which differ across UAs) and stack on top of our explicit Stack
+ * gaps in surprising ways. `:where()` keeps specificity at 0 so any
+ * Tailwind margin utility wins.
+ */
+:where(
+    .tpa-sdk-root h1,
+    .tpa-sdk-root h2,
+    .tpa-sdk-root h3,
+    .tpa-sdk-root h4,
+    .tpa-sdk-root h5,
+    .tpa-sdk-root h6,
+    .tpa-sdk-root p,
+    .tpa-sdk-root dl,
+    .tpa-sdk-root dt,
+    .tpa-sdk-root dd,
+    .tpa-sdk-root figure,
+    .tpa-sdk-root blockquote,
+    .tpa-sdk-root pre
+  ) {
+  margin: 0;
+}
+
+/* Positioning context for absolutely-positioned descendants. The
+ * ActiveValidationsPanel sits in the corner of this root rather
+ * than fixed to the viewport, which matters when the SDK is
+ * embedded as a widget inside a host page (a viewport-fixed corner
+ * would float over unrelated host-page content outside the widget).
+ *
+ * Wrapped in `:where()` so specificity is 0 and Tailwind utility
+ * classes like `tpa-fixed` win on collision. Without :where(), this
+ * rule (specificity 0,1,0) would tie with `.tpa-fixed` (also 0,1,0)
+ * and source order would let `position: relative` clobber
+ * `position: fixed` on portaled wrappers (Dialog backdrop, etc.)
+ * that combine `tpa-sdk-root` + `tpa-fixed`.
+ */
+:where(.tpa-sdk-root) {
+  position: relative;
+}
+
+.tpa-sdk-root {
+  /* Plaid-Link aesthetic baseline. Theme tokens are CSS variables so
+   * the SDK's `primaryColor` init prop overrides them at runtime. */
+  --tpa-color-primary-50: 239 246 255; /* blue-50  */
+  --tpa-color-primary-100: 219 234 254; /* blue-100 */
+  --tpa-color-primary-200: 191 219 254; /* blue-200 */
+  --tpa-color-primary-300: 147 197 253; /* blue-300 */
+  --tpa-color-primary-500: 59 130 246; /* blue-500 */
+  --tpa-color-primary-600: 37 99 235; /* blue-600 */
+  --tpa-color-primary-700: 29 78 216; /* blue-700 */
+  --tpa-color-primary-800: 30 64 175; /* blue-800 */
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  color: rgb(31 41 55); /* slate-800 */
+  line-height: 1.5;
+  text-align: left;
+}
+
+:where(.tpa-sdk-root button) {
+  font-family: inherit;
+  cursor: pointer;
+  background: none;
+  /* Use border-width: 0 (not `border: none`) so the universal
+   * border-style: solid baseline above stays in effect. Buttons that
+   * apply `tpa-border` for a visible border will then actually render
+   * one; using `border: none` here would set border-style: none and
+   * the utility would silently produce no border. */
+  border-width: 0;
+  padding: 0;
+  /* Don't force `color: inherit` here, Tailwind text-* utilities on
+   * the button itself need to win unaided. Inheritance from the
+   * parent already gives unstyled buttons the right color. */
+}
+
+:where(.tpa-sdk-root input, .tpa-sdk-root select, .tpa-sdk-root textarea) {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+:where(.tpa-sdk-root a) {
+  color: rgb(var(--tpa-color-primary-600));
+  text-decoration: underline;
+}
+
+/* The host page may have a global `* { box-sizing: ... }` or `button
+ * { background: ... }` rule that bleeds into our subtree. Re-set the
+ * same handful of properties Tailwind preflight would normally set,
+ * scoped to .tpa-sdk-root only. */
+
+/* Minimal prose styling for server-supplied HTML content (Terms of
+ * Use, payer blog markdown). We don't ship the @tailwindcss/typography
+ * plugin because it's a 50KB+ dep for two render sites; the rules
+ * below cover the elements we actually see in this content
+ * (paragraphs, headings, lists, links, code) with sensible spacing
+ * and sizing. Scoped to .tpa-prose to avoid bleeding into the rest
+ * of the SDK chrome. */
+.tpa-prose :where(p) {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+.tpa-prose :where(p:first-child) {
+  margin-top: 0;
+}
+.tpa-prose :where(p:last-child) {
+  margin-bottom: 0;
+}
+.tpa-prose :where(h1, h2, h3, h4) {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.tpa-prose :where(h1) {
+  font-size: 1.5em;
+}
+.tpa-prose :where(h2) {
+  font-size: 1.25em;
+}
+.tpa-prose :where(h3) {
+  font-size: 1.1em;
+}
+.tpa-prose :where(ul, ol) {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+.tpa-prose :where(ul) {
+  list-style-type: disc;
+}
+.tpa-prose :where(ol) {
+  list-style-type: decimal;
+}
+.tpa-prose :where(li) {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+.tpa-prose :where(strong, b) {
+  font-weight: 600;
+}
+.tpa-prose :where(em, i) {
+  font-style: italic;
+}
+.tpa-prose :where(a) {
+  color: rgb(var(--tpa-color-primary-600));
+  text-decoration: underline;
+}
+.tpa-prose :where(code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+  background: rgb(241 245 249);
+  padding: 0.1em 0.3em;
+  border-radius: 0.25em;
+}
+.tpa-prose :where(blockquote) {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 3px solid rgb(203 213 225);
+  color: rgb(71 85 105);
+  font-style: italic;
+}
+/* tpa-prose-sm is the size variant used in PayerInfo + TermsOfUse. */
+.tpa-prose-sm {
+  font-size: 0.875em;
+  line-height: 1.6;
+}
