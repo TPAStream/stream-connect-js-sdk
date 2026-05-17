@@ -1,8 +1,10 @@
-// Tiny static server that renders an old-vs-new gallery so the
-// captured PNGs can be eyeballed before they go to S3.
+// Tiny static server that renders a published-vs-just-captured gallery
+// so PNGs can be eyeballed before they go to S3.
 //
 //   node scripts/screenshots/preview.mjs            # serves :8085
 //   node scripts/screenshots/preview.mjs --port=9090 --new=/tmp/sdk-shots
+//   node scripts/screenshots/preview.mjs --old=docs # diff against a
+//                                                   # committed dir instead
 
 import fs from 'node:fs';
 import http from 'node:http';
@@ -22,7 +24,17 @@ const flag = (name, def) => {
 
 const PORT = Number(flag('port', 8085));
 const NEW_ROOT = path.resolve(ROOT, flag('new', '/tmp/sdk-shots'));
-const OLD_ROOT = path.resolve(ROOT, 'docs');
+// `--old` is either an absolute URL prefix (compare against what's
+// currently published — the default) or a local directory like
+// `docs` if you still want to diff against committed PNGs.
+const OLD_RAW = flag(
+  'old',
+  'https://tpastream-public.s3.amazonaws.com/sdk-docs'
+);
+const OLD_IS_URL = /^https?:\/\//.test(OLD_RAW);
+const OLD_ROOT = OLD_IS_URL
+  ? OLD_RAW.replace(/\/+$/, '')
+  : path.resolve(ROOT, OLD_RAW);
 
 // Mapping: id → { label, oldPath (relative to OLD_ROOT), newPath (relative to NEW_ROOT) }
 const ENTRIES = [
@@ -34,9 +46,21 @@ const ENTRIES = [
   ['terms-of-service', 'flow-screenshots/terms-of-service.png']
 ].map(([id, rel]) => ({ id, rel }));
 
+function oldImg(rel) {
+  if (OLD_IS_URL) {
+    return `<img src="${OLD_ROOT}/${rel}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'missing',textContent:'not found at ${OLD_ROOT}'}))">`;
+  }
+  return fs.existsSync(path.join(OLD_ROOT, rel))
+    ? `<img src="/old/${rel}">`
+    : `<div class="missing">missing in ${OLD_ROOT}</div>`;
+}
+
+const OLD_LABEL = OLD_IS_URL
+  ? `currently published (${OLD_ROOT})`
+  : `committed (${OLD_ROOT})`;
+
 function html() {
   const cards = ENTRIES.map(({ id, rel }) => {
-    const oldExists = fs.existsSync(path.join(OLD_ROOT, rel));
     const newExists = fs.existsSync(path.join(NEW_ROOT, rel));
     const newStat = newExists ? fs.statSync(path.join(NEW_ROOT, rel)) : null;
     const cacheBust = newStat ? `?v=${newStat.mtimeMs}` : '';
@@ -45,8 +69,8 @@ function html() {
       <h2>${id} <small style="color:#666">— ${rel}</small></h2>
       <div class="row">
         <figure>
-          <figcaption>old (0.7 era, in docs/)</figcaption>
-          ${oldExists ? `<img src="/old/${rel}">` : `<div class="missing">missing</div>`}
+          <figcaption>${OLD_LABEL}</figcaption>
+          ${oldImg(rel)}
         </figure>
         <figure>
           <figcaption>new (just captured)</figcaption>
@@ -100,7 +124,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     return res.end(html());
   }
-  if (u.pathname.startsWith('/old/')) {
+  if (u.pathname.startsWith('/old/') && !OLD_IS_URL) {
     return serveFile(
       res,
       path.join(OLD_ROOT, u.pathname.slice('/old/'.length))
@@ -116,7 +140,7 @@ const server = http.createServer((req, res) => {
   res.end('not found');
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`preview: http://localhost:${PORT}`);
   console.log(`  new=${NEW_ROOT}`);
   console.log(`  old=${OLD_ROOT}`);

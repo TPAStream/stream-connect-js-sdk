@@ -69,5 +69,8 @@
   "keywords": [
     "sdk"
   ],
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=20"
+  }
 }

@@ -279,8 +279,12 @@ async function startServer({ port = 4178 } = {}) {
 </script>
 </body></html>`);
   });
-  await new Promise((r) => server.listen(port, r));
-  return { server, base: `http://localhost:${port}` };
+  // Bind explicitly to loopback. Default (no host arg) listens on all
+  // interfaces, and this server proxies /sdk-api/* to STREAM_WEBAPP
+  // with the user's bootstrapped sdkToken + connectAccessToken — not
+  // something we want reachable from the LAN.
+  await new Promise((r) => server.listen(port, '127.0.0.1', r));
+  return { server, base: `http://127.0.0.1:${port}` };
 }
 
 async function fetchFreshTokens() {

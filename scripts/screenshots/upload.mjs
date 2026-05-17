@@ -64,7 +64,10 @@ if (!DRY) {
   console.log('Uploaded:');
   for (const rel of walk(SRC, SRC)) {
     if (!rel.endsWith('.png')) continue;
-    console.log(`  https://${BUCKET}.s3.amazonaws.com/${PREFIX}/${rel}`);
+    // path.relative uses platform separators; S3 keys (and hence the
+    // URL path) must be POSIX slashes.
+    const key = rel.split(path.sep).join('/');
+    console.log(`  https://${BUCKET}.s3.amazonaws.com/${PREFIX}/${key}`);
   }
 }
 
