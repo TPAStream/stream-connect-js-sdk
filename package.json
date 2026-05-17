@@ -7,7 +7,10 @@
     "format": "biome check --write assets/",
     "test:lint": "biome check assets/",
     "test:types": "tsc --noEmit",
-    "test": "npm run test:lint && npm run test:types"
+    "test": "npm run test:lint && npm run test:types",
+    "screenshots": "node scripts/screenshots/capture.mjs",
+    "screenshots:preview": "node scripts/screenshots/preview.mjs",
+    "screenshots:upload": "node scripts/screenshots/upload.mjs"
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,7 @@
     "@babel/preset-react": "^7.27.1",
     "@babel/preset-typescript": "^7.27.1",
     "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.60.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.21",
