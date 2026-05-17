@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import { useEffect } from 'react';
+import { SpinnerIcon } from '../icons';
 import { Dialog } from '../ui/Dialog';
 
 interface TermsOfUseProps {
@@ -32,13 +33,23 @@ export const TermsOfUse = ({
   // misconfigured tenant can't inject script tags into the host page.
   const safeHtml = DOMPurify.sanitize(termsHtmlString || '');
 
+  // When the overlay opens before the terms HTML has finished
+  // fetching (the SDK opens the Dialog immediately to keep the
+  // credentials form mounted behind it), render a centered spinner
+  // until the HTML lands. Avoids a one-frame empty-modal flash.
   return (
     <Dialog open={open} onClose={onClose} title="Terms of Use">
-      <div
-        className="tpa-prose tpa-prose-sm tpa-max-w-none tpa-text-slate-700 tpa-max-h-[60vh] tpa-overflow-y-auto"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized above
-        dangerouslySetInnerHTML={{ __html: safeHtml }}
-      />
+      {safeHtml ? (
+        <div
+          className="tpa-prose tpa-prose-sm tpa-max-w-none tpa-text-slate-700 tpa-max-h-[60vh] tpa-overflow-y-auto"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized above
+          dangerouslySetInnerHTML={{ __html: safeHtml }}
+        />
+      ) : (
+        <div className="tpa-flex tpa-items-center tpa-justify-center tpa-py-12">
+          <SpinnerIcon className="tpa-w-8 tpa-h-8 tpa-text-primary-600" />
+        </div>
+      )}
     </Dialog>
   );
 };

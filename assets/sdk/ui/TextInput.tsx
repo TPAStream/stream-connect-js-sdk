@@ -69,7 +69,13 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
             type={type}
             className={inputClasses}
             aria-describedby={
-              [hintId, errorId].filter(Boolean).join(' ') || undefined
+              // Only reference ids whose elements are actually
+              // mounted: the hint paragraph hides when an error is
+              // present, so listing hintId then would point AT to a
+              // node that doesn't exist.
+              [error ? errorId : hint ? hintId : null]
+                .filter(Boolean)
+                .join(' ') || undefined
             }
             aria-invalid={error ? true : undefined}
             {...rest}

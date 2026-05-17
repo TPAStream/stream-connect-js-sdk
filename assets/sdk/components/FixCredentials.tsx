@@ -8,7 +8,6 @@ import type {
 import { BackButton } from '../ui/BackButton';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
-import { ActiveValidationsHero } from './ActiveValidationsHero';
 import { FixPayerImages } from './PayerImages';
 
 interface FixCredentialsProps {
@@ -57,7 +56,8 @@ export const FixCredentials = (props: FixCredentialsProps) => {
       {returnSelectEnrollProcess && (
         <BackButton onClick={returnSelectEnrollProcess as () => void} />
       )}
-      <ActiveValidationsHero />
+      {/* ActiveValidationsHero moved to the SDK root mount so it's
+          actionable on every step. See SDK.tsx's render block. */}
 
       {recent.length > 0 && (
         <Stack gap="sm">

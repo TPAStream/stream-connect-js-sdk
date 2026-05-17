@@ -21,7 +21,11 @@ export const Title = ({
   const Tag = `h${order}` as 'h1' | 'h2' | 'h3' | 'h4';
   return (
     <Tag
-      className={`tpa-text-slate-900 ${sizes[order]} ${className}`}
+      // tpa-m-0 zeroes the UA's default heading margins. Tailwind's
+      // preflight (which would normally do this) is disabled in our
+      // config, so without an explicit reset h1-h4 inherit browser
+      // defaults that stack on top of Stack's explicit gaps.
+      className={`tpa-m-0 tpa-text-slate-900 ${sizes[order]} ${className}`}
       {...rest}
     >
       {children}
@@ -65,7 +69,9 @@ export const Text = ({
 }: TextProps) => {
   return (
     <p
-      className={`${textSizes[size]} ${textColors[color]} ${textWeights[fw]} ${className}`}
+      // tpa-m-0 zeroes the UA's default <p> margins for the same
+      // reason as the Title component above (preflight is disabled).
+      className={`tpa-m-0 ${textSizes[size]} ${textColors[color]} ${textWeights[fw]} ${className}`}
       {...rest}
     >
       {children}

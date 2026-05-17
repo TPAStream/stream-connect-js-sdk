@@ -1,10 +1,17 @@
 # SDK Hook (Deprecated)
 
-> **`stream-connect-sdk-hook` is deprecated as of 0.6.3.** New
-> integrations should embed the main `stream-connect-sdk` package
-> in a WebView (the [WebView pattern](#recommended-webview-pattern-for-react-native)
-> below). The existing hook API still works for back-compat but is
-> no longer receiving feature updates.
+> **`stream-connect-sdk-hook` is deprecated.** New integrations should
+> embed the main `stream-connect-sdk` package in a WebView (the
+> [WebView pattern](#recommended-webview-pattern-for-react-native)
+> below). The published v0.6.2 tarball on npm keeps working for
+> existing integrations.
+>
+> Note: the source in this repository (`assets/sdk-hook/`) currently
+> can't be rebuilt because it imports from `assets/shared/` which the
+> 0.8 web-SDK rewrite deleted. We're not republishing — the
+> deprecation message lives in the docs, not in a runtime
+> `console.warn`. If the hook ever needs a fix, the shared helpers
+> would need to be restored or inlined first.
 
 ## Why deprecate
 
@@ -46,7 +53,10 @@ that bootstraps the SDK with your tokens server-side:
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://app.tpastream.com/static/js/sdk-v-0.8.0.js"></script>
+    <!-- Pin to a specific version. `sdk-v-0.8.0-alpha.1.js` is the
+         current 0.8 publish; once 0.8.0 ships, swap to
+         `sdk-v-0.8.0.js`. -->
+    <script src="https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"></script>
   </head>
   <body>
     <div id="sdk-hook"></div>
@@ -125,7 +135,7 @@ mechanics.
 ## Legacy hook API (still works on the 0.6.x line)
 
 Everything below documents the hook as it exists in npm today
-(`stream-connect-sdk-hook@0.6.3`). It is preserved for integrators
+(`stream-connect-sdk-hook@0.6.2`, the version published on npm). It is preserved for integrators
 who built against the 0.6.x line and aren't ready to migrate. New
 integrations should use the WebView pattern above instead.
 

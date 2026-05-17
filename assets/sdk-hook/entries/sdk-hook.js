@@ -11,27 +11,24 @@ import { parseMany, parseOne } from '../../shared/parsers/generic';
 import { serializeOne } from '../../shared/serializers/generic';
 import { validateCredentials } from '../../shared/requests/validate-credentials';
 
-let version = '0.6.3';
+let version = '0.6.2';
 
-let _deprecationWarned = false;
-const _warnDeprecation = () => {
-  if (_deprecationWarned) return;
-  _deprecationWarned = true;
-  if (typeof console !== 'undefined' && console.warn) {
-    console.warn(
-      '[stream-connect-sdk-hook] This package is deprecated. New ' +
-        'integrations should embed the main `stream-connect-sdk` package ' +
-        'in a WebView (react-native-webview / WKWebView / Android ' +
-        'WebView) to get the polished 0.8 experience including ' +
-        'SSE-driven real-time validation, inline 2FA, fix-credentials, ' +
-        'and Patient Access API support. See ' +
-        'https://github.com/TPAStream/stream-connect-js-sdk/blob/master/sdk-hook/docs/README.md ' +
-        'for the WebView pattern. The existing hook API will keep ' +
-        'working for back-compat but is no longer receiving feature ' +
-        'updates.'
-    );
-  }
-};
+// NOTE: This file imports from ../../shared which the 0.8 web-SDK
+// rewrite deleted, so the hook's webpack build is broken from this
+// repo until/unless those helpers are restored or inlined. The
+// published `stream-connect-sdk-hook@0.6.2` tarball on npm was built
+// from an older revision that still had `assets/shared` and is
+// unaffected; existing integrations install fine and keep working.
+// We're soft-deprecating the package via the docs (see
+// `sdk-hook/docs/README.md` for the deprecation banner + recommended
+// WebView pattern) rather than republishing a new version, because
+// republishing here would require either restoring the deleted
+// `assets/shared` tree or inlining ~500 lines of legacy 0.7-era code
+// into `assets/sdk-hook/`, both of which work against the cleanup
+// intent of the 0.8 rewrite for a package we don't want to keep
+// iterating on. Tracking issue if we ever change our minds:
+// https://github.com/TPAStream/stream-connect-js-sdk/issues
+
 
 const steps = {
   step1: 'select-enroll-process',
@@ -53,7 +50,6 @@ export default class StreamConnect {
     realTimeVerification = true,
     isDemo = false
   }) {
-    _warnDeprecation();
     sdkAxiosMaker({
       apiToken: sdkToken || apiToken,
       connectAccessToken,

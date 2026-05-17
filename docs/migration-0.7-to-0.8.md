@@ -34,7 +34,7 @@ If you do nothing, the 0.8 SDK will run with your existing 0.7.x init object. Th
 
 ### 1. Drop the Bootstrap CSS link (optional)
 
-The 0.7.x quickstart told integrators to load Bootstrap 4.3 in the host page. The 0.8 SDK does not require it; you can remove the `<link rel="stylesheet" href=".../bootstrap.min.css">` tag. Host pages that already load Bootstrap for their own reasons can keep doing so without conflict, since SDK styles are scoped to `.tpa-sdk-root` and namespaced with the `tpa-` prefix, so the two stylesheets do not collide.
+The 0.7.x quickstart told integrators to load Bootstrap 4.3 in the host page. The 0.8 SDK does not require it; you can remove the `<link rel="stylesheet" href=".../bootstrap.min.css">` tag. Host pages that already load Bootstrap for their own reasons can keep doing so without conflict: SDK utility classes use the `tpa-` prefix so collisions with host CSS are by-construction unlikely, and the reset + theme variables are wrapped under `.tpa-sdk-root` so they only affect the SDK subtree. The utility classes themselves are global by construction (anywhere `.tpa-text-white` appears in the DOM, the rule applies), but the prefix is what prevents them from colliding with host CSS.
 
 ### 2. `userSchema` no longer drives form rendering
 
@@ -52,7 +52,7 @@ If you depended on UI-schema-driven extra fields in 0.7.x, please file an issue 
 The default is still `true`. What changed:
 - The transport is now SSE instead of a 5-second polling loop.
 - The validation UI is now **non-blocking**. The user can continue interacting with the SDK while validation streams in the corner panel, rather than being held on a loading screen for up to 200 seconds.
-- The credentials form will surface MFA prompts inline if the carrier challenges the submission.
+- MFA prompts render in the floating validation hero (a card at the top of the SDK root), NOT inside the credentials form. After submit, the user is returned to the picker or fix-credentials list and the hero shows the method picker / code entry inline. The credentials form itself stays out of the MFA flow.
 
 If you previously omitted `realTimeVerification` and relied on the blocking, polling-based behavior, you have two choices:
 - **Recommended**: leave the default `true`. The non-blocking UI is the same fidelity of feedback, just nicer.
@@ -62,7 +62,13 @@ If you previously omitted `realTimeVerification` and relied on the blocking, pol
 
 In 0.7.x this set the polling-loop timeout. In 0.8 the timeout is server-side (~10 minutes on the SSE stream) and `realtimeTimeout` is accepted but ignored. You can leave the option in place or remove it; either is fine.
 
-### 5. Rename `enableInterop` (no rush)
+### 5. `fixCredentials` is deprecated
+
+If your integration passes `fixCredentials: true` alongside a `connectAccessToken`, drop the `fixCredentials` line. The SDK now derives member-portal mode automatically from the presence of `connectAccessToken` (which was always a hard backend requirement for the fix-credentials endpoint, so the flag was redundant). The 0.8 SDK still accepts `fixCredentials` for back-compat and logs a one-time `console.warn` reminding you to remove it.
+
+If you were passing `fixCredentials: true` *without* a `connectAccessToken`, the behavior has changed: 0.7.x surfaced a configuration error on init ("You must have a connect access token enabled..."); 0.8 drops that check and falls through to the standard choose-payer enrollment flow. The backend `/sdk-api/fix-credentials` endpoint still requires the token, so member-portal mode itself is unreachable without it, but the SDK won't error at init anymore. If your integration was relying on that error to surface a misconfiguration, set up a server-side check that `connectAccessToken` is non-empty before passing the init payload to the SDK.
+
+### 6. Rename `enableInterop` (no rush)
 
 The legacy aliases keep working indefinitely; one-time console warning when set. Rename at your convenience:
 
@@ -71,7 +77,17 @@ The legacy aliases keep working indefinitely; one-time console warning when set.
 | `enableInterop` | `enablePatientAccessAPI` |
 | `enableInteropSinglePage` | `enablePatientAccessAPISinglePage` |
 
-### 6. Custom render props: data shapes unchanged
+### 7. `enablePatientAccessAPI` default flipped to `true`
+
+**Behavior change**, opt-out only. In 0.7.x, Patient Access API routing was off by default; integrators had to pass `enableInterop: true` (or `enablePatientAccessAPI: true` in 0.8 canonical) to make PAA-routed payers like Anthem, UHC Interop, Kaiser Interop, and Empire BCBS API take the OAuth-popup branch. Without the flag, those payers fell through to rendering the raw `interoperability.OnBoard` schema, which exposes `interoperability_refresh_token` as a user-visible text input — meaningless to a real user since the OAuth callback is what populates that field server-side.
+
+In 0.8 the default is `true`. If you weren't passing `enableInterop: true` / `enablePatientAccessAPI: true`, your PAA payers were almost certainly broken in 0.7.x (no user knows what to put in the refresh-token field) and start working in 0.8 with no action on your part.
+
+If you deliberately want the legacy fallthrough behavior — e.g. you're doing custom PAA orchestration and want the SDK out of the way — pass `enablePatientAccessAPI: false` explicitly. The legacy `enableInterop: false` alias also continues to honor the opt-out.
+
+`enablePatientAccessAPISinglePage` is unchanged at `false` by default. Single-page mode replaces the OAuth popup with a full host-page redirect; defaulting it on would silently lose host-page state for popup-flow customers, so customers explicitly opt in.
+
+### 8. Custom render props: data shapes unchanged
 
 If you use `renderChoosePayer={false}` / `renderPayerForm={false}` / `renderEndWidget={false}` and drive those steps from `doneChoosePayer` / `doneCreatedForm` / `doneEasyEnroll`, the data passed into your callbacks is unchanged.
 

@@ -47,8 +47,19 @@ appends a fresh `?accessToken=...` query parameter to the return
 URL. The 0.8 SDK reads it automatically on init and uses it for the
 rest of the session, overriding any stale `connectAccessToken` baked
 into the page. The token is stripped from the URL via
-`history.replaceState` so it can't leak via browser history or
-referrer headers. See [Client Usage > Redirect query
+`history.replaceState` so it doesn't end up in the browser history
+or address bar.
+
+Note: `replaceState` runs after the SDK script loads, so any
+resources or third-party scripts loaded by the host page *before*
+the SDK runs (analytics beacons, ad pixels, anything in the `<head>`
+that fires its own requests) can still see the original
+token-bearing URL in the Referer header. If your host page loads
+anything sensitive before the SDK, either move it after the SDK
+script tag or strip the `accessToken` query param server-side
+before serving the post-redirect page.
+
+See [Client Usage > Redirect query
 parameters](./client-usage.md#redirect-query-parameters-patient-access-api)
 for the full mechanics.
 

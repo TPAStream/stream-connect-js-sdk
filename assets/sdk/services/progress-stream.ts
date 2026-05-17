@@ -62,9 +62,24 @@ const stateFromTaskMeta = (
       typeof result === 'object' && result !== null
         ? (result as Record<string, unknown>)
         : undefined;
+    // Lift carrier-rejection messages and credentials_are_valid out
+    // of the nested `info` blob to the top level of the response so
+    // the validation reducer / hero can render them inline (e.g. a
+    // WAITING_FOR_TWO_FACTOR_CODE event after a wrong code carries a
+    // carrier-specific message that needs to surface above the code
+    // input). The full info is still passed through for components
+    // that read it (e.g. the method picker needs info.method_list).
+    const liftedMessage =
+      info && typeof info.message === 'string' ? info.message : undefined;
+    const liftedValid =
+      info && typeof info.credentials_are_valid === 'boolean'
+        ? info.credentials_are_valid
+        : undefined;
     return {
       state: status as ValidateCredsResponse['state'],
-      ...(info && { info })
+      ...(info && { info }),
+      ...(liftedMessage !== undefined && { message: liftedMessage }),
+      ...(liftedValid !== undefined && { credentials_are_valid: liftedValid })
     } as ValidateCredsResponse;
   }
 
@@ -117,6 +132,20 @@ export const subscribeToProgress = ({
     `${baseV3Url(baseURL)}/progress/${encodeURIComponent(taskId)}/stream` +
     `?token=${encodeURIComponent(taskToken)}`;
 
+  // Track whether we've observed a truly terminal event from the
+  // higher-level state vocabulary (SUCCESS / FAILURE /
+  // TWO_FACTOR_AUTH_COMPLETE / timeout). PENDING/STARTED/RETRY are
+  // progress states; if the stream closes cleanly after one of those
+  // without progressing further, ValidationStreamRunner needs to know
+  // so it can mark the validation pending_async instead of leaving
+  // the user stuck on "Connecting...".
+  const TERMINAL_STATES = new Set([
+    'SUCCESS',
+    'FAILURE',
+    'TWO_FACTOR_AUTH_COMPLETE'
+  ]);
+  let sawTerminalEvent = false;
+
   consumeSSE({
     url,
     // Token rides in the URL, not a header — keeps EventSource-like
@@ -127,6 +156,7 @@ export const subscribeToProgress = ({
     signal: controller.signal,
     onMessage: ({ event, data }) => {
       if (event === 'timeout') {
+        sawTerminalEvent = true;
         onTimeout?.();
         return;
       }
@@ -135,12 +165,16 @@ export const subscribeToProgress = ({
       try {
         const meta = JSON.parse(data) as Record<string, unknown>;
         const state = stateFromTaskMeta(meta);
-        if (state) onState(state);
+        if (state) {
+          onState(state);
+          if (TERMINAL_STATES.has(state.state)) sawTerminalEvent = true;
+        }
       } catch (err) {
         onError?.(err);
       }
     },
-    onError
+    onError,
+    shouldSuppressCloseError: () => sawTerminalEvent
   });
 
   return () => controller.abort();

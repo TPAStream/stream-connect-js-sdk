@@ -10,10 +10,13 @@ import type { StreamPayer, ValidateCredsResponse } from '../types';
 
 /**
  * In-flight credential validation tracking, decoupled from the wizard
- * step state. Multiple validations can run in parallel — one per
- * (PolicyHolder, taskId) pair. The orchestrator adds a validation
- * after each successful credential submit and the floating panel
- * + 2FA modal render directly off this context.
+ * step state. Multiple validations can run in parallel (one per
+ * (PolicyHolder, taskId) pair). The orchestrator adds a validation
+ * after each successful credential submit; the floating
+ * ActiveValidationsPanel + the inline ActiveValidationsHero (method
+ * picker + code entry in the hero card) render directly off this
+ * context. There is no modal — 2FA prompts render inline alongside
+ * the wizard.
  *
  * UX state vocabulary (mapped from the celery task-meta wire shape
  * by `applyStateUpdate`):
@@ -55,6 +58,13 @@ export interface ActiveValidation {
    * failed at the network layer so we can revert from submitting
    * back to the choice/entry state and surface the error inline. */
   submitError?: string | null;
+  /** True once the runner's post-SUCCESS policy-holder refresh has
+   * resolved (or the catch fallback has confirmed the wire-level
+   * `credentials_are_valid`). Used by the panel to gate auto-dismiss
+   * on `success` so a card whose `loginProblemIsValid()` later flips
+   * to false isn't whisked away as a clean success. Set by
+   * `markTerminalConfirmed` from `ValidationStreamRunner`. */
+  terminalConfirmed?: boolean;
   startedAt: number;
 }
 
@@ -72,6 +82,7 @@ type Action =
   | { type: 'mark_submitting'; taskId: string }
   | { type: 'mark_pending_async'; taskId: string }
   | { type: 'mark_submit_error'; taskId: string; message: string }
+  | { type: 'mark_terminal_confirmed'; taskId: string }
   | { type: 'remove'; taskId: string }
   | { type: 'reset' };
 
@@ -82,9 +93,16 @@ const stateFromWire = (
 ): { state: ValidationUxState; endMessage?: string | null } => {
   switch (data.state) {
     case 'WAITING_FOR_METHOD_CHOICE':
-      return { state: 'method_choice' };
+      // Carrier rejection messages (e.g. "method unavailable") can ride
+      // along on a method_choice event. Surface as endMessage so the
+      // hero renders it above the picker.
+      return { state: 'method_choice', endMessage: data.message };
     case 'WAITING_FOR_TWO_FACTOR_CODE':
-      return { state: 'awaiting_code' };
+      // After the user submits a wrong/expired code, the carrier sends
+      // us back to awaiting_code with a rejection message. Surfacing
+      // it as endMessage lets the hero render "wrong code, try again"
+      // inline above the code input.
+      return { state: 'awaiting_code', endMessage: data.message };
     case 'SUCCESS':
     case 'TWO_FACTOR_AUTH_COMPLETE': {
       // The worker can return SUCCESS for "crawl finished" even if the
@@ -127,7 +145,14 @@ const reducer = (state: State, action: Action): State => {
                   next.state === 'awaiting_code'
                     ? action.data
                     : v.twoFactorAuthData,
-                endMessage: next.endMessage ?? v.endMessage,
+                // Replace endMessage with whatever the new state says
+                // (which may be undefined). The `??` fallback would
+                // leak stale 2FA carrier errors across transitions:
+                // e.g. wrong-code msg saved on WAITING_FOR_TWO_FACTOR_CODE
+                // would persist through a subsequent PENDING and then a
+                // bare FAILURE would render the old retry msg as the
+                // terminal failure reason. Replace, don't preserve.
+                endMessage: next.endMessage ?? null,
                 // Any SSE-driven state transition clears a prior
                 // submitError — if the server advanced the validation
                 // the user-visible error from a stale submit no longer
@@ -153,7 +178,14 @@ const reducer = (state: State, action: Action): State => {
     case 'mark_pending_async':
       return {
         validations: state.validations.map((v) =>
-          v.id === action.taskId ? { ...v, state: 'pending_async' } : v
+          v.id === action.taskId
+            ? // Clear stale submitError on the transition. A method/code
+              // PUT failure followed by a stream timeout would otherwise
+              // leave the card showing "Couldn't reach the carrier..."
+              // while the hero header says "Still working on it" — the
+              // old retry-error no longer describes the current state.
+              { ...v, state: 'pending_async', submitError: null }
+            : v
         )
       };
     case 'mark_submit_error':
@@ -175,6 +207,12 @@ const reducer = (state: State, action: Action): State => {
           return { ...v, state: revertTo, submitError: action.message };
         })
       };
+    case 'mark_terminal_confirmed':
+      return {
+        validations: state.validations.map((v) =>
+          v.id === action.taskId ? { ...v, terminalConfirmed: true } : v
+        )
+      };
     case 'remove':
       return {
         validations: state.validations.filter((v) => v.id !== action.taskId)
@@ -193,6 +231,7 @@ interface ActiveValidationsContextValue {
   markSubmitting: (taskId: string) => void;
   markPendingAsync: (taskId: string) => void;
   markSubmitError: (taskId: string, message: string) => void;
+  markTerminalConfirmed: (taskId: string) => void;
   remove: (taskId: string) => void;
   reset: () => void;
 }
@@ -204,6 +243,7 @@ const ActiveValidationsContext = createContext<ActiveValidationsContextValue>({
   markSubmitting: () => {},
   markPendingAsync: () => {},
   markSubmitError: () => {},
+  markTerminalConfirmed: () => {},
   remove: () => {},
   reset: () => {}
 });
@@ -246,6 +286,10 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
     dispatch({ type: 'mark_submit_error', taskId, message });
   }, []);
 
+  const markTerminalConfirmed = useCallback((taskId: string) => {
+    dispatch({ type: 'mark_terminal_confirmed', taskId });
+  }, []);
+
   const remove = useCallback((taskId: string) => {
     dispatch({ type: 'remove', taskId });
   }, []);
@@ -260,6 +304,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       markSubmitting,
       markPendingAsync,
       markSubmitError,
+      markTerminalConfirmed,
       remove,
       reset
     }),
@@ -270,6 +315,7 @@ export const ActiveValidationsProvider = ({ children }: ProviderProps) => {
       markSubmitting,
       markPendingAsync,
       markSubmitError,
+      markTerminalConfirmed,
       remove,
       reset
     ]

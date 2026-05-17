@@ -1,12 +1,18 @@
 /**
  * Cross-origin SSE consumer.
  *
- * The browser's native EventSource doesn't support custom request
- * headers, so it can't carry the X-TPAStream-Token + X-Connect-Access-
- * Token chain that auths the SDK. We use fetch + ReadableStream
- * instead — same wire protocol (SSE event/data frames over a
- * text/event-stream response), full control over headers, plus we can
- * abort cleanly via AbortController on unmount.
+ * The browser's native EventSource has two limits we couldn't live
+ * with: it doesn't support custom request headers, and it doesn't
+ * expose an AbortController-style cancellation handle. We use
+ * fetch + ReadableStream instead, which gives us the same wire
+ * protocol (SSE event/data frames over a text/event-stream response)
+ * with the headers and abort semantics React effect cleanup needs.
+ *
+ * The current auth path for `subscribeToProgress` puts a short-lived
+ * task JWT in the `?token=` query string (audience `sdk:sse:progress`,
+ * minted per task), so the SDK runs SSE with no Authorization headers
+ * at all — but `consumeSSE` is still header-capable for future SSE
+ * consumers that need them.
  *
  * The frame parser handles:
  *  - `event: <name>\n` (single-line event type)
@@ -27,6 +33,14 @@ export interface SSEConsumerArgs {
   signal?: AbortSignal;
   onMessage: (frame: SSEFrame) => void;
   onError?: (err: unknown) => void;
+  /** Called when the stream closes cleanly via reader EOF (server /
+   * proxy / network closed without the caller calling abort()).
+   * Returns true if the consumer should treat the close as
+   * "expected" (e.g. saw a SUCCESS/FAILURE/timeout). Returns false
+   * to surface the close as an error via onError. Defaults to false
+   * so a clean close without a higher-level terminal signal is
+   * treated as a problem. */
+  shouldSuppressCloseError?: () => boolean;
 }
 
 export const consumeSSE = async ({
@@ -34,7 +48,8 @@ export const consumeSSE = async ({
   headers,
   signal,
   onMessage,
-  onError
+  onError,
+  shouldSuppressCloseError
 }: SSEConsumerArgs): Promise<void> => {
   let response: Response;
   try {
@@ -96,7 +111,7 @@ export const consumeSSE = async ({
           continue;
         }
         if (line.startsWith(':')) {
-          // SSE comment line — used for keepalives by some servers.
+          // SSE comment line, used for keepalives by some servers.
           continue;
         }
         const colonIdx = line.indexOf(':');
@@ -109,8 +124,16 @@ export const consumeSSE = async ({
         } else if (field === 'data') {
           data = data ? `${data}\n${value}` : value;
         }
-        // 'id' and 'retry' fields are ignored — we don't reconnect.
+        // 'id' and 'retry' fields are ignored, we don't reconnect.
       }
+    }
+    // Clean EOF. The consumer (subscribeToProgress) knows which
+    // higher-level state names count as terminal; ask it whether the
+    // close was expected. If not, surface as a synthetic error so
+    // ValidationStreamRunner.onError moves the validation into
+    // pending_async instead of leaving it stuck on 'Connecting...'.
+    if (!shouldSuppressCloseError?.()) {
+      onError?.(new Error('SSE stream closed without a terminal state event'));
     }
   } catch (err) {
     if ((err as { name?: string })?.name === 'AbortError') return;

@@ -23,7 +23,7 @@ hero re-renders with the right copy and the right input control:
 | `submitting` | "Working on it…" | Wait |
 | `success` | "Connected!" (green) | Done; auto-dismisses after a short hold |
 | `failure` | "Couldn't connect" (red) with the carrier message | Reconnect via the tile |
-| `pending_async` | "Still working on it" | Comes back later; SDK is no longer streaming live |
+| `pending_async` | "Still working on it" | Come back later; SDK is no longer streaming live |
 
 The hero is rendered by `ActiveValidationsHero` and lives alongside
 the wizard step state, so the user can keep navigating
@@ -37,22 +37,30 @@ After cred submit, the backend dispatches a Celery task to validate
 the credentials against the carrier. If the carrier challenges with
 MFA:
 
-1. The task emits a `TWO_FACTOR_AUTH` state event over the SSE stream
-   with a `method_list` payload (which delivery methods the carrier
-   offers for that account).
+1. The task emits a `WAITING_FOR_METHOD_CHOICE` state event over the
+   SSE stream with a `method_list` payload (which delivery methods
+   the carrier offers for that account).
 2. The SDK reads the event, sets the validation to `method_choice`,
    and renders the method picker.
 3. The user picks a method. The SDK posts to
    `PUT /sdk-api/validate-credentials/<phid>/<task_id>` with
    `{ method: 'sms' }` (or whatever the carrier called it).
-4. The carrier sends the code; the task transitions to
-   `TWO_FACTOR_AUTH_AWAIT_CODE`.
+4. The task moves to `TRIGGERING_TWO_FACTOR_AUTH` while it asks the
+   carrier to send the code, then to `WAITING_FOR_TWO_FACTOR_CODE`
+   once the carrier acknowledges.
 5. The SDK sets the validation to `awaiting_code` and renders the
    code-entry input.
 6. The user types the code. Same PUT endpoint with `{ code: '123456' }`.
-7. On success the carrier flips the task to
-   `TWO_FACTOR_AUTH_COMPLETE`; the SDK refreshes the policy holder to
-   confirm credentials are valid and shows the success hero.
+   The task transitions to `ENTERING_CODE` while it submits the code
+   to the carrier.
+7. On success the task lands on `TWO_FACTOR_AUTH_COMPLETE`; the SDK
+   refreshes the policy holder to confirm credentials are valid and
+   shows the success hero.
+
+The full wire-state set the SDK consumes is in
+[`assets/sdk/services/progress-stream.ts`](../assets/sdk/services/progress-stream.ts)
+(`TWO_FACTOR_STATES`); any state not in that set falls through to the
+generic PENDING / STARTED / RETRY / SUCCESS / FAILURE mapping.
 
 The SSE stream carries every transition in real time. The 5-second
 polling cadence the 0.7.x SDK used is gone.
@@ -90,16 +98,23 @@ next page load.
 
 ### Stream disconnects mid-2FA
 
-A network blip or AbortController.abort() during the validation lands
-the validation in `pending_async` the same way the timeout does. The
-backend task continues; the SDK just can't observe it live anymore.
+A network blip, server-side close, or proxy drop during the validation
+lands the validation in `pending_async` the same way the timeout does.
+The backend task continues; the SDK just can't observe it live anymore.
+
+`AbortController.abort()` is intentionally NOT treated as a disconnect:
+the SDK aborts on unmount and on terminal-state cleanup, and surfacing
+those as user-visible errors would flip cleanly-finished validations
+into "Still working on it." `consumeSSE` filters `AbortError` from both
+the initial-fetch and reader-loop catches.
 
 ## Multiple parallel 2FA flows
 
 Multiple credentials can be validating at the same time, each in
-their own MFA stage. The hero stacks them top-to-bottom, with the
-most-recently-actioned validation pinned to the top. Each owns its
-own SSE subscription and its own method/code-entry state.
+their own MFA stage. The hero stacks them top-to-bottom in insertion
+order (the order the user submitted them). Each owns its own SSE
+subscription and its own method/code-entry state, so action on one
+card doesn't disrupt the others.
 
 ## Implementation pointers
 

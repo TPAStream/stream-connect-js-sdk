@@ -5,11 +5,17 @@ import { BackButton } from '../ui/BackButton';
 import { Combobox, type ComboboxItem } from '../ui/Combobox';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
-import { ActiveValidationsHero } from './ActiveValidationsHero';
 import { PayerImages } from './PayerImages';
 
 // Demo-mode payer subset matches the legacy [18, 16, 171] hardcode.
 const DEMO_PAYER_IDS = [18, 16, 171];
+
+// Above this carrier count, auto-show the search Combobox even when
+// the server-side `show_all_payers_in_easy_enroll` flag is off. Big
+// employer rosters (50+ carriers is real) become an unscrollable tile
+// wall without a search; this gives them one regardless of the
+// employer's configuration.
+const AUTO_SEARCH_THRESHOLD = 10;
 
 interface ChoosePayerProps {
   streamPayers: StreamPayer[];
@@ -67,6 +73,14 @@ export const ChoosePayer = (props: ChoosePayerProps) => {
         )
       : streamPayers;
 
+  // Show the search Combobox when the server-side flag opts us into
+  // dropdown mode, when we're in demo, OR (new in 0.8) when the
+  // payer list is larger than AUTO_SEARCH_THRESHOLD even without the
+  // server-side flag. The grid logic above is unchanged; this just
+  // surfaces the search input over whichever subset we're rendering.
+  const showSearch =
+    isDemo || !!dropDown || streamPayers.length > AUTO_SEARCH_THRESHOLD;
+
   const { validations } = useActiveValidations();
   const hasValidations = validations.length > 0;
   const heading = hasValidations
@@ -81,7 +95,9 @@ export const ChoosePayer = (props: ChoosePayerProps) => {
       {returnSelectEnrollProcess && (
         <BackButton onClick={returnSelectEnrollProcess as () => void} />
       )}
-      <ActiveValidationsHero />
+      {/* ActiveValidationsHero moved to the SDK root mount so it's
+          actionable on every step, not just here + FixCredentials.
+          See SDK.tsx's render block. */}
       <Stack gap="xs">
         <Title order={2}>{heading}</Title>
         <Text size="sm" color="muted">
@@ -89,7 +105,7 @@ export const ChoosePayer = (props: ChoosePayerProps) => {
         </Text>
       </Stack>
 
-      {(isDemo || dropDown) && (
+      {showSearch && (
         <Combobox
           items={comboItems}
           value={selectedSearch}
@@ -99,7 +115,7 @@ export const ChoosePayer = (props: ChoosePayerProps) => {
         />
       )}
 
-      {(isDemo || dropDown) && gridPayers.length > 0 && (
+      {showSearch && gridPayers.length > 0 && (
         <Text size="sm" color="muted">
           Or pick one below:
         </Text>
@@ -114,8 +130,7 @@ export const ChoosePayer = (props: ChoosePayerProps) => {
           }
         />
       ) : (
-        !dropDown &&
-        !isDemo && (
+        !showSearch && (
           <Text color="muted">
             No carriers available. Please contact your administrator.
           </Text>

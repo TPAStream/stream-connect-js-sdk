@@ -51,6 +51,17 @@
   },
   "homepage": "https://github.com/TPAStream/stream-connect-js-sdk#readme",
   "main": "sdk.js",
+  "exports": {
+    ".": "./sdk.js",
+    "./headless": "./sdk-headless.js"
+  },
+  "files": [
+    "sdk.js",
+    "sdk-headless.js",
+    "README.md",
+    "CHANGELOG.md",
+    "docs/"
+  ],
   "keywords": [
     "sdk"
   ],

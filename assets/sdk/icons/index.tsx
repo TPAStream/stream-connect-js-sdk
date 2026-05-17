@@ -19,14 +19,20 @@ const baseProps = {
   'aria-hidden': true
 } as const;
 
-export const SpinnerIcon = (props: IconProps) => (
+export const SpinnerIcon = ({ className, ...props }: IconProps) => (
+  // `tpa-animate-spin` is load-bearing for this icon (without it the
+  // spinner is a static circle). Destructure className BEFORE the
+  // spread + recompose, otherwise `{...props}` reapplies the caller's
+  // className over the composed one (including the case where the
+  // caller passes an explicit undefined) and the animation utility is
+  // lost.
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     fill="none"
     aria-hidden="true"
-    className={`tpa-animate-spin ${props.className || ''}`}
     {...props}
+    className={`tpa-animate-spin ${className || ''}`}
   >
     <circle
       cx="12"

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   type ActiveValidation,
   useActiveValidations
@@ -13,14 +13,15 @@ import { Text, Title } from '../ui/Title';
 
 /**
  * In-page hero banner that surfaces in-flight validations as the
- * dominant content when the user lands on FixCredentials or ChoosePayer
- * after submitting credentials. Mirrors the corner notification but
- * with full prominence — the corner panel is for quick-scan visibility
- * once the user starts navigating elsewhere; this hero is for the
- * "I just submitted, what now?" moment.
+ * dominant content the user sees after submitting credentials. Mounted
+ * once at the SDK root so the prompts remain actionable on every step
+ * (choose-payer, fix-credentials, credentials form, end widget). The
+ * corner ActiveValidationsPanel is for quick-scan visibility once the
+ * user navigates elsewhere; this hero is for the "I just submitted,
+ * what now?" moment, no matter which step they're on.
  *
- * Renders nothing when there are no active validations, so the
- * destination pages keep their original layout for first-time users.
+ * Renders nothing when there are no active validations, so every step
+ * keeps its original layout for first-time users.
  */
 
 const stateCopy = (
@@ -93,29 +94,31 @@ const toneClasses: Record<HeroTone, { card: string; icon: string }> = {
   }
 };
 
-const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
+const InlineMethodPicker = ({
+  validation
+}: { validation: ActiveValidation }) => {
   const { markSubmitting, markSubmitError } = useActiveValidations();
   const [picked, setPicked] = useState<ComboboxItem | null>(null);
-  const methods = v.twoFactorAuthData?.info?.method_list || [];
+  const methods = validation.twoFactorAuthData?.info?.method_list || [];
   const items: ComboboxItem[] = methods.map((m) => ({ value: m, label: m }));
 
   const submit = (chosen: ComboboxItem | null) => {
     if (!chosen) return;
     setPicked(chosen);
-    markSubmitting(v.taskId);
+    markSubmitting(validation.taskId);
     // On success the next SSE event advances the validation state.
     // On failure we revert from submitting back to method_choice and
     // surface the error inline — otherwise the card would say
     // "Working on it…" forever with no way for the user to retry.
     putTask({
-      taskId: v.taskId,
-      policyHolderId: v.policyHolderId,
-      params: { user_email: v.email, method: chosen.value }
+      taskId: validation.taskId,
+      policyHolderId: validation.policyHolderId,
+      params: { user_email: validation.email, method: chosen.value }
     }).catch((err: unknown) => {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || "Couldn't reach the carrier. Please try again.";
-      markSubmitError(v.taskId, message);
+      markSubmitError(validation.taskId, message);
       setPicked(null);
     });
   };
@@ -131,37 +134,65 @@ const InlineMethodPicker = ({ v }: { v: ActiveValidation }) => {
   );
 };
 
-const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
+const InlineCodeEntry = ({ validation }: { validation: ActiveValidation }) => {
   const { markSubmitting, markSubmitError } = useActiveValidations();
   const [code, setCode] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Focus the code input on mount, but only if the user has nothing
+  // else focused. The hero is SDK-root-mounted and can transition into
+  // awaiting_code while the user is typing in an unrelated form on the
+  // host page (or even in another SDK form, like the EnterCredentials
+  // step on a different in-flight validation). A bare `autoFocus`
+  // attribute steals that focus unconditionally — verified in 0.7.x.
+  // Checking document.activeElement gives us the common-case ergonomic
+  // (user just hit submit on the method picker, nothing else is
+  // focused, the code input gets focus naturally) without the
+  // focus-stealing footgun.
+  useEffect(() => {
+    if (!inputRef.current) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.tagName !== 'HTML') {
+      return;
+    }
+    inputRef.current.focus();
+  }, []);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
-    markSubmitting(v.taskId);
+    markSubmitting(validation.taskId);
     putTask({
-      taskId: v.taskId,
-      policyHolderId: v.policyHolderId,
-      params: { user_email: v.email, code: code.trim() }
+      taskId: validation.taskId,
+      policyHolderId: validation.policyHolderId,
+      params: { user_email: validation.email, code: code.trim() }
     }).catch((err: unknown) => {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || "Couldn't reach the carrier. Please try again.";
-      markSubmitError(v.taskId, message);
+      markSubmitError(validation.taskId, message);
     });
   };
 
   return (
-    <form onSubmit={submit} className="tpa-flex tpa-gap-2 tpa-items-end">
-      <div className="tpa-flex-1">
+    <form
+      onSubmit={submit}
+      // flex-wrap so the Continue button drops below the input on
+      // narrow widths (the SDK is embedded as a widget; a host page
+      // sidebar at 280-320px would otherwise force the button to
+      // squash to a single character per line). At >sm breakpoints
+      // the row stays inline.
+      className="tpa-flex tpa-flex-wrap tpa-gap-2 tpa-items-end"
+    >
+      <div className="tpa-flex-1 tpa-min-w-[160px]">
         <TextInput
+          ref={inputRef}
           label="Verification code"
           placeholder="123456"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           inputMode="numeric"
           autoComplete="one-time-code"
-          autoFocus
         />
       </div>
       <Button type="submit" disabled={!code.trim()} size="lg">
@@ -171,8 +202,10 @@ const InlineCodeEntry = ({ v }: { v: ActiveValidation }) => {
   );
 };
 
-const ValidationHeroCard = ({ v }: { v: ActiveValidation }) => {
-  const copy = stateCopy(v.state);
+const ValidationHeroCard = ({
+  validation
+}: { validation: ActiveValidation }) => {
+  const copy = stateCopy(validation.state);
   const tone = toneClasses[copy.tone];
 
   return (
@@ -180,57 +213,70 @@ const ValidationHeroCard = ({ v }: { v: ActiveValidation }) => {
       className={`tpa-rounded-lg tpa-border-2 tpa-shadow-card tpa-p-5 ${tone.card}`}
     >
       <div className="tpa-flex tpa-items-center tpa-gap-4">
-        {v.payer.logo_url && (
+        {validation.payer.logo_url && (
+          // Decorative: the payer name is rendered as text immediately
+          // below this image. An informative alt would announce the
+          // carrier name twice to screen readers. Same shape as the
+          // floating ActiveValidationsPanel.
           <img
-            src={v.payer.logo_url}
-            alt={v.payer.name}
+            src={validation.payer.logo_url}
+            alt=""
             className="tpa-max-h-10 tpa-max-w-[120px] tpa-object-contain tpa-flex-shrink-0"
           />
         )}
         <div className="tpa-flex-1 tpa-min-w-0">
           <Text size="xs" color="muted">
-            {v.payer.name}
+            {validation.payer.name}
           </Text>
           <div className="tpa-flex tpa-items-center tpa-gap-2 tpa-mt-0.5">
             <Title order={3}>{copy.headline}</Title>
-            {(v.state === 'pending' || v.state === 'submitting') && (
+            {(validation.state === 'pending' ||
+              validation.state === 'submitting') && (
               <SpinnerIcon className={`tpa-w-5 tpa-h-5 ${tone.icon}`} />
             )}
-            {v.state === 'success' && (
+            {validation.state === 'success' && (
               <CheckCircleIcon className={`tpa-w-6 tpa-h-6 ${tone.icon}`} />
             )}
           </div>
           <Text size="sm" color="muted" className="tpa-mt-1">
             {copy.sub}
           </Text>
-          {v.endMessage && v.state === 'failure' && (
+          {validation.endMessage &&
+            (validation.state === 'failure' ||
+              validation.state === 'method_choice' ||
+              validation.state === 'awaiting_code') && (
+              // failure shows it as the terminal error reason; the 2FA
+              // states show it as a carrier-rejection retry hint above
+              // the method picker / code input (e.g. "Wrong code, try
+              // again"). Keeping the same red styling because both are
+              // "something failed and you should react" copy.
+              <Text
+                size="sm"
+                className="tpa-mt-2 tpa-text-red-700 tpa-font-medium"
+              >
+                {validation.endMessage}
+              </Text>
+            )}
+          {validation.submitError && (
             <Text
               size="sm"
               className="tpa-mt-2 tpa-text-red-700 tpa-font-medium"
             >
-              {v.endMessage}
-            </Text>
-          )}
-          {v.submitError && (
-            <Text
-              size="sm"
-              className="tpa-mt-2 tpa-text-red-700 tpa-font-medium"
-            >
-              {v.submitError}
+              {validation.submitError}
             </Text>
           )}
         </div>
       </div>
 
       {/* Inline interaction: keep all action in-place, no modal hop. */}
-      {v.state === 'method_choice' && (
+      {validation.state === 'method_choice' && (
         <div className="tpa-mt-4">
-          <InlineMethodPicker v={v} />
+          <InlineMethodPicker validation={validation} />
         </div>
       )}
-      {v.state === 'awaiting_code' && (
+      {validation.state === 'awaiting_code' && (
         <div className="tpa-mt-4">
-          <InlineCodeEntry v={v} />
+          <InlineCodeEntry validation={validation} />
         </div>
       )}
     </div>
@@ -242,8 +288,8 @@ export const ActiveValidationsHero = () => {
   if (validations.length === 0) return null;
   return (
     <Stack gap="sm">
-      {validations.map((v) => (
-        <ValidationHeroCard key={v.id} v={v} />
+      {validations.map((validation) => (
+        <ValidationHeroCard key={validation.id} validation={validation} />
       ))}
     </Stack>
   );

@@ -17,7 +17,7 @@ StreamConnect({
 });
 ```
 
-Accepts a 6-digit hex color string (`#RRGGBB`) or a pre-formatted RGB triplet (`"37 99 235"`). The 3-digit shorthand `#RGB` is not supported. The SDK derives a small shade scale (50 / 100 / 500 / 600 / 700) from the value and binds it to CSS variables under `.tpa-sdk-root`. Two SDK instances on the same page with different `primaryColor` values render independently; the overrides are scoped, not global.
+Accepts a 6-digit hex color string (`#RRGGBB`) or a pre-formatted RGB triplet (`"37 99 235"`). The 3-digit shorthand `#RGB` is not supported. The SDK derives a small shade scale (50 / 100 / 200 / 300 / 500 / 600 / 700 / 800) from the value and binds it to CSS variables under `.tpa-sdk-root`. Two SDK instances on the same page with different `primaryColor` values render independently; the overrides are scoped, not global.
 
 ### What it recolors
 

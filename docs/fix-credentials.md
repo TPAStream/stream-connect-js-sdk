@@ -2,10 +2,9 @@
 
 The fix-credentials view lets a returning user see and act on every
 carrier they've connected: reconnect a broken login, finish a 2FA
-challenge, or add a new carrier. It is opt-in via the `fixCredentials`
-init option and requires
-[Connect Access Token](./connect-access-token.md) to be enabled on your
-SDK instance.
+challenge, or add a new carrier. The SDK enters this mode
+automatically when a [Connect Access Token](./connect-access-token.md)
+is supplied at init; no separate flag is required.
 
 ## Init options
 
@@ -14,16 +13,20 @@ StreamConnect({
   el: '#react-hook',
   apiToken: 'your-sdk-token',
   connectAccessToken: '<minted server-side, see connect-access-token.md>',
-  fixCredentials: true,
   // ... rest of init
 });
 ```
 
-* `fixCredentials` (boolean) - enables the view. Without it the SDK
-  starts on the standard choose-payer flow.
-* `connectAccessToken` (string) - required when `fixCredentials` is
-  true. See [Connect Access Token](./connect-access-token.md) for how
-  it's minted and rotated.
+* `connectAccessToken` (string) - presence of this token is the
+  signal for member-portal mode. See
+  [Connect Access Token](./connect-access-token.md) for how it's
+  minted and rotated.
+
+> **Deprecated:** a `fixCredentials: true` init option used to opt
+> into this view. It is no longer needed in 0.8 and is ignored
+> (passing it logs a one-time console deprecation warning); behavior
+> is now driven entirely by `connectAccessToken` presence, which was
+> already a hard requirement.
 
 ## What the user sees
 
@@ -36,19 +39,37 @@ connected. Each carrier renders as a tile with:
 
 ### Status badges
 
-| Badge | When it fires |
-|---|---|
-| **Connected** | Login is valid AND the last successful crawl is recent. Healthy state. |
-| **Action needed** | Carrier flagged a transient issue (security question, MFA prompt waiting, etc.); the user can re-enter info to clear it. |
-| **Reconnect** | Login is genuinely broken (wrong password, locked account, expired registration). Clicking the tile takes the user back through the credentials form. |
-| **Validating now** | A validation task is in flight against this PH. The tile pulses; the floating hero (top of the page) shows live progress. |
+Each tile shows a status badge driven by the PH's `login_problem` and
+the recency of the last successful crawl. The label space is two
+coarse fallbacks plus a per-problem set:
 
-The label rendering is in
+| Badge text | When it fires |
+|---|---|
+| **Connected** | Severity is `ok`. That covers two cases: (a) `login_problem` is null, regardless of last-sync recency, and (b) `login_problem` is a warning-class value but a successful sync landed in the last 7 days, which downgrades the warning visually. See `severityFor` for the exact rule. |
+| **Validating now** | A validation task is in flight against this PH. The tile pulses; the floating hero (top of the page) shows live progress. |
+| **Action needed** | Severity is `warning` or `critical` but `login_problem` is null (we know something needs attention but the carrier didn't tell us what). |
+| *Per-problem text* | Severity is `warning` or `critical` and `login_problem` is set. The badge uses the human label from `LOGIN_PROBLEM_LABELS` (e.g. `Invalid password`, `Locked account`, `Needs 2FA`, `Security question`) so the user knows what to fix before clicking. |
+
+Severity classes (canonical sets in
+[`assets/sdk/types.ts`](../assets/sdk/types.ts) `CRITICAL_LOGIN_PROBLEMS`
+and `WARNING_LOGIN_PROBLEMS`):
+
+- **`ok`**: no `login_problem`, OR a warning-class problem with a
+  successful sync in the last 7 days (the recent claim flow downgrades
+  the warning visually).
+- **`warning`**: `login_problem` in `{incomplete, needs_two_factor,
+  sec_question, wrong_secondary, mfa_carrier, migrating}`. The carrier
+  is reachable, the user just has an outstanding action item.
+- **`critical`**: `login_problem` in `{invalid, invalid_username_format,
+  locked, broken, invalid_interop_token}`. The carrier is unreachable
+  until the user reconnects.
+
+The label and severity logic live in
 [`assets/sdk/components/PayerImages.tsx`](../assets/sdk/components/PayerImages.tsx)
-(`labelFor` / `severityFor`). Severity maps to badge color via the
-`tpa-` theme tokens, so a customer-supplied
-[`theme.primaryColor`](./theme.md) doesn't recolor the semantic status
-states.
+(`labelFor` / `severityFor` / `LOGIN_PROBLEM_LABELS`). Severity maps
+to badge color via the `tpa-` theme tokens, so a customer-supplied
+[`theme.primaryColor`](./theme.md) doesn't recolor the semantic
+status states.
 
 ### Sort order
 
@@ -93,16 +114,22 @@ validations can run in parallel and the user can keep navigating.
 
 ## Adding a new carrier from fix-credentials
 
-Users with `fixCredentials: true` see an "Add a new carrier" entry
+Users in member-portal mode see an "Add a new carrier" entry
 that drops them into the standard choose-payer flow (step 3). Submit
-returns them to the fix-credentials list, not the choose-payer
-picker, so the just-submitted carrier shows up immediately in
-"Recently added".
+returns them to the choose-payer picker (step 3), NOT the
+fix-credentials list, so they can chain another "Add a new carrier"
+without an extra back-button trip. The freshly-added carrier shows up
+in the picker's "already connected" markers via the user-refresh that
+follows the submit.
 
-(Implementation note: the return-step logic uses `state.policyHolderId`
-to distinguish "reconnect existing" from "add new" - see
-[SDK.tsx](../assets/sdk/components/SDK.tsx) `returnStep` near the
-post-validation refresh.)
+To get back to the fix-credentials list itself the user uses the back
+button or navigates back from choose-payer.
+
+(Implementation note: the return-step logic at
+[SDK.tsx](../assets/sdk/components/SDK.tsx) `returnStep` uses
+`state.policyHolderId` to distinguish "reconnect existing" (PH set →
+return to step 2, the fix-credentials list) from "add new" (PH null
+→ return to step 3, the picker).)
 
 ## Hooks for custom rendering
 
@@ -119,6 +146,6 @@ post-validation refresh.)
 * [Theme](./theme.md) for branding the SDK shell (the status badges
   use semantic colors that aren't affected by `theme.primaryColor`)
 * [Connect Access Token](./connect-access-token.md) for the security
-  setup `fixCredentials` requires
+  setup member-portal mode requires
 * [SDK Flow](./sdk-flow.md) for the broader step machine the
   fix-credentials view plugs into

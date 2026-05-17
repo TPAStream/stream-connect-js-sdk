@@ -70,8 +70,39 @@ release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
   `console.warn`.
 * `enableInteropSinglePage` deprecated in favor of
   `enablePatientAccessAPISinglePage`. Same indefinite-support rule.
+* **Default change**: `enablePatientAccessAPI` now defaults to `true`
+  (was implicitly `false` in 0.7.x). PAA-routed payers (those with
+  `supports_interoperability_apis: true` — Anthem, UHC Interop, Kaiser
+  Interop, Empire BCBS API, etc.) take the OAuth-popup branch
+  automatically; the old fallthrough rendered `interoperability.OnBoard`
+  with `interoperability_refresh_token` as a user-visible text input,
+  which no real user could fill (the OAuth callback populates that
+  field server-side). Customers who explicitly pass
+  `enablePatientAccessAPI: false` (or `enableInterop: false`) keep
+  the legacy behavior.
+* `enablePatientAccessAPISinglePage` remains default `false`. Turning
+  it on changes the OAuth flow from popup to full host-page redirect
+  and would silently lose host-page state for popup-flow customers, so
+  it stays opt-in.
+
+### Headless bundle (new)
+
+* `stream-connect-sdk/headless` subpath export ships the same SDK
+  without the bundled Tailwind stylesheet (~27 KiB smaller). For
+  customers who drive every step themselves via the renderXxx
+  callbacks and don't want our utility-class CSS in their host page.
+  Same StreamConnect function, same auth, same SSE/2FA pipeline; the
+  only difference is whether `tailwind.css` is imported at module
+  load. See [docs/headless.md](./docs/headless.md).
 * `realtimeTimeout` and `maxRetries` are accepted but `@deprecated`
   no-ops (both were knobs for the deleted polling loop).
+* `fixCredentials` is accepted but `@deprecated` and ignored.
+  Member-portal mode is now derived automatically from the presence
+  of `connectAccessToken` (which was already a hard backend
+  requirement for the fix-credentials endpoint, so token presence
+  was always the de-facto gate). Passing `fixCredentials` logs a
+  one-time `console.warn`; integrators should drop it from their
+  init() call.
 * `userSchema` is still accepted but no longer drives form rendering.
   Customer-supplied keys are forwarded into the credential-submit
   payload as extra fields; a console warning fires once per init if

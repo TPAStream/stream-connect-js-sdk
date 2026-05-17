@@ -59,6 +59,7 @@ const propertyToZod = (
   isRequired: boolean
 ): ZodTypeAny => {
   let schema: ZodTypeAny;
+  let isNumericCoerce = false;
   if (property?.enum && Array.isArray(property.enum)) {
     schema = z.string();
   } else {
@@ -68,15 +69,39 @@ const propertyToZod = (
         break;
       case 'integer':
       case 'number':
+        // Pre-validate the raw input string before coercion. An empty
+        // input field arrives as "" which z.coerce.number() turns into
+        // 0, bypassing the isRequired check below. Reject empties up
+        // front (and surface the same "Required" message the string
+        // branch uses) so a blank required numeric field can't slip
+        // through with a 0 value.
         schema = z.coerce.number();
+        isNumericCoerce = true;
         break;
       default:
         schema = z.string();
     }
   }
-  if (!isRequired) schema = schema.optional();
-  if (isRequired && schema instanceof z.ZodString) {
+  if (!isRequired) {
+    if (isNumericCoerce) {
+      // Optional numeric: an untouched HTML input arrives as "" which
+      // z.coerce.number() turns into 0. Without the preprocess, the
+      // submission would include a literal 0 for a field the user
+      // never touched. Treat empty/whitespace as "not provided" by
+      // mapping to undefined before piping through the coerce.
+      schema = z.preprocess(
+        (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+        z.coerce.number().optional()
+      );
+    } else {
+      schema = schema.optional();
+    }
+  } else if (schema instanceof z.ZodString) {
     schema = schema.min(1, 'Required');
+  } else if (isNumericCoerce) {
+    // Required numeric: layer a raw-string preflight so empty inputs
+    // fail with 'Required' instead of being silently coerced to 0.
+    schema = z.string().min(1, 'Required').pipe(z.coerce.number());
   }
   return schema;
 };
@@ -203,9 +228,15 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     donePopUp
   } = props;
 
-  const usePAA = enablePatientAccessAPI ?? enableInterop;
   const usePAASingle =
     enablePatientAccessAPISinglePage ?? enableInteropSinglePage;
+  // PAA is enabled if EITHER the base flag is truthy OR the single-page
+  // flag is truthy. Plain truthiness OR (not `??`) here is intentional:
+  // a `??` chain short-circuits on `enablePatientAccessAPI: false` and
+  // never checks single-page, so passing `false` for the base flag
+  // would block single-page from enabling PAA. The docs say single-page
+  // can be passed instead of base, so it should always win when truthy.
+  const usePAA = !!(enablePatientAccessAPI ?? enableInterop) || !!usePAASingle;
 
   // One-time warning: rjsf-shaped UI overrides won't render in 0.8.
   // Plain key/value pairs still fold into the submission payload.
@@ -254,13 +285,20 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
   });
 
   useEffect(() => {
-    if (!streamPayer || !streamPayer.onboard_form) return;
+    if (!streamPayer) return;
     // Match the legacy 0.7.x doneCreatedForm/doneStep4 payload shape
     // that custom render-prop integrators read from. Even when the
     // built-in form renders (renderPayerForm: true), customers wire
     // this callback for analytics, styling hooks, or to read the
     // schema. Sending only { streamPayer } would silently drop the
     // legacy contract.
+    //
+    // Fire for PAA carriers too: they don't have an `onboard_form`
+    // (auth happens via redirect, not an inline form) but the SDK
+    // still renders the PAA consent form below, and existing
+    // integrations hooking doneCreatedForm for lifecycle tracking
+    // should be notified for those carriers as well. formJsonSchema
+    // is undefined in the PAA case.
     props.doneStep4?.({
       streamPayer,
       formJsonSchema: streamPayer.onboard_form,
@@ -278,10 +316,10 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
   // onboard_form (there's no inline credentials form to render). Don't
   // short-circuit them to the "carrier unavailable" alert; the
   // InteroperabilityPayerForm branch below handles them.
+  // Reuse the same usePAA derivation as above: either the base flag,
+  // its legacy alias, or the single-page variant counts as "PAA on".
   const wantsPAARedirect =
-    !!streamPayer &&
-    !!(enablePatientAccessAPI ?? enableInterop) &&
-    !!streamPayer.supports_interoperability_apis;
+    !!streamPayer && !!usePAA && !!streamPayer.supports_interoperability_apis;
   if (!streamPayer || (!streamPayer.onboard_form && !wantsPAARedirect)) {
     return (
       <Card>
@@ -327,9 +365,13 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
       )}
 
       {errorMessage && (
-        <Alert variant="danger" title="Couldn't connect">
-          {errorMessage}
-        </Alert>
+        // Title omitted on purpose. The hardcoded "Couldn't connect"
+        // string fit network failures but misled for account-conflict
+        // errors (e.g. "this sign-in is already linked"); the backend's
+        // message is descriptive enough on its own. If we add a title
+        // later it should be derived from the error class on the wire,
+        // not pinned in the SDK.
+        <Alert variant="danger">{errorMessage}</Alert>
       )}
 
       {streamPolicyHolder?.login_correction_message && (
@@ -462,6 +504,24 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                     );
                   })}
 
+                {/*
+                  Keyboard-accessible Terms-of-Use trigger. The inline
+                  link inside the checkbox label below is tabIndex={-1}
+                  to keep the typed-field → checkbox → checkbox → submit
+                  flow smooth, but keyboard-only users still need a way
+                  to OPEN the terms before consenting. This dedicated
+                  button sits between the credential fields and the
+                  consent checkbox so it lands naturally in the tab
+                  order, and serves the same `props.toggleTermsOfUse`.
+                */}
+                <button
+                  type="button"
+                  onClick={() => props.toggleTermsOfUse(getValues())}
+                  className="tpa-self-start tpa-text-sm tpa-text-primary-600 tpa-underline focus-visible:tpa-outline-none focus-visible:tpa-ring-2 focus-visible:tpa-ring-primary-500 focus-visible:tpa-rounded"
+                >
+                  View Terms of Use
+                </button>
+
                 <Controller
                   control={control}
                   name="termsAndServices"
@@ -472,26 +532,17 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                       error={
                         errors.termsAndServices?.message as string | undefined
                       }
-                      label={
-                        <>
-                          I have read and agree to the{' '}
-                          <button
-                            type="button"
-                            // tabIndex={-1} so Tab cycles directly from
-                            // the checkbox to the next form control —
-                            // the inline link is still mouse-clickable
-                            // but doesn't fragment the keyboard flow.
-                            // The terms text is also surfaced by the
-                            // tenantAcknowledgement checkbox above, so
-                            // skipping this link doesn't hide content.
-                            tabIndex={-1}
-                            className="tpa-text-primary-600 tpa-underline"
-                            onClick={() => props.toggleTermsOfUse(getValues())}
-                          >
-                            Terms of Use
-                          </button>
-                        </>
-                      }
+                      // Plain text label, no nested interactive
+                      // element. A `<button>` inside the `<label>`
+                      // produced by Checkbox is invalid interactive-
+                      // content nesting and causes inconsistent
+                      // mouse / AT activation (clicking the button can
+                      // also toggle the checkbox depending on the
+                      // browser). The dedicated "View Terms of Use"
+                      // button rendered above this checkbox is the
+                      // keyboard / mouse / AT entry point for opening
+                      // the modal.
+                      label="I have read and agree to the Terms of Use."
                     />
                   )}
                 />

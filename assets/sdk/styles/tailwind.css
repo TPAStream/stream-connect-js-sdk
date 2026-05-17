@@ -21,6 +21,59 @@
     .tpa-sdk-root *::after
   ) {
   box-sizing: border-box;
+  /* Tailwind's preflight (disabled here) sets `border: 0 solid currentColor`
+   * as a baseline so that utilities like `tpa-border` (which only set
+   * border width + color) produce a visible border. Without this
+   * baseline, browser default `border-style: none` wins and the
+   * border disappears. Re-establish the baseline scoped to the SDK
+   * subtree so cards / inputs / secondary buttons render their
+   * borders. `:where()` keeps specificity at 0 so utilities still win
+   * collisions. */
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
+
+/* Preflight margin reset: zero browser UA margins on text-bearing
+ * elements scoped to the SDK subtree. Without this, h1-h6 / p / dl /
+ * dd / dt / blockquote / pre / figure all keep their browser defaults
+ * (which differ across UAs) and stack on top of our explicit Stack
+ * gaps in surprising ways. `:where()` keeps specificity at 0 so any
+ * Tailwind margin utility wins.
+ */
+:where(
+    .tpa-sdk-root h1,
+    .tpa-sdk-root h2,
+    .tpa-sdk-root h3,
+    .tpa-sdk-root h4,
+    .tpa-sdk-root h5,
+    .tpa-sdk-root h6,
+    .tpa-sdk-root p,
+    .tpa-sdk-root dl,
+    .tpa-sdk-root dt,
+    .tpa-sdk-root dd,
+    .tpa-sdk-root figure,
+    .tpa-sdk-root blockquote,
+    .tpa-sdk-root pre
+  ) {
+  margin: 0;
+}
+
+/* Positioning context for absolutely-positioned descendants. The
+ * ActiveValidationsPanel sits in the corner of this root rather
+ * than fixed to the viewport, which matters when the SDK is
+ * embedded as a widget inside a host page (a viewport-fixed corner
+ * would float over unrelated host-page content outside the widget).
+ *
+ * Wrapped in `:where()` so specificity is 0 and Tailwind utility
+ * classes like `tpa-fixed` win on collision. Without :where(), this
+ * rule (specificity 0,1,0) would tie with `.tpa-fixed` (also 0,1,0)
+ * and source order would let `position: relative` clobber
+ * `position: fixed` on portaled wrappers (Dialog backdrop, etc.)
+ * that combine `tpa-sdk-root` + `tpa-fixed`.
+ */
+:where(.tpa-sdk-root) {
+  position: relative;
 }
 
 .tpa-sdk-root {
@@ -28,9 +81,12 @@
    * the SDK's `primaryColor` init prop overrides them at runtime. */
   --tpa-color-primary-50: 239 246 255; /* blue-50  */
   --tpa-color-primary-100: 219 234 254; /* blue-100 */
+  --tpa-color-primary-200: 191 219 254; /* blue-200 */
+  --tpa-color-primary-300: 147 197 253; /* blue-300 */
   --tpa-color-primary-500: 59 130 246; /* blue-500 */
   --tpa-color-primary-600: 37 99 235; /* blue-600 */
   --tpa-color-primary-700: 29 78 216; /* blue-700 */
+  --tpa-color-primary-800: 30 64 175; /* blue-800 */
 
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
@@ -43,9 +99,14 @@
   font-family: inherit;
   cursor: pointer;
   background: none;
-  border: none;
+  /* Use border-width: 0 (not `border: none`) so the universal
+   * border-style: solid baseline above stays in effect. Buttons that
+   * apply `tpa-border` for a visible border will then actually render
+   * one; using `border: none` here would set border-style: none and
+   * the utility would silently produce no border. */
+  border-width: 0;
   padding: 0;
-  /* Don't force `color: inherit` here — Tailwind text-* utilities on
+  /* Don't force `color: inherit` here, Tailwind text-* utilities on
    * the button itself need to win unaided. Inheritance from the
    * parent already gives unstyled buttons the right color. */
 }

@@ -60,7 +60,12 @@ export const PayerInfo = ({
       {includePayerBlogs && payer.blogs && (
         <Stack gap="sm">
           {payer.blogs.map((blog, idx) => {
-            const article = marked.parse(blog.article) as string;
+            // Force the sync return so we don't have to handle a
+            // Promise here. marked v15's default is sync, but the
+            // declared return type is `string | Promise<string>`
+            // because async extensions exist. Pinning async:false
+            // closes the type hole.
+            const article = marked.parse(blog.article, { async: false });
             const clean = DOMPurify.sanitize(article);
             return (
               <div

@@ -1,18 +1,34 @@
 /**
- * Webpack config for the SDK CommonJS bundle (sdk.js).
+ * Webpack config for the SDK CommonJS bundles. Emits TWO files:
  *
- * The bundle is consumed two ways:
- * 1. As an npm package (libraryTarget: 'commonjs2'). Stream wraps it
- *    per-version in assets/sdk_cdn/sdk-cdn-vXYZ.jsx for the CDN drop.
+ *   sdk.js          - default (styled) bundle. Bundles tailwind.css
+ *                     so the built-in widgets render with their full
+ *                     Plaid-Link chrome out of the box.
+ *   sdk-headless.js - headless bundle. Same StreamConnect function,
+ *                     no stylesheet. For customers driving every
+ *                     step themselves via the renderXxx callbacks
+ *                     who don't want the ~50 KB of Tailwind output.
+ *
+ * Both are consumed two ways:
+ * 1. As an npm package (libraryTarget: 'commonjs2'). Stream wraps
+ *    them per-version in assets/sdk_cdn/sdk-cdn-vXYZ.jsx for the
+ *    CDN drop. The package.json `exports` field maps "." -> sdk.js
+ *    and "./headless" -> sdk-headless.js so customers pick by
+ *    import path.
  * 2. Via the /sdk-test sandbox in stevedev — see
  *    stream/templates/sdk_test.html, which shims module.exports to
- *    load this file as a plain <script>.
+ *    load sdk.js as a plain <script>.
+ *
+ * See docs/headless.md for the trade-off and integration recipe.
  */
 
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './assets/sdk/entries/sdk.tsx',
+  entry: {
+    sdk: './assets/sdk/entries/sdk.tsx',
+    'sdk-headless': './assets/sdk/entries/sdk-headless.tsx'
+  },
   resolve: {
     extensions: ['.tsx', '.ts', '.jsx', '.js']
   },
@@ -34,7 +50,7 @@ module.exports = {
   plugins: [new webpack.ProvidePlugin({})],
   output: {
     path: __dirname,
-    filename: 'sdk.js',
+    filename: '[name].js',
     libraryTarget: 'commonjs2'
   },
   externals: {},

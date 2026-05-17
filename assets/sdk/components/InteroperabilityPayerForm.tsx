@@ -67,6 +67,22 @@ export const InteroperabilityPayerForm = (
         if (data.status === 'SUCCESS') {
           if (intervalRef.current) clearInterval(intervalRef.current);
           setConnecting(false);
+          // A SUCCESS without ph_id is a backend protocol error: the
+          // PAA flow finished but the response didn't tell us which PH
+          // got created. Without this guard, validateCreds would be
+          // called with interopPhId=undefined, fall through to the
+          // standard inline-credentials path, and POST an empty
+          // params={} as a regular credential submit. Surface the
+          // misconfiguration instead.
+          if (!data.ph_id) {
+            const message =
+              'The carrier connection succeeded but we did not receive ' +
+              'the policy-holder ID needed to continue. Please contact ' +
+              'support.';
+            setErrorMessage(message);
+            handlePostError({ errorMessage: message });
+            return;
+          }
           validateCreds({
             params: {},
             errorCallBack: () => {},
@@ -125,13 +141,36 @@ export const InteroperabilityPayerForm = (
         }
       } else {
         if (streamPayer.interoperability_authorization_url) {
-          // noopener+noreferrer so the carrier OAuth page can't reach
-          // back through window.opener to navigate the host site.
-          window.open(
+          // Open without `noopener` in the windowFeatures string: per
+          // the HTML spec, `noopener` (and `noreferrer`, which implies
+          // it) cause window.open to return null even on success, so
+          // we'd lose the ability to distinguish "popup blocked" from
+          // "popup opened." Instead, open normally and null out
+          // `popup.opener` immediately, which yields equivalent
+          // security (the carrier OAuth page can't navigate the host
+          // site via window.opener). The awaited beginInterop above
+          // can break the user-gesture chain on stricter browsers,
+          // making popup-blocking likely; the null-check below surfaces
+          // it as a recoverable error instead of silently starting the
+          // poll loop against an OAuth tab the user never saw.
+          const popup = window.open(
             streamPayer.interoperability_authorization_url,
-            '_blank',
-            'noopener,noreferrer'
+            '_blank'
           );
+          if (!popup) {
+            setConnecting(false);
+            setErrorMessage(
+              'Your browser blocked the carrier sign-in window. ' +
+                'Please allow popups for this site and try again.'
+            );
+            return;
+          }
+          // Manual opener strip, equivalent to the `noopener`
+          // windowFeature but without breaking the return value.
+          // `noreferrer` is not replicated; the carrier OAuth page will
+          // see a Referer header from the host site, which is fine for
+          // standard OAuth flows.
+          popup.opener = null;
           intervalRef.current = setInterval(checkDone, 5000);
         } else {
           // Same as the single-page branch — without an auth URL the
@@ -183,30 +222,33 @@ export const InteroperabilityPayerForm = (
           to process your claims.
         </Text>
 
+        {/*
+          Keyboard-accessible Terms-of-Use trigger. The inline link
+          inside the checkbox label below is tabIndex={-1} to keep the
+          checkbox → checkbox → submit flow smooth; this button gives
+          keyboard-only users a focusable way to open the terms before
+          consenting.
+        */}
+        <button
+          type="button"
+          onClick={() =>
+            handleTermsClick({ tenantAccept, tpastreamTermsAccept })
+          }
+          className="tpa-self-start tpa-text-sm tpa-text-primary-600 tpa-underline focus-visible:tpa-outline-none focus-visible:tpa-ring-2 focus-visible:tpa-ring-primary-500 focus-visible:tpa-rounded"
+        >
+          View Terms of Use
+        </button>
+
         <Checkbox
           checked={tpastreamTermsAccept}
           onChange={(e) => setTpastreamTermsAccept(e.target.checked)}
-          label={
-            <>
-              I have read and agree to the{' '}
-              <button
-                type="button"
-                // Skip in tab order so Tab cycles directly from the
-                // checkbox to the next form control. Mouse click still
-                // opens the terms overlay.
-                tabIndex={-1}
-                onClick={() =>
-                  handleTermsClick({
-                    tenantAccept,
-                    tpastreamTermsAccept
-                  })
-                }
-                className="tpa-text-primary-600 tpa-underline"
-              >
-                Terms of Use
-              </button>
-            </>
-          }
+          // Plain text label; the dedicated "View Terms of Use"
+          // button rendered above handles the modal trigger. A nested
+          // `<button>` inside the `<label>` produced by Checkbox is
+          // invalid interactive-content nesting and causes inconsistent
+          // mouse / AT activation (clicking the button can also toggle
+          // the checkbox depending on the browser).
+          label="I have read and agree to the Terms of Use."
         />
 
         <Checkbox

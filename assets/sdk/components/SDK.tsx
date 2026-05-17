@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { useActiveValidations } from '../contexts/ActiveValidationsContext';
 import { ValidationStreamRunner } from '../contexts/ValidationStreamRunner';
 import { SpinnerIcon } from '../icons';
@@ -25,6 +31,7 @@ import { Alert } from '../ui/Alert';
 import { Card } from '../ui/Card';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
+import { ActiveValidationsHero } from './ActiveValidationsHero';
 import { ActiveValidationsPanel } from './ActiveValidationsPanel';
 import { ChoosePayer } from './ChoosePayer';
 import { EnterCredentials } from './EnterCredentials';
@@ -100,6 +107,49 @@ export const SDK = (props: SDKProps) => {
   const { addValidation, validations } = useActiveValidations();
   const useNonBlockingValidation = props.realTimeVerification !== false;
 
+  // Fix-credentials mode is derived from connectAccessToken presence,
+  // not from the legacy `fixCredentials` flag (which is now deprecated
+  // and ignored, see entries/sdk.tsx normalizeOptions for the
+  // deprecation warning). The backend `/sdk-api/fix-credentials`
+  // endpoint requires a connect access token, so the token's presence
+  // at init time IS the signal for "the customer wants the manage-
+  // your-carriers view." Customers without the token continue to get
+  // the standard choose-payer flow.
+  const inFixMode = !!props.connectAccessToken;
+
+  // Refresh user.policy_holders via whichever endpoint the SDK has
+  // access to in this session. Fix-credentials mode uses the
+  // `/sdk-api/fix-credentials` endpoint (gated by connectAccessToken);
+  // standard enrollment uses the regular `tpastream_sdk` init endpoint.
+  // Using fix-credentials in standard mode consistently hits the catch
+  // path and leaves stale data on the picker (e.g. just-submitted
+  // carriers don't show up in usedPayers).
+  const refreshUserPolicyHolders = useCallback(async () => {
+    if (!state.streamUser) return null;
+    if (inFixMode) {
+      const { user } = await getFixCredentials({
+        email: state.streamUser.email
+      });
+      return user;
+    }
+    // getSDK is the standard init endpoint. The post body's identity
+    // fields (employer + user) come from props directly: the SDK was
+    // originally initialized with them and they don't change
+    // mid-session. (state.streamEmployer is the backend-shaped
+    // StreamEmployer, which has different fields from the InitEmployer
+    // getSDK expects, so we don't use it here.)
+    const result = await getSDK({
+      employer: props.employer,
+      user: props.user ?? {
+        firstName: '',
+        lastName: '',
+        email: state.streamUser.email
+      },
+      isDemo: !!props.isDemo
+    });
+    return result.user ?? null;
+  }, [state.streamUser, inFixMode, props.employer, props.user, props.isDemo]);
+
   // Refresh the user's PH list whenever a validation FIRST reaches a
   // terminal state. The runner already calls getPolicyHolder for the
   // individual PH (to refine credentialsValid in the context), but the
@@ -120,9 +170,12 @@ export const SDK = (props: SDKProps) => {
     if (newlyCompleted.length === 0) return;
     if (!state.streamUser) return;
     for (const v of newlyCompleted) refreshedForTaskIds.current.add(v.taskId);
-    getFixCredentials({ email: state.streamUser.email })
-      .then(({ user }) => {
-        setState((s) => (s.streamUser ? { ...s, streamUser: user } : s));
+    refreshUserPolicyHolders()
+      .then((user) => {
+        if (!user) return;
+        setState((prev) =>
+          prev.streamUser ? { ...prev, streamUser: user } : prev
+        );
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -177,15 +230,15 @@ export const SDK = (props: SDKProps) => {
 
   const setStepConfigError = useCallback(
     (error: string) => {
-      setState((s) => ({ ...s, loading: false, step: -1, error }));
+      setState((prev) => ({ ...prev, loading: false, step: -1, error }));
       props.handleInitErrors?.(error);
     },
     [props.handleInitErrors]
   );
 
   const setStep1 = useCallback(() => {
-    setState((s) => ({
-      ...s,
+    setState((prev) => ({
+      ...prev,
       loading: false,
       step: 1,
       termsOfUse: false,
@@ -196,12 +249,12 @@ export const SDK = (props: SDKProps) => {
   }, []);
 
   const setStep2 = useCallback(() => {
-    setState((s) => ({ ...s, loading: true }));
+    setState((prev) => ({ ...prev, loading: true }));
     if (!state.streamUser) return;
     getFixCredentials({ email: state.streamUser.email })
       .then(({ user }) => {
-        setState((s) => ({
-          ...s,
+        setState((prev) => ({
+          ...prev,
           loading: false,
           step: 2,
           termsOfUse: false,
@@ -221,8 +274,8 @@ export const SDK = (props: SDKProps) => {
   }, [state.streamUser, setStepConfigError]);
 
   const setStep3 = useCallback(() => {
-    setState((s) => ({
-      ...s,
+    setState((prev) => ({
+      ...prev,
       loading: false,
       step: 3,
       termsOfUse: false,
@@ -246,8 +299,8 @@ export const SDK = (props: SDKProps) => {
       }
       if (!state.streamUser || !state.streamEmployer) return;
 
-      setState((s) => ({
-        ...s,
+      setState((prev) => ({
+        ...prev,
         ...(policyHolder && {
           streamPolicyHolder: policyHolder as unknown as StreamPolicyHolder,
           policyHolderId: policyHolder.id
@@ -255,10 +308,10 @@ export const SDK = (props: SDKProps) => {
       }));
 
       if (!payer) {
-        setState((s) => ({
-          ...s,
+        setState((prev) => ({
+          ...prev,
           loading: false,
-          dependent: dependent ?? s.dependent,
+          dependent: dependent ?? prev.dependent,
           termsOfUse: false,
           step: 4,
           twoFactorAuth: null,
@@ -269,10 +322,10 @@ export const SDK = (props: SDKProps) => {
       }
 
       if (state.streamPayer && state.streamPayer.id === payer.id) {
-        setState((s) => ({
-          ...s,
+        setState((prev) => ({
+          ...prev,
           loading: false,
-          dependent: dependent ?? s.dependent,
+          dependent: dependent ?? prev.dependent,
           streamPayer: payer,
           termsOfUse: false,
           step: 4,
@@ -283,7 +336,7 @@ export const SDK = (props: SDKProps) => {
         return;
       }
 
-      setState((s) => ({ ...s, loading: true }));
+      setState((prev) => ({ ...prev, loading: true }));
       const usePAASingle =
         props.resolvedPAASingle ??
         props.enablePatientAccessAPISinglePage ??
@@ -306,10 +359,10 @@ export const SDK = (props: SDKProps) => {
         referer
       })
         .then((payerResponse) => {
-          setState((s) => ({
-            ...s,
+          setState((prev) => ({
+            ...prev,
             loading: false,
-            dependent: dependent ?? s.dependent,
+            dependent: dependent ?? prev.dependent,
             streamPayer: payerResponse,
             termsOfUse: false,
             step: 4,
@@ -341,16 +394,21 @@ export const SDK = (props: SDKProps) => {
   const validateCreds = useCallback(
     (args: {
       params: Record<string, unknown>;
-      errorCallBack: (data: { errorMessage?: string }) => void;
+      /** Optional. The public custom-render docs show
+       * `validateCreds({ params })` without a callback; default to a
+       * no-op so existing `renderPayerForm={false}` integrations don't
+       * crash when the credential submit returns an error. */
+      errorCallBack?: (data: { errorMessage?: string }) => void;
       interopPhId?: number;
     }) => {
-      const { params, errorCallBack, interopPhId } = args;
+      const { params, interopPhId } = args;
+      const errorCallBack = args.errorCallBack ?? (() => {});
       if (!state.streamUser || !state.streamEmployer) return;
       const additionalParams = {
         user: state.streamUser,
         employer_id: state.streamEmployer.id
       };
-      setState((s) => ({ ...s, formData: null }));
+      setState((prev) => ({ ...prev, formData: null }));
       props.donePostCredentials?.({ params });
 
       if (interopPhId) {
@@ -360,8 +418,8 @@ export const SDK = (props: SDKProps) => {
           employerId: state.streamEmployer.id
         })
           .then((phData) => {
-            setState((s) => ({
-              ...s,
+            setState((prev) => ({
+              ...prev,
               termsOfUse: false,
               taskId: null,
               taskToken: null,
@@ -378,8 +436,8 @@ export const SDK = (props: SDKProps) => {
             // so the user reaches the end widget instead of stranding on
             // the previous step. The end widget renders from the in-memory
             // PH summary that was already fetched at init.
-            setState((s) => ({
-              ...s,
+            setState((prev) => ({
+              ...prev,
               termsOfUse: false,
               taskId: null,
               taskToken: null,
@@ -396,8 +454,8 @@ export const SDK = (props: SDKProps) => {
         // Without credentialsValid, the now-default realTimeVerification:true
         // path renders the failure branch because state.credentialsValid is
         // null. Pin true here so the demo widget reflects a clean run.
-        setState((s) => ({
-          ...s,
+        setState((prev) => ({
+          ...prev,
           termsOfUse: false,
           policyHolderId: state.policyHolderId,
           taskId: props.realTimeVerification ? 'DEMO' : null,
@@ -423,8 +481,10 @@ export const SDK = (props: SDKProps) => {
         // Non-blocking realtime path: push the validation into the
         // floating panel and return the user to the picker step they
         // came from (Reconnect = step 2, Add new = step 3) so they can
-        // start another validation in parallel. The panel + 2FA modal
-        // own the rest of the flow without taking over the screen.
+        // start another validation in parallel. The floating panel +
+        // the inline ActiveValidationsHero (2FA method picker / code
+        // entry rendered inline in the hero card, no modal) own the
+        // rest of the flow without taking over the screen.
         if (
           useNonBlockingValidation &&
           taskId &&
@@ -451,25 +511,31 @@ export const SDK = (props: SDKProps) => {
           // entry feels like the SDK forgot what they just did.
 
           // Pick the return step from the flow the user actually came
-          // from, not the init-level fixCredentials option. In fix
-          // mode the user can choose "Reconnect existing" (state.PH set
-          // → return to step 2) OR "Add new carrier" (state.PH null
-          // → return to step 3, the carrier picker). Honoring just
-          // props.fixCredentials would bounce "Add new" users back to
-          // the FixCredentials list instead of the picker they expect.
-          const returnStep =
-            props.fixCredentials && state.policyHolderId ? 2 : 3;
-          getFixCredentials({ email: state.streamUser.email })
-            .then(({ user }) => {
-              setState((s) => ({
-                ...s,
+          // from. In fix-credentials mode (derived from
+          // connectAccessToken) the user can choose "Reconnect
+          // existing" (state.PH set → return to step 2, the
+          // fix-credentials list) OR "Add new carrier" (state.PH null
+          // → return to step 3, the carrier picker, so they can chain
+          // another add). Honoring just inFixMode without the
+          // PH-set check would bounce "Add new" users back to the
+          // FixCredentials list instead of the picker they expect.
+          const returnStep = inFixMode && state.policyHolderId ? 2 : 3;
+          // refreshUserPolicyHolders picks fix-credentials vs the
+          // standard sdk init endpoint based on whether the SDK has a
+          // connect access token; the previous unconditional
+          // getFixCredentials call always hit the catch path in
+          // standard enrollment mode and left a stale user list.
+          refreshUserPolicyHolders()
+            .then((user) => {
+              setState((prev) => ({
+                ...prev,
                 termsOfUse: false,
                 policyHolderId: null,
                 streamPayer: null,
                 streamPolicyHolder: null,
                 taskId: null,
                 taskToken: null,
-                streamUser: user,
+                streamUser: user ?? prev.streamUser,
                 step: returnStep,
                 formData: null
               }));
@@ -477,8 +543,8 @@ export const SDK = (props: SDKProps) => {
             .catch(() => {
               // Refresh failure is non-fatal — fall back to the stale
               // user list so the user still gets a usable page.
-              setState((s) => ({
-                ...s,
+              setState((prev) => ({
+                ...prev,
                 termsOfUse: false,
                 policyHolderId: null,
                 streamPayer: null,
@@ -492,23 +558,27 @@ export const SDK = (props: SDKProps) => {
           return;
         }
 
-        // Legacy blocking path: realTimeVerification: false (or no
-        // task_token returned) → step 5 + FinishedEasyEnroll.
+        // Legacy `realTimeVerification: false` / submit-and-trust path
+        // → step 5 + FinishedEasyEnroll. Force credentialsValid=true
+        // unconditionally to match the documented 0.7-era contract: the
+        // user submitted creds, we accepted them, the async validation
+        // task will refine login_problem later. Deriving credentialsValid
+        // from the pre-refresh `login_problem` (which may still be the
+        // stale broken value for a returning user) would surface the
+        // invalid-credentials end widget for a flow that's supposed to
+        // be submit-and-trust.
         getPolicyHolder({
           policyHolderId,
           email: state.streamUser.email,
           employerId: state.streamEmployer.id
         })
           .then((phData) => {
-            setState((s) => ({
-              ...s,
+            setState((prev) => ({
+              ...prev,
               termsOfUse: false,
               taskId: null,
               taskToken: null,
-              credentialsValid:
-                phData.login_problem !== null
-                  ? !phData.login_needs_correction
-                  : true,
+              credentialsValid: true,
               policyHolderId,
               streamPolicyHolder: phData,
               step: 5
@@ -522,8 +592,8 @@ export const SDK = (props: SDKProps) => {
             // with no feedback. handleFormErrors gets the error so the
             // host page can log/notify.
             props.handleFormErrors?.(err);
-            setState((s) => ({
-              ...s,
+            setState((prev) => ({
+              ...prev,
               termsOfUse: false,
               taskId: null,
               taskToken: null,
@@ -543,7 +613,7 @@ export const SDK = (props: SDKProps) => {
       props.handleFormErrors,
       props.realTimeVerification,
       props.isDemo,
-      props.fixCredentials,
+      inFixMode,
       useNonBlockingValidation,
       addValidation
     ]
@@ -551,28 +621,28 @@ export const SDK = (props: SDKProps) => {
 
   const toggleTermsOfUse = useCallback(
     (formData?: Record<string, unknown>) => {
-      if (formData) setState((s) => ({ ...s, formData }));
+      if (formData) setState((prev) => ({ ...prev, formData }));
       if (!state.termsHtmlString) {
         if (!state.streamUser) return;
-        setState((s) => ({ ...s, loading: true }));
+        // Open the overlay immediately. TermsOfUse renders a spinner
+        // inside the Dialog while termsHtmlString is empty so the
+        // user gets feedback without us flipping the wizard-level
+        // `loading` flag (which would unmount the credential form
+        // underneath the overlay and produce a visible blink before
+        // the fetch resolved).
+        setState((prev) => ({ ...prev, termsOfUse: true }));
         getTerms({ email: state.streamUser.email })
           .then((html) => {
-            setState((s) => ({
-              ...s,
-              loading: false,
-              termsOfUse: !s.termsOfUse,
-              termsHtmlString: html
-            }));
+            setState((prev) => ({ ...prev, termsHtmlString: html }));
           })
           .catch(() => {
-            // Without this catch the loading spinner would persist if
-            // the terms fetch failed — user clicks "Terms of Use" and
-            // the SDK never recovers. Clear loading + leave the user
-            // on the credential form.
-            setState((s) => ({ ...s, loading: false }));
+            // Close the overlay on fetch failure so the user isn't
+            // stuck staring at a spinner that will never resolve.
+            // They can re-trigger from the form.
+            setState((prev) => ({ ...prev, termsOfUse: false }));
           });
       } else {
-        setState((s) => ({ ...s, termsOfUse: !s.termsOfUse }));
+        setState((prev) => ({ ...prev, termsOfUse: !prev.termsOfUse }));
       }
     },
     [state.termsHtmlString, state.streamUser]
@@ -597,8 +667,8 @@ export const SDK = (props: SDKProps) => {
           );
           return;
         }
-        setState((s) => ({
-          ...s,
+        setState((prev) => ({
+          ...prev,
           streamUser: user,
           streamPayers: payers,
           streamTenant: tenant,
@@ -610,9 +680,11 @@ export const SDK = (props: SDKProps) => {
         // validation task (server-side Redis pointer is still active),
         // the user serializer attached task_id + task_token. Push them
         // into the floating panel so the user sees what's still running
-        // — but don't hijack the wizard. The user lands on whatever
+        // without hijacking the wizard. The user lands on whatever
         // step makes sense (ChoosePayer / FixCredentials) and the
-        // panel + 2FA modal handle the in-flight work in parallel.
+        // floating panel + inline ActiveValidationsHero (2FA method
+        // picker / code entry, no modal) handle the in-flight work in
+        // parallel.
         if (!restartFlow && useNonBlockingValidation) {
           for (const ph of user.policy_holders || []) {
             if (!ph.task_id || !ph.task_token) continue;
@@ -638,32 +710,38 @@ export const SDK = (props: SDKProps) => {
           // and the explicit-step number form are both supported. Truthy
           // boolean collapses to step 5 (FinishedEasyEnroll). For a number,
           // honor the requested step ONLY if it maps to a known wizard
-          // step — otherwise the render switch falls through to the
-          // "Failed to find an associated step" error state. Anything
-          // not in KNOWN_STEPS falls back to 5.
-          const KNOWN_STEPS = new Set([1, 2, 3, 4, 5]);
+          // step AND that step can render off cold-init state. Step 4
+          // (EnterCredentials) requires `state.streamPayer` which this
+          // branch doesn't have, so it falls through to "Failed to find
+          // an associated step." Exclude 4 from the allowed targets
+          // and clamp to 5; the customer should route to step 4 via the
+          // ChoosePayer flow, not via forceEndStep.
+          const FORCE_END_TARGETS = new Set([1, 2, 3, 5]);
           const target =
             typeof props.forceEndStep === 'number' &&
-            KNOWN_STEPS.has(props.forceEndStep)
+            FORCE_END_TARGETS.has(props.forceEndStep)
               ? props.forceEndStep
               : 5;
-          setState((s) => ({
-            ...s,
+          setState((prev) => ({
+            ...prev,
             loading: false,
             step: target,
             credentialsValid: true
           }));
           return;
         }
-        if (props.fixCredentials) {
-          if (!props.connectAccessToken) {
-            setStepConfigError(
-              'You must have a connect access token enabled and set to use fix-credentials functionality.'
-            );
-            return;
-          }
-          setState((s) => ({
-            ...s,
+        if (inFixMode) {
+          // Member-portal flow: customer minted a connectAccessToken
+          // at init, which gates `/sdk-api/fix-credentials`. Start at
+          // step 1 (SelectEnrollProcess) so the user can choose
+          // "Reconnect existing" (fix-credentials list) or "Add new
+          // carrier" (choose-payer). The legacy mismatch error path
+          // that used to live here (`fixCredentials: true` without
+          // connectAccessToken) is gone now that fix-credentials is
+          // derived from token presence; passing the legacy flag
+          // without a token just lands you in the standard flow.
+          setState((prev) => ({
+            ...prev,
             loading: false,
             step: 1,
             termsOfUse: false,
@@ -713,8 +791,8 @@ export const SDK = (props: SDKProps) => {
             referer: singlePayerReferer
           })
             .then((payerResponse) => {
-              setState((s) => ({
-                ...s,
+              setState((prev) => ({
+                ...prev,
                 loading: false,
                 streamUser: user,
                 streamPayers: payers,
@@ -734,8 +812,8 @@ export const SDK = (props: SDKProps) => {
               );
             });
         } else {
-          setState((s) => ({
-            ...s,
+          setState((prev) => ({
+            ...prev,
             loading: false,
             step: 3,
             termsOfUse: false,
@@ -751,8 +829,7 @@ export const SDK = (props: SDKProps) => {
       props.isDemo,
       props.doneGetSDK,
       props.forceEndStep,
-      props.fixCredentials,
-      props.connectAccessToken,
+      inFixMode,
       useNonBlockingValidation,
       addValidation,
       setStep4,
@@ -776,217 +853,306 @@ export const SDK = (props: SDKProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ----------------------------------------------------------------
+  //                       Step render helpers
+  // ----------------------------------------------------------------
+  // Each `renderStepN_*` returns the JSX for one wizard step. They
+  // close over `state`, `props`, the `setStepN` transition callbacks,
+  // `validateCreds`, `toggleTermsOfUse`, `restartProcess`, and
+  // `inFixMode` — all defined above. Splitting the old 200-line
+  // renderWizard if-ladder into one helper per step lets future
+  // readers grep "renderStep4" to find the credentials-form branch
+  // instead of counting `if (state.step === N)` blocks.
+  //
+  // Step mapping (recap):
+  //   loading   - generic "Loading…" card while init request is in flight
+  //   step  -1  - configuration error (init failed, bad token, etc.)
+  //   step   1  - SelectEnrollProcess (member-portal mode entry: fix
+  //               existing creds vs. add new carrier)
+  //   step   2  - FixCredentials tile list (member-portal mode)
+  //   step   3  - ChoosePayer tile picker (standard flow OR add-new
+  //               from member-portal mode)
+  //   step   4  - EnterCredentials form (OR InteroperabilityPayerForm
+  //               for PAA-routed payers)
+  //   step   5  - FinishedEasyEnroll end widget (success / failure
+  //               terminal screen)
+  //   unknown   - fallback card; should never render in practice
+
+  const renderLoadingCard = () => (
+    <Card>
+      <Stack gap="md" align="center">
+        <SpinnerIcon className="tpa-w-8 tpa-h-8 tpa-text-primary-600" />
+        <Text color="muted" size="sm">
+          Loading…
+        </Text>
+      </Stack>
+    </Card>
+  );
+
+  const renderConfigError = () => (
+    <Card>
+      <Alert variant="danger" title="Configuration error">
+        {state.error || 'Please contact the site host.'}
+      </Alert>
+    </Card>
+  );
+
+  const renderStep1_SelectEnrollProcess = () => (
+    <SelectEnrollProcess
+      doneStep1={props.doneStep1}
+      setFixCredentials={setStep2}
+      setChoosePayer={setStep3}
+    />
+  );
+
+  const renderStep2_FixCredentials = () => {
+    if (!state.streamUser || !state.streamPayers) return null;
+    return (
+      <FixCredentials
+        doneStep2={props.doneStep2}
+        streamUser={state.streamUser}
+        streamPayers={state.streamPayers}
+        choosePolicyHolder={setStep4}
+        returnSelectEnrollProcess={inFixMode && setStep1}
+      />
+    );
+  };
+
+  const renderStep3_ChoosePayer = () => {
+    if (!state.streamUser || !state.streamPayers || !state.streamEmployer) {
+      return null;
+    }
+    if (props.renderChoosePayer === false) {
+      // Custom-render path: the integrator drives the picker UI from
+      // the doneStep3 callback. We return an empty div so the
+      // surrounding layout still has a node.
+      props.doneStep3?.({
+        choosePayer: setStep4,
+        usedPayers: state.streamUser.policy_holders.map((ph) => ph.payer_id),
+        dropDown: state.streamEmployer.show_all_payers_in_easy_enroll,
+        streamPayers: state.streamPayers,
+        streamEmployer: state.streamEmployer
+      });
+      return <div />;
+    }
+    return (
+      <ChoosePayer
+        streamPayers={state.streamPayers}
+        streamEmployer={state.streamEmployer}
+        usedPayers={state.streamUser.policy_holders.map((ph) => ph.payer_id)}
+        choosePayer={(args) =>
+          setStep4({ payer: args.payer, dependent: !!args.dependent })
+        }
+        returnSelectEnrollProcess={inFixMode && setStep1}
+        doneStep3={props.doneStep3}
+        dropDown={state.streamEmployer.show_all_payers_in_easy_enroll}
+        isDemo={!!props.isDemo}
+      />
+    );
+  };
+
+  const renderStep4_EnterCredentials = () => {
+    if (!state.streamPayer || !state.streamTenant) return null;
+
+    // Shared overlay node — rendered in BOTH the custom-render and
+    // default-render branches so a custom form calling
+    // toggleTermsOfUse() always gets the modal mounted on top.
+    const termsOverlay = (
+      <TermsOfUse
+        open={state.termsOfUse}
+        termsHtmlString={state.termsHtmlString || ''}
+        onClose={() => toggleTermsOfUse()}
+        doneTermsOfService={props.doneTermsOfService}
+      />
+    );
+
+    if (props.renderPayerForm === false) {
+      // Custom-render path: the integrator drives the credentials
+      // form from the doneStep4 callback. We still mount TermsOfUse
+      // so toggleTermsOfUse() in the integrator's callback renders
+      // the modal as the public docs document.
+      props.doneStep4?.({
+        streamPayer: state.streamPayer,
+        formJsonSchema: state.streamPayer.onboard_form,
+        tenantTerms: state.streamTenant.terms_of_use,
+        streamTenant: state.streamTenant,
+        // Back-compat with 0.7.7 which surfaced `logoUrl` as a
+        // top-level convenience field sourced from the *tenant* logo
+        // (the deleted 0.7.7 test asserted logoUrl === tenant.logo_url).
+        // Custom render-prop integrators that read it for tenant
+        // branding keep working.
+        logoUrl:
+          (state.streamTenant as { logo_url?: string } | null)?.logo_url ??
+          null,
+        toggleTermsOfUse,
+        returnToChoosePayer: setStep3,
+        validateCreds,
+        email: state.streamUser?.email
+      });
+      return termsOverlay;
+    }
+    // Default: render the credentials form with the terms overlay
+    // portaled on top. EnterCredentials stays mounted underneath so
+    // form state survives the round trip.
+    return (
+      <>
+        <EnterCredentials
+          streamPayer={state.streamPayer}
+          streamPolicyHolder={state.streamPolicyHolder}
+          tenantTerms={state.streamTenant.terms_of_use}
+          formData={state.formData}
+          email={state.streamUser?.email || ''}
+          streamTenant={state.streamTenant}
+          toggleTermsOfUse={toggleTermsOfUse}
+          enableInterop={props.enableInterop}
+          enableInteropSinglePage={props.enableInteropSinglePage}
+          enablePatientAccessAPI={props.enablePatientAccessAPI}
+          enablePatientAccessAPISinglePage={
+            props.enablePatientAccessAPISinglePage
+          }
+          includePayerBlogs={props.includePayerBlogs}
+          userAddedUISchema={props.userSchema}
+          returnToStep3={
+            state.streamPayers &&
+            state.streamPayers.length > 1 &&
+            state.policyHolderId === null
+              ? setStep3
+              : false
+          }
+          returnToStep2={
+            inFixMode && state.policyHolderId !== null ? setStep2 : false
+          }
+          validateCreds={validateCreds}
+          doneStep4={props.doneStep4}
+          donePopUp={props.donePopUp}
+        />
+        {termsOverlay}
+      </>
+    );
+  };
+
+  const renderStep5_FinishedEasyEnroll = () => {
+    // The realtime / 2FA inline branches that used to live in step 5
+    // are gone — non-blocking validation is the only path now and is
+    // rendered by ActiveValidationsHero (mounted at the SDK root) +
+    // ActiveValidationsPanel (corner). Step 5 is the end widget only.
+    if (!state.streamTenant || !state.streamUser || !state.streamEmployer) {
+      return null;
+    }
+    // `credValid` is the canonical success/failure signal that the
+    // end widget + the renderEndWidget=false callback both branch on.
+    // With realTimeVerification disabled the SDK trusts the submit
+    // unconditionally (legacy 0.7-era submit-and-trust path).
+    const credValid = props.realTimeVerification
+      ? state.credentialsValid
+      : true;
+    const returnFn = credValid
+      ? restartProcess
+      : () => setStep4({ payer: state.streamPayer || undefined });
+
+    if (props.renderEndWidget === false) {
+      // Custom-render path: integrator drives the end screen from
+      // the doneEasyEnroll callback. We return an empty div so the
+      // surrounding fragment still has a node.
+      props.doneEasyEnroll?.({
+        tenant: state.streamTenant,
+        payer: state.streamPayer,
+        user: state.streamUser,
+        policyHolder: state.streamPolicyHolder,
+        employer: state.streamEmployer,
+        credentialsValid: credValid,
+        pending: state.finishedEasyEnrollPending,
+        endingMessage: state.endMessage,
+        returnFlowFunction: returnFn
+      });
+      return <div />;
+    }
+    return (
+      <FinishedEasyEnroll
+        tenant={state.streamTenant}
+        payer={state.streamPayer}
+        user={state.streamUser}
+        policyHolder={state.streamPolicyHolder}
+        employer={state.streamEmployer}
+        credentialsValid={credValid}
+        pending={state.finishedEasyEnrollPending}
+        endingMessage={state.endMessage}
+        returnToPage={returnFn}
+        doneEasyEnroll={props.doneEasyEnroll}
+      />
+    );
+  };
+
+  const renderUnknownStep = () => (
+    <Card>
+      <Title order={3}>Failed to find an associated step</Title>
+    </Card>
+  );
+
   // The wizard step rendering is wrapped at the bottom in a fragment
   // alongside <ActiveValidationsPanel /> + <ValidationStreamRunner />.
-  // Extracting into an IIFE keeps the existing per-step early-return
-  // structure intact while letting the runner/panel render alongside.
+  // Each renderStepN_* helper can return `null` when its required
+  // state is missing (mid-flight data refresh, etc.); the `??`
+  // fallback keeps the original behavior of dropping into the
+  // "Failed to find an associated step" card so the UI never blanks.
   const renderWizard = () => {
-    if (state.loading) {
-      return (
-        <Card>
-          <Stack gap="md" align="center">
-            <SpinnerIcon className="tpa-w-8 tpa-h-8 tpa-text-primary-600" />
-            <Text color="muted" size="sm">
-              Loading…
-            </Text>
-          </Stack>
-        </Card>
-      );
-    }
-
-    if (state.step === -1) {
-      return (
-        <Card>
-          <Alert variant="danger" title="Configuration error">
-            {state.error || 'Please contact the site host.'}
-          </Alert>
-        </Card>
-      );
-    }
-
-    if (state.step === 1) {
-      return (
-        <SelectEnrollProcess
-          doneStep1={props.doneStep1}
-          setFixCredentials={setStep2}
-          setChoosePayer={setStep3}
-        />
-      );
-    }
-
-    if (state.step === 2 && state.streamUser && state.streamPayers) {
-      return (
-        <FixCredentials
-          doneStep2={props.doneStep2}
-          streamUser={state.streamUser}
-          streamPayers={state.streamPayers}
-          choosePolicyHolder={setStep4}
-          returnSelectEnrollProcess={!!props.fixCredentials && setStep1}
-        />
-      );
-    }
-
-    if (
-      state.step === 3 &&
-      state.streamUser &&
-      state.streamPayers &&
-      state.streamEmployer
-    ) {
-      if (props.renderChoosePayer === false) {
-        props.doneStep3?.({
-          choosePayer: setStep4,
-          usedPayers: state.streamUser.policy_holders.map((ph) => ph.payer_id),
-          dropDown: state.streamEmployer.show_all_payers_in_easy_enroll,
-          streamPayers: state.streamPayers,
-          streamEmployer: state.streamEmployer
-        });
-        return <div />;
-      }
-      return (
-        <ChoosePayer
-          streamPayers={state.streamPayers}
-          streamEmployer={state.streamEmployer}
-          usedPayers={state.streamUser.policy_holders.map((ph) => ph.payer_id)}
-          choosePayer={(args) =>
-            setStep4({ payer: args.payer, dependent: !!args.dependent })
-          }
-          returnSelectEnrollProcess={!!props.fixCredentials && setStep1}
-          doneStep3={props.doneStep3}
-          dropDown={state.streamEmployer.show_all_payers_in_easy_enroll}
-          isDemo={!!props.isDemo}
-        />
-      );
-    }
-
-    if (state.step === 4 && state.streamPayer && state.streamTenant) {
-      if (props.renderPayerForm === false) {
-        props.doneStep4?.({
-          streamPayer: state.streamPayer,
-          formJsonSchema: state.streamPayer.onboard_form,
-          tenantTerms: state.streamTenant.terms_of_use,
-          streamTenant: state.streamTenant,
-          // Back-compat with 0.7.7 which surfaced `logoUrl` as a
-          // top-level convenience field sourced from the *tenant* logo
-          // (the deleted 0.7.7 test asserted logoUrl === tenant.logo_url).
-          // Custom render-prop integrators that read it for tenant
-          // branding keep working.
-          logoUrl:
-            (state.streamTenant as { logo_url?: string } | null)?.logo_url ??
-            null,
-          toggleTermsOfUse,
-          returnToChoosePayer: setStep3,
-          validateCreds,
-          email: state.streamUser?.email
-        });
-        return <div />;
-      }
-      // Render the credentials form unconditionally; the Terms-of-Use
-      // overlay portals on top of it via a Dialog when state.termsOfUse
-      // is true. This keeps the form mounted (user inputs + checkbox
-      // state survive without a formData round trip) and avoids the
-      // jarring full-screen swap the 0.7.x flow had.
-      return (
-        <>
-          <EnterCredentials
-            streamPayer={state.streamPayer}
-            streamPolicyHolder={state.streamPolicyHolder}
-            tenantTerms={state.streamTenant.terms_of_use}
-            formData={state.formData}
-            email={state.streamUser?.email || ''}
-            streamTenant={state.streamTenant}
-            toggleTermsOfUse={toggleTermsOfUse}
-            enableInterop={props.enableInterop}
-            enableInteropSinglePage={props.enableInteropSinglePage}
-            enablePatientAccessAPI={props.enablePatientAccessAPI}
-            enablePatientAccessAPISinglePage={
-              props.enablePatientAccessAPISinglePage
-            }
-            includePayerBlogs={props.includePayerBlogs}
-            userAddedUISchema={props.userSchema}
-            returnToStep3={
-              state.streamPayers &&
-              state.streamPayers.length > 1 &&
-              state.policyHolderId === null
-                ? setStep3
-                : false
-            }
-            returnToStep2={
-              props.fixCredentials && state.policyHolderId !== null
-                ? setStep2
-                : false
-            }
-            validateCreds={validateCreds}
-            doneStep4={props.doneStep4}
-            donePopUp={props.donePopUp}
-          />
-          <TermsOfUse
-            open={state.termsOfUse}
-            termsHtmlString={state.termsHtmlString || ''}
-            onClose={() => toggleTermsOfUse()}
-            doneTermsOfService={props.doneTermsOfService}
-          />
-        </>
-      );
-    }
-
-    if (state.step === 5) {
-      // The realtime / 2FA inline branches that used to live here are
-      // gone — non-blocking validation is the only path now and is
-      // rendered by ActiveValidationsHero (inline in FixCredentials /
-      // ChoosePayer) + ActiveValidationsPanel (corner). Step 5 is the
-      // FinishedEasyEnroll end widget only.
-      if (state.streamTenant && state.streamUser && state.streamEmployer) {
-        const credValid = props.realTimeVerification
-          ? state.credentialsValid
-          : true;
-        const returnFn = credValid
-          ? restartProcess
-          : () => setStep4({ payer: state.streamPayer || undefined });
-        if (props.renderEndWidget === false) {
-          props.doneEasyEnroll?.({
-            tenant: state.streamTenant,
-            payer: state.streamPayer,
-            user: state.streamUser,
-            policyHolder: state.streamPolicyHolder,
-            employer: state.streamEmployer,
-            credentialsValid: credValid,
-            pending: state.finishedEasyEnrollPending,
-            endingMessage: state.endMessage,
-            returnFlowFunction: returnFn
-          });
-          return <div />;
-        }
-        return (
-          <FinishedEasyEnroll
-            tenant={state.streamTenant}
-            payer={state.streamPayer}
-            user={state.streamUser}
-            policyHolder={state.streamPolicyHolder}
-            employer={state.streamEmployer}
-            credentialsValid={credValid}
-            pending={state.finishedEasyEnrollPending}
-            endingMessage={state.endMessage}
-            returnToPage={returnFn}
-            doneEasyEnroll={props.doneEasyEnroll}
-          />
-        );
-      }
-    }
-
-    return (
-      <Card>
-        <Title order={3}>Failed to find an associated step</Title>
-      </Card>
-    );
+    if (state.loading) return renderLoadingCard();
+    if (state.step === -1) return renderConfigError();
+    let rendered: ReactNode = null;
+    if (state.step === 1) rendered = renderStep1_SelectEnrollProcess();
+    else if (state.step === 2) rendered = renderStep2_FixCredentials();
+    else if (state.step === 3) rendered = renderStep3_ChoosePayer();
+    else if (state.step === 4) rendered = renderStep4_EnterCredentials();
+    else if (state.step === 5) rendered = renderStep5_FinishedEasyEnroll();
+    return rendered ?? renderUnknownStep();
   };
 
   return (
     <>
+      {/* Hero mounted at SDK level so a validation hitting 2FA while
+          the user is on SelectEnrollProcess / EnterCredentials /
+          FinishedEasyEnroll still gets actionable UI. Previously the
+          hero was inline-mounted in ChoosePayer / FixCredentials only,
+          which left those other steps with a status-only panel and no
+          way to enter the code. */}
+      {useNonBlockingValidation && <ActiveValidationsHero />}
       {renderWizard()}
       {useNonBlockingValidation && state.streamUser && state.streamEmployer && (
         <ValidationStreamRunner
           email={state.streamUser.email}
           employerId={state.streamEmployer.id}
+          onTerminal={(terminal) => {
+            // Bridge to the 0.7-era doneEasyEnroll shape. Payload
+            // mirrors the documented `{ employer, payer, tenant,
+            // policyHolder, user, endingMessage, pending }` callback
+            // surface from docs/client-usage.md so custom end-widget
+            // code reading `payer.logo_url` etc. keeps working under
+            // the default non-blocking flow. Without this, customers
+            // relying on doneEasyEnroll for terminal notification
+            // would silently stop receiving callbacks.
+            props.doneEasyEnroll?.({
+              policyHolder: {
+                policy_holder_id: terminal.policyHolderId,
+                payer_id: terminal.payerId,
+                login_problem: terminal.loginProblem,
+                login_needs_correction: !terminal.credentialsValid,
+                login_correction_message: terminal.loginCorrectionMessage
+              },
+              payer: terminal.payer,
+              employer: state.streamEmployer,
+              tenant: state.streamTenant,
+              user: state.streamUser,
+              // Mirror the top-level `credentialsValid` field the
+              // built-in end widget and the renderEndWidget={false}
+              // callback path pass through. Integrations branching on
+              // the final result get a consistent shape regardless of
+              // whether they took the SSE non-blocking path or the
+              // legacy submit-and-trust path.
+              credentialsValid: terminal.credentialsValid,
+              endingMessage: terminal.loginCorrectionMessage,
+              pending: false
+            });
+          }}
         />
       )}
       {useNonBlockingValidation && <ActiveValidationsPanel />}

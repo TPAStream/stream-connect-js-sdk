@@ -50,7 +50,7 @@ As of SDK version 0.4.7 the CDN provider is versioned. Past versions remain avai
  * The version is selected by the `src` attribute on your script tag.
     * `"https://app.tpastream.com/static/js/sdk.js"` -> Latest published version of the SDK.
     * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` -> A specific version. Examples:
-        * `"https://app.tpastream.com/static/js/sdk-v-0.8.0.js"`
+        * `"https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"` (the current 0.8 publish; once 0.8.0 ships, swap to `sdk-v-0.8.0.js`)
         * `"https://app.tpastream.com/static/js/sdk-v-0.7.7.js"` (last 0.7.x)
 
 NPM package
@@ -92,7 +92,7 @@ StreamConnect({
 | `includePayerBlogs`           | Enable optional payer updates blog on each enrollment form. Has some additional info about the payer.   | Boolean | `includePayerBlogs: false`                            | `false`   |
 | `theme`                       | Branding overrides applied as scoped CSS variables on the SDK root subtree. See [Theme](./theme.md).    | Object  | `theme: { primaryColor: '#2563eb' }`                  | `{}`      |
 | `theme.primaryColor`          | Hex color (e.g. `#2563eb`) used to recolor buttons, links, focus rings, and progress bars. Scoped to the SDK subtree; will not bleed into host-page CSS. | String  | `theme: { primaryColor: '#2563eb' }`                  | (built-in indigo) |
-| `enablePatientAccessAPI`      | Enables Patient Access API payers (carriers that authenticate via a redirect to the carrier website rather than collecting credentials inline). See [Interop](./interop.md). | Boolean | `enablePatientAccessAPI: true` | `false` |
+| `enablePatientAccessAPI`      | **Default changed in 0.8 to `true`.** Enables Patient Access API payers (carriers that authenticate via a redirect to the carrier website rather than collecting credentials inline). With this flag on (the default), PAA-routed payers take the OAuth-popup branch; with it off, they fall through to the raw credentials form which exposes an `interoperability_refresh_token` field no real user can fill. See [Interop](./interop.md) and the [0.7→0.8 migration note](./migration-0.7-to-0.8.md#7-enablepatientaccessapi-default-flipped-to-true). | Boolean | `enablePatientAccessAPI: false` | `true` (was `false` in 0.7.x) |
 | `enablePatientAccessAPISinglePage` | Same as `enablePatientAccessAPI` but performs the redirect in the current tab instead of opening a new window. If true, takes precedence over `enablePatientAccessAPI`. | Boolean | `enablePatientAccessAPISinglePage: true` | `false` |
 | `enableInterop`               | **Deprecated** alias for `enablePatientAccessAPI`. Still works indefinitely; using it logs a one-time console warning. | Boolean | `enableInterop: true` | `false` |
 | `enableInteropSinglePage`     | **Deprecated** alias for `enablePatientAccessAPISinglePage`. Same behavior. | Boolean | `enableInteropSinglePage: true` | `false` |
@@ -106,7 +106,7 @@ StreamConnect({
 | `renderPayerForm`             | Render the built-in credentials form. If `false`, drive it from `doneCreatedForm`. | Boolean | `renderPayerForm: false`                              | `true`    |
 | `renderEndWidget`             | Render the built-in end widget. If `false`, drive it from `doneEasyEnroll`. | Boolean | `renderEndWidget: false`                              | `true`    |
 | `userSchema`                  | **Changed in 0.8.** In 0.7.x this drove `react-jsonschema-form` UI-schema customization for the credentials form. `react-jsonschema-form` was removed in 0.8, so `userSchema` no longer affects rendering; the object is forwarded into the credential-submit payload for downstream consumers, and the SDK emits a one-time console warning when set. File an issue if you relied on UI-schema-driven extra fields. | Object  | `userSchema: {}`                                      | `{}`      |
-| `fixCredentials`              | Enable [fix-credentials functionality](./fix-credentials.md) in the SDK. Requires `connectAccessToken`. | Boolean | `fixCredentials: true` | `false` |
+| `fixCredentials`              | **Deprecated in 0.8.** No longer needed: [fix-credentials mode](./fix-credentials.md) is now derived automatically from the presence of `connectAccessToken`. Accepted for back-compat and ignored; passing it logs a one-time console deprecation warning. | Boolean | `fixCredentials: true` | n/a |
 | `maxRetries`                  | **Deprecated in 0.8.** Was the retry count for the 0.7.x polling validation loop. The 0.8 SDK uses SSE with no client-side retry knob; this option is accepted for back-compat but has no effect. | Number  | `maxRetries: 3` | n/a |
 | `_overrideBaseUrl`            | Override the API base URL the SDK talks to. Used by the `/sdk-test` sandbox and integration tests; do not set in production. | String  | `_overrideBaseUrl: 'https://stevedev.tpastream.com'` | (`app.tpastream.com`) |
 
@@ -117,7 +117,9 @@ When the Patient Access API flow returns the user from a carrier site back to th
 * **`?accessToken=...`**: a fresh connect-access token minted by `app.tpastream.com` after the carrier redirect completes. The SDK reads it on load, uses it for the remainder of the session, and (regardless of whether `connectAccessToken` was already set in the init object) takes the URL value as the freshest. The token is single-use.
 * **`?forceTPAStreamSdkEnd=1`**: set by the redirect URL the SDK constructs when `enablePatientAccessAPISinglePage` is `true`. Tells this load to skip straight to the end widget instead of restarting at choose-payer.
 
-Both parameters are stripped from the URL via `history.replaceState` after the SDK reads them. `replaceState` (not `pushState`) is used deliberately: the back button cannot restore the original URL, so the single-use access token cannot leak via history navigation, browser autofill, or referrer headers.
+Both parameters are stripped from the URL via `history.replaceState` after the SDK reads them. `replaceState` (not `pushState`) is used deliberately: the back button cannot restore the original URL, so the single-use access token cannot leak via history navigation or browser autofill.
+
+> **Referrer caveat:** `replaceState` runs only after the SDK script has loaded and executed. Any resources, third-party scripts, or analytics beacons fetched *earlier* in the page lifecycle can still receive the token-bearing URL in the `Referer` header. For the full referrer-protection story (host-page `<meta name="referrer">` settings, CSP `Content-Security-Policy: referrer`, and the redirect-URL hygiene we recommend), see the Pre-SDK referrer caveat in [`connect-access-token.md`](./connect-access-token.md).
 
 You do not need to handle these parameters yourself; this section documents them so that integrators who inspect the URL or rely on `popstate` events know what to expect.
 
@@ -161,7 +163,7 @@ StreamConnect({
 ```
 
 ### `doneSelectEnrollProcess`
-`doneSelectEnrollProcess` is fired right after doneGetSDK when `fixCredentials` is `true`. This is primarly meant for styling the two buttons.
+`doneSelectEnrollProcess` is fired right after doneGetSDK when the SDK is in member-portal mode (a `connectAccessToken` was supplied at init). This is primarily meant for styling the two buttons.
 
 Example Usage:
 ```javascript
@@ -175,7 +177,7 @@ StreamConnect({
 ```
 
 ### `doneFixCredentials`
-`doneFixCredentials` is is fired after the Fix Credentials card is clicked in the select enroll flow. This only fires when `fixCredentials` is `true`
+`doneFixCredentials` is fired after the Fix Credentials card is clicked in the select-enroll flow. This only fires in member-portal mode (when a `connectAccessToken` was supplied at init).
 
 Example Usage:
 ```javascript

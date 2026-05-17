@@ -32,6 +32,8 @@ Latest highlights below. The full per-version changelog lives in
   kept indefinitely).
 * `realtimeTimeout` and `maxRetries` accepted but `@deprecated`
   no-ops (knobs for the deleted polling loop).
+* `fixCredentials` accepted but `@deprecated` and ignored;
+  member-portal mode is derived from `connectAccessToken` presence.
 * Backward-compatible with 0.7.7 at the `init()` call site. See
   [`docs/migration-0.7-to-0.8.md`](./docs/migration-0.7-to-0.8.md)
   for the upgrade story.
@@ -61,10 +63,14 @@ Common entry points:
 * [Errors](docs/error.md)
 * [FAQ](docs/faq.md)
 
-The separate React Native hook package (`stream-connect-sdk-hook`)
-is **deprecated as of 0.6.3** in favor of embedding the main SDK in
-a WebView. See [`sdk-hook/docs/README.md`](sdk-hook/docs/README.md)
-for the deprecation notice and the recommended WebView pattern;
+The separate React Native hook package (`stream-connect-sdk-hook@0.6.2`)
+is **soft-deprecated** in favor of embedding the main SDK in a WebView.
+The published 0.6.2 tarball on npm keeps working for existing
+integrations; we're not republishing because the hook's source
+imports from `assets/shared/` which the 0.8 rewrite deleted, and
+the right path for new integrations is the WebView pattern anyway.
+See [`sdk-hook/docs/README.md`](sdk-hook/docs/README.md) for the
+deprecation notice and recommended pattern;
 [Quickstart > Mobile](docs/quickstart.md#mobile-android-ios-react-native)
 has end-to-end examples.
 

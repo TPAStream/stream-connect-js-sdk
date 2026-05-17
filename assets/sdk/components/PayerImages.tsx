@@ -5,6 +5,7 @@ import {
   CRITICAL_LOGIN_PROBLEMS,
   type StreamPayer,
   type StreamPolicyHolderShort,
+  VALID_LOGIN_PROBLEMS,
   WARNING_LOGIN_PROBLEMS
 } from '../types';
 
@@ -49,10 +50,11 @@ const severityFor = (
   loginProblem: string | null,
   lastSyncIso: string | null | undefined
 ): Severity => {
-  if (loginProblem && CRITICAL_LOGIN_PROBLEMS.has(loginProblem)) {
+  if (!loginProblem) return 'ok';
+  if (CRITICAL_LOGIN_PROBLEMS.has(loginProblem)) {
     return 'critical';
   }
-  if (loginProblem && WARNING_LOGIN_PROBLEMS.has(loginProblem)) {
+  if (WARNING_LOGIN_PROBLEMS.has(loginProblem)) {
     // A recent successful sync downgrades warning to ok visually:
     // the carrier is still pulling claims, the user just has an
     // outstanding action item (often dismissable for that PH alone).
@@ -62,7 +64,23 @@ const severityFor = (
     }
     return 'warning';
   }
-  return 'ok';
+  // Backend-accepted "this carrier is fine" enum values that aren't in
+  // the warning or critical sets (`valid`, `inactive`). Render as ok
+  // — they're explicit signals, not unknowns. (Most of the WARNING
+  // values are also in VALID_LOGIN_PROBLEMS because they're "valid
+  // creds but the user still needs to do something"; those got caught
+  // above and don't reach here.)
+  if (VALID_LOGIN_PROBLEMS.has(loginProblem)) {
+    return 'ok';
+  }
+  // An unknown non-null login_problem (e.g. a new enum value the
+  // backend added before the SDK was bumped) is treated as `warning`
+  // rather than `ok`. Showing "Action needed" with the raw problem
+  // string (via labelFor) is the safe fail-forward: a member who
+  // genuinely has a fixable issue won't be lulled into believing the
+  // connection is healthy. Pre-c5f9da0 this returned `ok` for unknowns,
+  // which hid real action items.
+  return 'warning';
 };
 
 interface PayerImagesProps {
@@ -231,9 +249,27 @@ export const FixPayerImages = ({
   choosePolicyHolder
 }: FixPayerImagesProps) => {
   const { validations } = useActiveValidations();
+  // Only count validations whose UX state is genuinely mid-flight
+  // (the user is still waiting on a server response). Once a
+  // validation transitions to success/failure/pending_async the tile
+  // should drop the "Validating now" badge and unforce the severity
+  // override; otherwise a failed submit leaves the tile stuck on
+  // "Validating now" with ok severity even though the hero + panel
+  // both show "Couldn't connect". The SDK's terminal-refresh effect
+  // updates streamUser.policy_holders right after the failure lands,
+  // so the tile's real severity / label come from the refreshed PH.
   const inFlightByPhId = useMemo(() => {
     const m = new Map<number, (typeof validations)[number]>();
-    for (const v of validations) m.set(v.policyHolderId, v);
+    for (const validation of validations) {
+      if (
+        validation.state === 'pending' ||
+        validation.state === 'method_choice' ||
+        validation.state === 'awaiting_code' ||
+        validation.state === 'submitting'
+      ) {
+        m.set(validation.policyHolderId, validation);
+      }
+    }
     return m;
   }, [validations]);
 
