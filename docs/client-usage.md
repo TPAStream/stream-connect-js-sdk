@@ -50,7 +50,7 @@ As of SDK version 0.4.7 the CDN provider is versioned. Past versions remain avai
  * The version is selected by the `src` attribute on your script tag.
     * `"https://app.tpastream.com/static/js/sdk.js"` -> Latest published version of the SDK.
     * `"https://app.tpastream.com/static/js/sdk-v-<VersionNumber>.js"` -> A specific version. Examples:
-        * `"https://app.tpastream.com/static/js/sdk-v-0.8.0-alpha.1.js"` (the current 0.8 publish; once 0.8.0 ships, swap to `sdk-v-0.8.0.js`)
+        * `"https://app.tpastream.com/static/js/sdk-v-0.8.0.js"` (current 0.8)
         * `"https://app.tpastream.com/static/js/sdk-v-0.7.7.js"` (last 0.7.x)
 
 NPM package

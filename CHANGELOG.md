@@ -4,7 +4,7 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
-## 0.8.0 (currently published as `0.8.0-alpha.1`)
+## 0.8.0
 
 ### Look and feel
 

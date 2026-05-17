@@ -4,7 +4,7 @@
 
 ## Version
 
-### 0.8.0 (currently published as `0.8.0-alpha.1` on npm + CDN)
+### 0.8.0
 
 Polished default appearance, React 19 + TypeScript, real-time credential-validation streaming, and a substantial dependency cleanup. The init() contract is backward-compatible: every option supported in 0.7.7 keeps working, including the custom render props (`renderChoosePayer`, `renderPayerForm`, `renderEndWidget`).
 
