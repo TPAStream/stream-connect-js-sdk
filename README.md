@@ -6,7 +6,7 @@
 
 ### 0.8.1
 
-Auto-recover from expired `connectAccessToken`. Long-lived pages no longer surface a confusing 422 when the ~60-minute server-side TTL elapses; integrations get a refresh hook or a clean expiry event instead. See [CHANGELOG.md](./CHANGELOG.md) for the full notes.
+Handle expired `connectAccessToken` cleanly. Long-lived pages no longer surface the misleading 422 when the ~60-minute server-side TTL elapses; integrations opt into transparent refresh via a new server-side endpoint hook, or a clean expiry callback as a fallback. See the [Refreshing an expired token](./docs/connect-access-token.md#refreshing-an-expired-token-081) integration guide.
 
 ### 0.8.0
 
@@ -23,14 +23,16 @@ Latest highlights below. The full per-version changelog lives in
 
 ### 0.8.1 highlights
 
-* Auto-recover from expired `connectAccessToken` (the ~60-minute
-  server-side TTL). New optional `connectAccessTokenRefreshFn` init
-  hook for transparent refresh + retry; new
-  `onConnectAccessTokenExpired` callback (and `tpastream-connect-token-expired`
-  window event) for hosts that want to render a "session expired"
-  UI. Parallel-request stampede guarded; notifications coalesced to
-  one per expiry cycle. Strictly additive; no behavior change for
-  integrations that don't opt in.
+* Handle expired `connectAccessToken` (the ~60-minute server-side
+  TTL) without the misleading 422. Opt in to transparent recovery by
+  wiring `connectAccessTokenRefreshFn` against a server-side refresh
+  endpoint (Flask + Express snippets in [docs](./docs/connect-access-token.md#refreshing-an-expired-token-081)),
+  or use the `onConnectAccessTokenExpired` callback (and
+  `tpastream-connect-token-expired` window event) to render a
+  "session expired" UI as a fallback. Parallel-request stampede
+  guarded; notifications coalesced to one per expiry cycle.
+  Integrations that wire nothing see a cleaner error message but
+  still need a page reload to recover.
 
 ### 0.8.0 highlights
 

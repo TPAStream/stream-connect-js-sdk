@@ -6,34 +6,40 @@ release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
 ## 0.8.1
 
-### Auto-recover from expired connectAccessToken
+### Handle expired connectAccessToken without a confusing error
 
 Connect access tokens have a ~60 minute server-side TTL. Previously,
 when a member left an SDK-hosting page open past that window and came
-back to interact, the next API call failed with a 422 that surfaced
-as a generic error. The only recovery was a manual page reload, which
-silently discarded any in-progress credential entry.
+back to interact, the next API call failed with a misleading 422
+error ("A connect access token can only be used once...") that
+pointed integrators toward the wrong fix.
 
 The SDK now detects the backend's expired-token shape
 (`{status: 422, error_code: "expired_connect_token"}`) via an axios
-response interceptor and reacts in one of two ways depending on how
-the integration is wired:
+response interceptor. **What happens next depends on how you wire
+it** — there's no zero-config auto-recovery because only your server
+holds the SDK secret key needed to mint a new token:
 
-* **If `connectAccessTokenRefreshFn` is set** (new init option): the
-  SDK calls the hook for a fresh token, swaps it into the
+* **Recommended: wire `connectAccessTokenRefreshFn`** — a new init
+  option that points at a refresh endpoint on your server. The SDK
+  calls it for a fresh token, swaps it into the
   `X-Connect-Access-Token` header, and retries the failed request
-  transparently. Multiple parallel failed requests share a single
-  refresh attempt (stampede guard), so the host's mint endpoint sees
-  one call regardless of fan-out.
-* **Otherwise**: fires `onConnectAccessTokenExpired` (new init
-  callback) and dispatches a `tpastream-connect-token-expired`
-  CustomEvent on `window`. Coalesced to one notification per expiry
-  cycle. Use to render a "session expired, please reload" UI in the
-  host page.
-
-Both options are optional and additive. Integrations that don't wire
-either keep the existing behavior (the 422 bubbles to the existing
-error chain) with a slightly cleaner server-side message.
+  transparently — the member sees no error. Multiple parallel failed
+  requests share a single refresh attempt (stampede guard). See
+  [`docs/connect-access-token.md` → Refreshing an expired
+  token](./docs/connect-access-token.md#refreshing-an-expired-token-081)
+  for the server-side endpoint pattern (Flask + Express examples)
+  and the SDK-side wiring.
+* **Fallback: wire `onConnectAccessTokenExpired`** — a new init
+  callback that fires when no refresh hook is wired or the refresh
+  rejected. Use to render a "session expired, please reload" UI on
+  the host page. Also dispatched as a
+  `tpastream-connect-token-expired` CustomEvent on `window` for
+  global listeners. Coalesced to one notification per expiry cycle.
+* **No wiring at all**: the only change you see is a cleaner
+  server-side error message in the existing error-handler chain
+  (`handleFormErrors` etc.). The 422 still bubbles up; the member
+  still has to reload the page to recover.
 
 See [`docs/client-usage.md`](./docs/client-usage.md) for the option
 reference.
