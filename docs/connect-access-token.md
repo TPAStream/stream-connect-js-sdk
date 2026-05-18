@@ -104,6 +104,32 @@ app.post('/api/tpa-sdk-refresh-token', yourLoginRequired, async (req, res) => {
 });
 ```
 
+**ASP.NET Core (C#):**
+
+```csharp
+[Authorize] // gate with your member-session auth
+[HttpPost("api/tpa-sdk-refresh-token")]
+public async Task<IActionResult> TpaSdkRefreshToken(
+    [FromServices] IHttpClientFactory clientFactory,
+    [FromServices] IConfiguration config)
+{
+    var http = clientFactory.CreateClient();
+    var payload = new
+    {
+        connect_access_key = config["TpaSdk:PublicKey"],
+        connect_secret_key = config["TpaSdk:SecretKey"],
+    };
+    using var response = await http.PostAsJsonAsync(
+        "https://app.tpastream.com/api/create-connect-token", payload);
+    if (!response.IsSuccessStatusCode)
+        return StatusCode(502, new { error = "refresh failed" });
+    var doc = await response.Content.ReadFromJsonAsync<JsonElement>();
+    return Ok(new { token = doc.GetProperty("data").GetString() });
+}
+```
+
+The pattern is the same in every backend: an authenticated POST that proxies to `app.tpastream.com/api/create-connect-token` with your stored secret + public keys. PHP, Ruby, Go, Java — same shape, swap the HTTP client for whatever's idiomatic.
+
 ### Step 2: wire `connectAccessTokenRefreshFn` on the SDK
 
 ```js
