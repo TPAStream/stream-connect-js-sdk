@@ -153,12 +153,12 @@ your current email.
 When implementing the SDK all carrier credentials will be nested under an employer in TPAStream. This block will define which
 employer your are interested in.
 
-To get the Key for an existing employer go to the [Employers Page](https://app.tpastream.com/b/employers) in the TPAStream Admin portal. From there search up the desired employer. Then enter the details page of said employer. From there navigate to the **support** tab.
+To get the Key for an existing employer go to the [Employers Page](https://app.tpastream.com/d/employers) in the TPAStream Admin portal. From there search up the desired employer. Then enter the details page of said employer. From there open the **Support** tab.
 
 You will see a screen similar to this:
-![Employer Key Page](quickstart-screenshots/employer-key-page.png)
+![Employer Key Page](https://tpastream-public.s3.amazonaws.com/webapp-docs/employers/employer-key-page.png)
 
-You will see `Internal Key` as a section. Grab the key directly across from that and put it into the systemKey config option in the employer object. In this case it is highleted and called `testing-sdk`.
+The key field is labeled per-vendor — e.g. **Alegeus Key**, **OCA Key**, or simply **Key** depending on which integration the employer is attached to. Grab that value (in the screenshot it's `BBPGUIDE`) and put it into the `systemKey` config option in the employer object.
 
 
 # Step 6 -- Init
