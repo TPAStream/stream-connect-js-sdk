@@ -4,6 +4,46 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.1
+
+### Handle expired connectAccessToken without a confusing error
+
+Connect access tokens have a ~60 minute server-side TTL. Previously,
+when a member left an SDK-hosting page open past that window and came
+back to interact, the next API call failed with a misleading 422
+error ("A connect access token can only be used once...") that
+pointed integrators toward the wrong fix.
+
+The SDK now detects the backend's expired-token shape
+(`{status: 422, error_code: "expired_connect_token"}`) via an axios
+response interceptor. **What happens next depends on how you wire
+it** — there's no zero-config auto-recovery because only your server
+holds the SDK secret key needed to mint a new token:
+
+* **Recommended: wire `connectAccessTokenRefreshFn`** — a new init
+  option that points at a refresh endpoint on your server. The SDK
+  calls it for a fresh token, swaps it into the
+  `X-Connect-Access-Token` header, and retries the failed request
+  transparently — the member sees no error. Multiple parallel failed
+  requests share a single refresh attempt (stampede guard). See
+  [`docs/connect-access-token.md` → Refreshing an expired
+  token](./docs/connect-access-token.md#refreshing-an-expired-token-081)
+  for the server-side endpoint pattern (Flask + Express examples)
+  and the SDK-side wiring.
+* **Fallback: wire `onConnectAccessTokenExpired`** — a new init
+  callback that fires when no refresh hook is wired or the refresh
+  rejected. Use to render a "session expired, please reload" UI on
+  the host page. Also dispatched as a
+  `tpastream-connect-token-expired` CustomEvent on `window` for
+  global listeners. Coalesced to one notification per expiry cycle.
+* **No wiring at all**: the only change you see is a cleaner
+  server-side error message in the existing error-handler chain
+  (`handleFormErrors` etc.). The 422 still bubbles up; the member
+  still has to reload the page to recover.
+
+See [`docs/client-usage.md`](./docs/client-usage.md) for the option
+reference.
+
 ## 0.8.0
 
 ### Look and feel

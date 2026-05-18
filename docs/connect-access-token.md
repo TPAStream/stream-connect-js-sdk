@@ -40,7 +40,143 @@ StreamConnect({
 
 This JWT expires after 1 hour.
 
-## Mid-session token refresh (0.8+)
+## Refreshing an expired token (0.8.1+)
+
+Connect access tokens expire after 1 hour. When a member leaves your
+SDK-hosting page open past that window and comes back to interact,
+the next API call fails with a 422 and `error_code:
+"expired_connect_token"`. The 0.8.1 SDK can recover transparently
+**if** you wire a refresh hook — but the refresh has to go through
+your server, because only your server holds the SDK secret key.
+
+### Why this can't be automatic
+
+The whole point of the connect access token is that the secret key
+never reaches the browser. If the SDK could mint its own tokens, the
+secret would have to be in JS code where any user with devtools could
+read it. So the SDK can't refresh on its own — it can only ask your
+server for a fresh token.
+
+### Step 1: expose a refresh endpoint on your server
+
+This endpoint does the same `POST` to `/api/create-connect-token`
+that your original page-render did, returning the new JWT to the
+browser. **Gate it with the same auth you use for the member's
+session** — anyone who can call it can extend any member's SDK
+session indefinitely.
+
+**Flask:**
+
+```python
+from flask import jsonify, request
+import requests
+
+@app.route("/api/tpa-sdk-refresh-token", methods=["POST"])
+@your_login_required
+def tpa_sdk_refresh_token():
+    response = requests.post(
+        "https://app.tpastream.com/api/create-connect-token",
+        json={
+            "connect_access_key": app.config["TPA_SDK_PUBLIC_KEY"],
+            "connect_secret_key": app.config["TPA_SDK_SECRET_KEY"],
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    return jsonify(token=response.json()["data"])
+```
+
+**Express:**
+
+```js
+app.post('/api/tpa-sdk-refresh-token', yourLoginRequired, async (req, res) => {
+  const r = await fetch('https://app.tpastream.com/api/create-connect-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      connect_access_key: process.env.TPA_SDK_PUBLIC_KEY,
+      connect_secret_key: process.env.TPA_SDK_SECRET_KEY,
+    }),
+  });
+  if (!r.ok) return res.status(502).json({ error: 'refresh failed' });
+  const { data } = await r.json();
+  res.json({ token: data });
+});
+```
+
+**ASP.NET Core (C#):**
+
+```csharp
+[Authorize] // gate with your member-session auth
+[HttpPost("api/tpa-sdk-refresh-token")]
+public async Task<IActionResult> TpaSdkRefreshToken(
+    [FromServices] IHttpClientFactory clientFactory,
+    [FromServices] IConfiguration config)
+{
+    var http = clientFactory.CreateClient();
+    var payload = new
+    {
+        connect_access_key = config["TpaSdk:PublicKey"],
+        connect_secret_key = config["TpaSdk:SecretKey"],
+    };
+    using var response = await http.PostAsJsonAsync(
+        "https://app.tpastream.com/api/create-connect-token", payload);
+    if (!response.IsSuccessStatusCode)
+        return StatusCode(502, new { error = "refresh failed" });
+    var doc = await response.Content.ReadFromJsonAsync<JsonElement>();
+    return Ok(new { token = doc.GetProperty("data").GetString() });
+}
+```
+
+The pattern is the same in every backend: an authenticated POST that proxies to `app.tpastream.com/api/create-connect-token` with your stored secret + public keys. PHP, Ruby, Go, Java — same shape, swap the HTTP client for whatever's idiomatic.
+
+### Step 2: wire `connectAccessTokenRefreshFn` on the SDK
+
+```js
+StreamConnect({
+  // ... your existing config ...
+  connectAccessToken: '<initial-token-from-page-render>',
+  connectAccessTokenRefreshFn: async () => {
+    const r = await fetch('/api/tpa-sdk-refresh-token', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+    if (!r.ok) throw new Error(`refresh failed: ${r.status}`);
+    return (await r.json()).token;
+  },
+});
+```
+
+When the SDK detects an expired token, it calls this function, swaps
+the new value into its `X-Connect-Access-Token` header, and retries
+the failed request — the member sees no error. Multiple parallel
+failed requests share a single refresh attempt (stampede guard) so
+your endpoint gets called once per expiry cycle, not once per request.
+
+### Fallback: notification-only
+
+If you can't add a refresh endpoint (legacy host, static site, etc.),
+wire `onConnectAccessTokenExpired` instead. The SDK will surface the
+expiry to your callback (and dispatch a
+`tpastream-connect-token-expired` CustomEvent on `window`) so you can
+prompt the member to reload:
+
+```js
+StreamConnect({
+  // ... your existing config ...
+  onConnectAccessTokenExpired: () => {
+    if (confirm('Your session has expired. Reload to continue?')) {
+      window.location.reload();
+    }
+  },
+});
+```
+
+The reload triggers a fresh page render, which mints a fresh
+`connectAccessToken` server-side. The trade-off versus the refresh
+hook is that the member loses any in-progress credential entry.
+
+## Mid-session token refresh (Patient Access API redirect)
 
 After a Patient Access API redirect completes, `app.tpastream.com`
 appends a fresh `?accessToken=...` query parameter to the return

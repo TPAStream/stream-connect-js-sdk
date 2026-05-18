@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.1
+
+Handle expired `connectAccessToken` cleanly. Long-lived pages no longer surface the misleading 422 when the ~60-minute server-side TTL elapses; integrations opt into transparent refresh via a new server-side endpoint hook, or a clean expiry callback as a fallback. See the [Refreshing an expired token](./docs/connect-access-token.md#refreshing-an-expired-token-081) integration guide.
+
 ### 0.8.0
 
 Polished default appearance, React 19 + TypeScript, real-time credential-validation streaming, and a substantial dependency cleanup. The init() contract is backward-compatible: every option supported in 0.7.7 keeps working, including the custom render props (`renderChoosePayer`, `renderPayerForm`, `renderEndWidget`).
@@ -16,6 +20,19 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.1 highlights
+
+* Handle expired `connectAccessToken` (the ~60-minute server-side
+  TTL) without the misleading 422. Opt in to transparent recovery by
+  wiring `connectAccessTokenRefreshFn` against a server-side refresh
+  endpoint (Flask + Express snippets in [docs](./docs/connect-access-token.md#refreshing-an-expired-token-081)),
+  or use the `onConnectAccessTokenExpired` callback (and
+  `tpastream-connect-token-expired` window event) to render a
+  "session expired" UI as a fallback. Parallel-request stampede
+  guarded; notifications coalesced to one per expiry cycle.
+  Integrations that wire nothing see a cleaner error message but
+  still need a page reload to recover.
 
 ### 0.8.0 highlights
 
