@@ -205,10 +205,122 @@ const SHOTS = [
       await page.waitForTimeout(500);
     },
     clip: FRAME
+  },
+  {
+    // The post-credential-submit "Connecting…" hero state. Mocks
+    // the credential submit so we get a fake task_id immediately,
+    // then stalls the SSE progress stream so the hero stays in
+    // 'pending' instead of transitioning to a terminal state.
+    id: 'realtime-validation',
+    viewport: { width: 960, height: 900 },
+    out: 'flow-screenshots/realtime-validation.png',
+    realToken: true,
+    init: (t) => realInit(t),
+    routes: [
+      // Stub the POST credential submit so we don't wait on the
+      // real backend (and don't actually queue a real validation).
+      // The SDK reads task_id / task_token / policy_holder_id off
+      // response.data.data — see assets/sdk/services/requests.ts.
+      [
+        '**/sdk-api/policy_holder_sdk/policy_holder**',
+        {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              task_id: 'screenshot-fake-task-id',
+              task_token: 'screenshot-fake-task-token',
+              policy_holder_id: 999_999
+            }
+          })
+        }
+      ],
+      // Hold the SSE channel open without delivering any events so
+      // the validation stays in its initial 'pending' state. The
+      // `route.fulfill` never resolves until the screenshot is
+      // taken and the page closes; that's how `addValidation` stays
+      // on 'Connecting…' instead of either pending_async (clean
+      // close, no terminal) or failure (abort/error).
+      [
+        '**/v3/sdk/progress/*/stream*',
+        async (route) => {
+          await new Promise((r) => setTimeout(r, 45_000));
+          await route.fulfill({
+            status: 200,
+            contentType: 'text/event-stream',
+            body: ''
+          });
+        }
+      ]
+    ],
+    drive: async (page) => {
+      // Real-token init with connectAccessToken lands on the
+      // SelectEnrollProcess view ("What would you like to do?").
+      // It doesn't expose a stable id; identify it by its
+      // "Add a new carrier" button. Click that to reach choose-payer.
+      const addNewCarrier = page.getByRole('button', {
+        name: /Add a new carrier/i
+      });
+      await addNewCarrier.waitFor({ state: 'visible', timeout: 30000 });
+      await addNewCarrier.click();
+      await page.waitForSelector('#payer-images', { timeout: 15000 });
+      await page
+        .locator('#payer-images')
+        .locator('img, button')
+        .first()
+        .click();
+      await page.waitForSelector('#easy-enroll-form-page');
+      const inputs = page.locator(
+        '#easy-enroll-form-page input:not([type="hidden"]):visible'
+      );
+      const n = await inputs.count();
+      for (let i = 0; i < n; i++) {
+        const el = inputs.nth(i);
+        const type = await el.getAttribute('type');
+        if (type === 'checkbox') {
+          // Tick required Terms-of-Use + claims-acknowledgment
+          // checkboxes; otherwise submit blocks with a validation
+          // error before the credentials POST fires.
+          await el.check({ force: true });
+          continue;
+        }
+        if (type === 'radio') continue;
+        await el.fill('screenshot-placeholder');
+      }
+      // Submit. The submit button's label varies (Submit / Connect /
+      // Continue) so grab any non-secondary button.
+      await page
+        .locator(
+          '#easy-enroll-form-page button[type="submit"], ' +
+            '#easy-enroll-form-page button:has-text("Submit"), ' +
+            '#easy-enroll-form-page button:has-text("Connect")'
+        )
+        .first()
+        .click();
+      // ActiveValidationsHero adds "Connecting…" once the validation
+      // lands in context. Wait for it before capturing.
+      await page
+        .getByText(/Connecting…|Connecting\.\.\./i)
+        .first()
+        .waitFor({ state: 'visible', timeout: 10000 });
+      // The hero mounts as soon as `addValidation` fires, but the
+      // wizard only returns from #easy-enroll-form-page to
+      // #payer-images after `refreshUserPolicyHolders()` resolves.
+      // Wait on the destination explicitly so the underlying view
+      // is always the picker, not the still-mounted credentials
+      // form. (Per Copilot review on #100.)
+      await page.waitForSelector('#payer-images', { timeout: 10000 });
+      // Hide the corner ActiveValidationsPanel for the shot — it
+      // overlaps the hero at the typical 560-px embed width and
+      // duplicates the same "Connecting…" content the hero already
+      // shows. The hero is what this shot is about.
+      await page.addStyleTag({
+        content: '[aria-live="polite"].tpa-absolute { display: none !important; }'
+      });
+      await page.waitForTimeout(400);
+    },
+    clip: FRAME
   }
-  // employer-key-page + realtime-validation still need bespoke setup
-  // (custom employer with missing-config, or a real credentials
-  // submit + SSE). Tracked as PR follow-ups.
 ];
 
 async function startServer({ port = 4178 } = {}) {
@@ -356,8 +468,30 @@ function realInit(tokens, overrides = {}) {
 
 async function captureOne(browser, base, shot, tokens) {
   const page = await browser.newPage({ viewport: shot.viewport });
+  // Surface pageerror + console.error during capture iteration via
+  // SDK_SHOTS_DEBUG=1. Off by default to keep CI-style runs quiet.
+  if (process.env.SDK_SHOTS_DEBUG === '1') {
+    page.on('pageerror', (e) =>
+      console.log(`  pageerror[${shot.id}]:`, e.message)
+    );
+    page.on('console', (m) => {
+      if (m.type() === 'error') {
+        console.log(`  console.error[${shot.id}]:`, m.text().slice(0, 200));
+      }
+    });
+  }
   for (const [pattern, response] of shot.routes || []) {
-    await page.route(pattern, (route) => route.fulfill(response));
+    // `response` is either a fulfill payload object (the common case)
+    // or an async handler (route) => Promise<void> for shots that
+    // need to delay, stream, or otherwise hand-roll the response —
+    // e.g. holding an SSE channel open long enough to capture the
+    // pre-terminal UI state.
+    await page.route(
+      pattern,
+      typeof response === 'function'
+        ? response
+        : (route) => route.fulfill(response)
+    );
   }
   const init = typeof shot.init === 'function' ? shot.init(tokens) : shot.init;
   const url = `${base}/?init=${encodeURIComponent(JSON.stringify(init))}`;
