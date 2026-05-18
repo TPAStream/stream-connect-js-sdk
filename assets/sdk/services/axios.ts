@@ -56,6 +56,17 @@ let _onConnectAccessTokenExpired: (() => void) | undefined;
  * same promise.
  */
 let _refreshInFlight: Promise<string | null> | null = null;
+/**
+ * One-shot guard for the expiry notification path. Without it, N
+ * parallel failed requests in the no-refresh-fn (or
+ * refresh-fn-rejected) branch each independently fire the
+ * `onConnectAccessTokenExpired` callback and dispatch the
+ * `tpastream-connect-token-expired` event. From the customer's POV
+ * the failures are one logical "session expired" event, so we
+ * coalesce to one notification per expiry cycle. Reset on any
+ * successful response so a later expiry can notify again.
+ */
+let _expiredNotificationFired = false;
 
 export const sdkAxios = new Proxy({} as AxiosInstance, {
   get(_target, prop) {
@@ -130,6 +141,9 @@ export const sdkAxiosMaker = ({
       if (refreshed) {
         _sdkAxios.defaults.headers.common['X-Connect-Access-Token'] = refreshed;
       }
+      // Any successful response means we're no longer in an
+      // expired-token state, so a later expiry can notify again.
+      _expiredNotificationFired = false;
       return response;
     },
     async (error) => {
@@ -169,7 +183,20 @@ export const sdkAxiosMaker = ({
           const fresh = await _refreshInFlight;
           if (fresh) {
             _sdkAxios.defaults.headers.common['X-Connect-Access-Token'] = fresh;
-            originalConfig.headers.set('X-Connect-Access-Token', fresh);
+            // axios v1 normalizes request headers to AxiosHeaders
+            // (with `.set`) in the request pipeline, but a custom
+            // adapter or a config that bypassed the pipeline could
+            // leave them as a plain object. Fall back to assignment
+            // so a header-shape edge case can't throw a TypeError
+            // that escapes the surrounding try and bypasses the
+            // expiry notification.
+            const cfgHeaders = originalConfig.headers;
+            if (typeof cfgHeaders?.set === 'function') {
+              cfgHeaders.set('X-Connect-Access-Token', fresh);
+            } else if (cfgHeaders) {
+              (cfgHeaders as Record<string, string>)['X-Connect-Access-Token'] =
+                fresh;
+            }
             originalConfig.__sdkConnectTokenRetried = true;
             return _sdkAxios.request(originalConfig);
           }
@@ -185,20 +212,25 @@ export const sdkAxiosMaker = ({
       }
 
       // No refresh wired, refresh failed, or we already retried. Notify
-      // the host page and reject so existing error UI fires.
-      try {
-        _onConnectAccessTokenExpired?.();
-      } catch (cbErr) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn(
-            '[stream-connect-sdk] onConnectAccessTokenExpired callback ' +
-              'threw:',
-            cbErr
-          );
+      // the host page (once per expiry cycle — guarded by
+      // _expiredNotificationFired so N parallel failures don't fan out
+      // into N modals) and reject so existing error UI fires.
+      if (!_expiredNotificationFired) {
+        _expiredNotificationFired = true;
+        try {
+          _onConnectAccessTokenExpired?.();
+        } catch (cbErr) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(
+              '[stream-connect-sdk] onConnectAccessTokenExpired callback ' +
+                'threw:',
+              cbErr
+            );
+          }
         }
-      }
-      if (typeof window !== 'undefined' && window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent(EXPIRED_TOKEN_EVENT));
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent(EXPIRED_TOKEN_EVENT));
+        }
       }
       return Promise.reject(error);
     }

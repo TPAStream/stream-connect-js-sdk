@@ -51,13 +51,14 @@ export interface SDKInitOptions {
   connectAccessTokenRefreshFn?: () => Promise<string>;
   /** Fires when the SDK detects an expired connect token AND either
    * no `connectAccessTokenRefreshFn` was provided or it rejected.
-   * Called once per failed request that hit the expiry (multiple
-   * parallel failures share a single refresh attempt, so in practice
-   * you'll see one callback if a refresh fn is wired, or one per
-   * failed request if not). Use to show a "session expired, please
-   * reload" UI in the host page. The same signal is also dispatched
-   * as a `tpastream-connect-token-expired` CustomEvent on `window`
-   * for integrations that prefer a global listener. */
+   * Coalesced: one callback per expiry cycle, regardless of how many
+   * parallel requests failed against the expired token. The cycle
+   * resets on the next successful response (i.e. after the customer
+   * recovers via a reload or a successful refresh), so a later
+   * expiration will notify again. Use to show a "session expired,
+   * please reload" UI in the host page. The same signal is also
+   * dispatched as a `tpastream-connect-token-expired` CustomEvent on
+   * `window` for integrations that prefer a global listener. */
   onConnectAccessTokenExpired?: () => void;
 
   // Identity
