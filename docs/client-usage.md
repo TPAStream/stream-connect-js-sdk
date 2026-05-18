@@ -11,7 +11,7 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 ### Via CDN (vanilla HTML, server-rendered, Backbone, jQuery)
 
 ```html
-<script src="https://app.tpastream.com/static/js/sdk-v-0.8.0.js"></script>
+<script src="https://app.tpastream.com/static/js/sdk-v-0.8.1.js"></script>
 <div id="sdk-hook"></div>
 <script>
   window.StreamConnect({
@@ -29,7 +29,8 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 
 Three CDN forms are supported:
 
-* `sdk-v-0.8.0.js` (this version, pinned)
+* `sdk-v-0.8.1.js` (current 0.8.x, pinned)
+* `sdk-v-0.8.0.js` (0.8.0, pinned)
 * `sdk-v-0.7.7.js` (last 0.7.x, pinned)
 * `sdk.js` (floating pointer to the latest release; updates automatically when a new version ships)
 

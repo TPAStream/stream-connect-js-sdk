@@ -4,6 +4,40 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.1
+
+### Auto-recover from expired connectAccessToken
+
+Connect access tokens have a ~60 minute server-side TTL. Previously,
+when a member left an SDK-hosting page open past that window and came
+back to interact, the next API call failed with a 422 that surfaced
+as a generic error. The only recovery was a manual page reload, which
+silently discarded any in-progress credential entry.
+
+The SDK now detects the backend's expired-token shape
+(`{status: 422, error_code: "expired_connect_token"}`) via an axios
+response interceptor and reacts in one of two ways depending on how
+the integration is wired:
+
+* **If `connectAccessTokenRefreshFn` is set** (new init option): the
+  SDK calls the hook for a fresh token, swaps it into the
+  `X-Connect-Access-Token` header, and retries the failed request
+  transparently. Multiple parallel failed requests share a single
+  refresh attempt (stampede guard), so the host's mint endpoint sees
+  one call regardless of fan-out.
+* **Otherwise**: fires `onConnectAccessTokenExpired` (new init
+  callback) and dispatches a `tpastream-connect-token-expired`
+  CustomEvent on `window`. Coalesced to one notification per expiry
+  cycle. Use to render a "session expired, please reload" UI in the
+  host page.
+
+Both options are optional and additive. Integrations that don't wire
+either keep the existing behavior (the 422 bubbles to the existing
+error chain) with a slightly cleaner server-side message.
+
+See [`docs/client-usage.md`](./docs/client-usage.md) for the option
+reference.
+
 ## 0.8.0
 
 ### Look and feel

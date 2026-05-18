@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.1
+
+Auto-recover from expired `connectAccessToken`. Long-lived pages no longer surface a confusing 422 when the ~60-minute server-side TTL elapses; integrations get a refresh hook or a clean expiry event instead. See [CHANGELOG.md](./CHANGELOG.md) for the full notes.
+
 ### 0.8.0
 
 Polished default appearance, React 19 + TypeScript, real-time credential-validation streaming, and a substantial dependency cleanup. The init() contract is backward-compatible: every option supported in 0.7.7 keeps working, including the custom render props (`renderChoosePayer`, `renderPayerForm`, `renderEndWidget`).
@@ -16,6 +20,17 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.1 highlights
+
+* Auto-recover from expired `connectAccessToken` (the ~60-minute
+  server-side TTL). New optional `connectAccessTokenRefreshFn` init
+  hook for transparent refresh + retry; new
+  `onConnectAccessTokenExpired` callback (and `tpastream-connect-token-expired`
+  window event) for hosts that want to render a "session expired"
+  UI. Parallel-request stampede guarded; notifications coalesced to
+  one per expiry cycle. Strictly additive; no behavior change for
+  integrations that don't opt in.
 
 ### 0.8.0 highlights
 
