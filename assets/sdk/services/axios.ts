@@ -45,6 +45,17 @@ let _sdkAxios: AxiosInstance = axios.create({
 let _lastConfiguredToken: string | null = null;
 let _connectAccessTokenRefreshFn: (() => Promise<string>) | undefined;
 let _onConnectAccessTokenExpired: (() => void) | undefined;
+/**
+ * Shared in-flight refresh promise. If multiple requests are in flight
+ * when the connect token expires, each fires its own response
+ * interceptor and would otherwise independently call the refresh fn.
+ * Stampeding the customer's mint endpoint with N parallel calls leaves
+ * N-1 orphaned tokens (server-side Redis keys + JWT signatures) since
+ * only one ends up in the default header. Gate behind a shared promise:
+ * the first caller starts a refresh, every subsequent caller awaits the
+ * same promise.
+ */
+let _refreshInFlight: Promise<string | null> | null = null;
 
 export const sdkAxios = new Proxy({} as AxiosInstance, {
   get(_target, prop) {
@@ -140,7 +151,22 @@ export const sdkAxiosMaker = ({
       // would mean we can't replay it).
       if (_connectAccessTokenRefreshFn && originalConfig && !alreadyRetried) {
         try {
-          const fresh = await _connectAccessTokenRefreshFn();
+          // Stampede guard: every parallel-failed request shares a
+          // single refresh attempt. The first one in starts the
+          // promise and stashes it; subsequent ones await the same
+          // value. Cleared in the `finally` so a later expiry can
+          // start a fresh refresh.
+          if (!_refreshInFlight) {
+            const refreshFn = _connectAccessTokenRefreshFn;
+            _refreshInFlight = (async () => {
+              try {
+                return (await refreshFn()) || null;
+              } finally {
+                _refreshInFlight = null;
+              }
+            })();
+          }
+          const fresh = await _refreshInFlight;
           if (fresh) {
             _sdkAxios.defaults.headers.common['X-Connect-Access-Token'] = fresh;
             originalConfig.headers.set('X-Connect-Access-Token', fresh);
