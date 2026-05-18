@@ -41,7 +41,7 @@ State transitions arrive as they happen rather than on the 5-second polling cade
 
 `doneRealTime` still fires for back-compat. The `realtimeTimeout` init option is accepted but ignored (the timeout is now server-side).
 
-![Realtime Validation](flow-screenshots/realtime-validation.png)
+![Realtime Validation](https://tpastream-public.s3.amazonaws.com/sdk-docs/flow-screenshots/realtime-validation.png)
 
 ## Done Easy Enroll
 This final widget will display an ending message for the user and allow them to retry and or submit credentials depending on their end status.
