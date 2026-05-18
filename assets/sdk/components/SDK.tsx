@@ -214,12 +214,20 @@ export const SDK = (props: SDKProps) => {
     sdkAxiosMaker({
       apiToken: props.apiToken,
       connectAccessToken: props.connectAccessToken,
+      connectAccessTokenRefreshFn: props.connectAccessTokenRefreshFn,
+      onConnectAccessTokenExpired: props.onConnectAccessTokenExpired,
       version: VERSION,
       isDemo: props.isDemo,
       sdkStateId: sdkStateId.current,
       tenant: props.tenant,
       _overrideBaseUrl: props._overrideBaseUrl
     });
+    // The token-expiry hooks (refresh fn + callback) are stashed
+    // module-locally inside sdkAxiosMaker, so they're not in this
+    // effect's deps. They're identity references the customer passes
+    // once at init() time; redefining them per-render would defeat the
+    // expiry-detection cache anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     props.apiToken,
     props.connectAccessToken,

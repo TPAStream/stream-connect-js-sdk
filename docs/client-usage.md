@@ -139,6 +139,7 @@ A first-class React package with `peerDependencies` on `react` (no second React 
 | `forceEndStep` | Skip directly to the end widget on load. Accepts the legacy boolean form (`true` → end widget) or an explicit step number (`5` is the `FinishedEasyEnroll` step). Auto-applied when the URL contains `?forceTPAStreamSdkEnd=1` (the flag is then stripped from the address bar). | Boolean or Number | `false` |
 | `includePayerBlogs` | Enable optional payer-updates blog on each enrollment form. Shows additional info about the carrier. | Boolean | `false` |
 | `connectAccessToken` | Required if [Connect Access Token](./connect-access-token.md) advanced security is enabled. The 0.8 SDK also accepts a fresh `?accessToken=...` on the URL after a Patient Access API redirect; if present, it overrides this option for that load and is stripped from the URL via `history.replaceState`. | String | unset |
+| `connectAccessTokenRefreshFn` | Async function the SDK calls to mint a fresh `connectAccessToken` when the current one has expired (server returns `error_code: "expired_connect_token"`). When provided, expired-token responses trigger a transparent refresh + retry instead of bubbling up as a failed request. Without it, the SDK fires `onConnectAccessTokenExpired` and dispatches a `tpastream-connect-token-expired` window event so the host page can prompt the user. Connect tokens have a ~60-minute TTL, so long-lived pages benefit. | `() => Promise<string>` | unset |
 | `renderChoosePayer` | Render the built-in choose-payer widget. If `false`, you drive payer selection from the `doneChoosePayer` callback. | Boolean | `true` |
 | `renderPayerForm` | Render the built-in credentials form. If `false`, drive it from `doneCreatedForm`. | Boolean | `true` |
 | `renderEndWidget` | Render the built-in end widget. If `false`, drive it from `doneEasyEnroll`. | Boolean | `true` |
@@ -159,6 +160,7 @@ A first-class React package with `peerDependencies` on `react` (no second React 
 | `doneEasyEnroll({ employer, payer, tenant, policyHolder, user, returnFlowFunction })` | Final callback; the enrollment is saved (possibly pending validation). |
 | `handleInitErrors(error)` | An init-configuration error happened before the SDK could mount. |
 | `handleFormErrors(error, { response, request, config })` | Credential submit failed. The SDK shows the error to the user; this lets you log it. |
+| `onConnectAccessTokenExpired()` | The `connectAccessToken` expired mid-session and either no `connectAccessTokenRefreshFn` was provided or the refresh attempt failed. Use to surface a "session expired, please reload" UI on the host page. Also dispatched as a `tpastream-connect-token-expired` window event for integrations that prefer a global listener. |
 
 Each callback is documented in detail below.
 
