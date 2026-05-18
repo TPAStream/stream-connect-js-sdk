@@ -36,6 +36,26 @@ export interface SDKInitOptions {
   apiToken?: string;
   sdkToken?: string;
   connectAccessToken?: string;
+  /** Optional async hook for refreshing an expired `connectAccessToken`
+   * without a page reload. The backend mints these short-lived tokens
+   * server-side (default ~60 min TTL, see Connect Access Token docs);
+   * when a member leaves the SDK page open past that window and comes
+   * back, the next API call gets a 422 with
+   * `error_code: "expired_connect_token"`. If this hook is provided,
+   * the SDK calls it, swaps the returned string into the axios
+   * `X-Connect-Access-Token` header, and retries the failed request
+   * transparently. If it's not provided (or it rejects), the SDK
+   * dispatches a `tpastream-connect-token-expired` CustomEvent on
+   * `window` and surfaces the error to the existing
+   * `handleFormErrors` / `handleInitErrors` callbacks. */
+  connectAccessTokenRefreshFn?: () => Promise<string>;
+  /** Fires once when the SDK detects an expired connect token AND
+   * either no `connectAccessTokenRefreshFn` was provided or it
+   * rejected. Use to show a "session expired, please reload" UI in
+   * the host page. The same signal is also dispatched as a
+   * `tpastream-connect-token-expired` CustomEvent on `window` for
+   * integrations that prefer a global listener. */
+  onConnectAccessTokenExpired?: () => void;
 
   // Identity
   tenant?: InitTenant;
