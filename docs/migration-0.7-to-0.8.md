@@ -91,6 +91,12 @@ If you deliberately want the legacy fallthrough behavior — e.g. you're doing c
 
 If you use `renderChoosePayer={false}` / `renderPayerForm={false}` / `renderEndWidget={false}` and drive those steps from `doneChoosePayer` / `doneCreatedForm` / `doneEasyEnroll`, the data passed into your callbacks is unchanged.
 
+### 9. Host page must be HTTPS (0.8.2)
+
+Starting in 0.8.2, `StreamConnect()` refuses to mount if the host page is served over plain `http://` from a non-loopback host. `localhost`, `127.0.0.1`, and `[::1]` are still allowed so local development is unaffected. Staging or internal hostnames served over plain HTTP are not.
+
+If you embed the SDK in a member-facing page that's currently on plain HTTP, that page must move to HTTPS before 0.8.x will mount. See the [Origin Policy doc](https://developers.tpastream.com/connect/origin-policy) for the full rules, the exact console error developers will see, and how to fix it.
+
 ## What you do NOT need to do
 
 - You do not need to add a `theme` option. The default appearance applies automatically.

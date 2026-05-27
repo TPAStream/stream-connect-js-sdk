@@ -9,7 +9,31 @@ import type { SDKInitOptions } from '../types-init';
 // stylesheet so customers driving their own UI via the renderXxx
 // callbacks aren't forced to ship our ~50 KB of Tailwind output.
 
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
+
+const ORIGIN_POLICY_DOCS_URL =
+  'https://developers.tpastream.com/connect/origin-policy';
+
+// `window.isSecureContext` is the W3C primitive browsers use to gate
+// any API that handles sensitive data (WebAuthn, getUserMedia, service
+// workers). It is true on HTTPS pages and on the loopback hosts the
+// browser treats as secure — `localhost`, `127.0.0.1`, `[::1]`, file://,
+// chrome-extension:// — and false for plain `http://` everywhere else.
+//
+// We mirror that on the server (stream/security/sdk_cors.py) — the
+// `/sdk-api/*` CORS regex only echoes Access-Control-Allow-Origin for
+// HTTPS or loopback HTTP. So an integration loaded into a plain-HTTP
+// host page would hit a generic browser CORS-blocked error on the very
+// first API call, with no actionable explanation. Catch it here at
+// init() instead and report it clearly to the console + handleInitErrors
+// so the developer goes straight to the docs.
+const isSecureSDKContext = (): boolean => {
+  // SSR / non-browser harnesses (Jest with jsdom unset, etc.) can't
+  // be evaluated — fall through, the later `document.querySelector`
+  // path errors with its own message.
+  if (typeof window === 'undefined') return true;
+  return window.isSecureContext;
+};
 
 // Track one React root per container element. Some host pages call
 // StreamConnect() more than once against the same `el` (e.g. on a
@@ -178,6 +202,15 @@ const StreamConnect = (options: SDKInitOptions) => {
     console.error(
       '[stream-connect-sdk] init failed: `el` must be a CSS selector string'
     );
+    return;
+  }
+
+  if (!isSecureSDKContext()) {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : '(unknown)';
+    const msg = `[stream-connect-sdk] init failed: host page must be served over HTTPS (or from http://localhost, http://127.0.0.1, or http://[::1] for local development). The current page origin ${origin} is insecure, and the SDK transmits member credentials — sending those over plain HTTP would expose them in transit. See ${ORIGIN_POLICY_DOCS_URL} for the fix.`;
+    console.error(msg);
+    options.handleInitErrors?.(new Error(msg));
     return;
   }
 

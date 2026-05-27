@@ -4,6 +4,31 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.2
+
+### Refuse to initialize on insecure (plain HTTP) host pages
+
+`StreamConnect()` now checks `window.isSecureContext` at init and
+refuses to mount the SDK if the host page is served over plain HTTP
+from a non-loopback host. The browser-level secure-context check is
+true on HTTPS and on the loopback hosts (`localhost`, `127.0.0.1`,
+`[::1]`) — same set the new server-side CORS policy allows — so
+local development against `vite`, `webpack-dev-server`, etc. is
+unaffected.
+
+The previous behavior on a plain-HTTP page was a generic
+CORS-blocked error in the browser console on the first
+`/sdk-api/*` request, with no actionable explanation. The SDK now
+fails fast with a clear console error, calls the optional
+`handleInitErrors` callback with the same message, and links to
+the [origin-policy docs](https://developers.tpastream.com/connect/origin-policy)
+explaining the requirement and how to fix it.
+
+Members were never charged the network round-trip on a broken
+plain-HTTP integration in the first place, so the practical effect
+is shifting the error from "browser console mystery" to "init-time
+diagnostic that names the problem."
+
 ## 0.8.1
 
 ### Handle expired connectAccessToken without a confusing error
