@@ -194,7 +194,7 @@ Don't set these in production code.
 When the Patient Access API flow returns the user from a carrier site back to the page hosting the SDK, the redirect URL can carry two query parameters that the 0.8 SDK reads automatically on init:
 
 * **`?accessToken=...`**: a fresh connect-access token minted by `app.tpastream.com` after the carrier redirect completes. The SDK reads it on load, uses it for the remainder of the session, and (regardless of whether `connectAccessToken` was already set in the init object) takes the URL value as the freshest. The token is single-use.
-* **`?forceTPAStreamSdkEnd=1`**: set by the redirect URL the SDK constructs when `enablePatientAccessAPISinglePage` is `true`. Tells this load to skip straight to the end widget instead of restarting at choose-payer.
+* **`?forceTPAStreamSdkEnd=1`**: set by the redirect URL the SDK constructs when `enablePatientAccessAPISinglePage` is `true`. Flags the OAuth return. As of 0.8.2 the SDK surfaces a self-dismissing "Connected" toast in the floating panel and lands the member on the carrier picker so they can add another carrier — it no longer forces the full-page end widget. (With `realTimeVerification: false` there's no panel, so it falls back to the end widget.) The explicit `forceEndStep` init option below is unaffected.
 
 Both parameters are stripped from the URL via `history.replaceState` after the SDK reads them. `replaceState` (not `pushState`) is used deliberately: the back button cannot restore the original URL, so the single-use access token cannot leak via history navigation or browser autofill.
 

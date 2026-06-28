@@ -4,6 +4,89 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.2
+
+### Fix: 2FA-required carriers no longer dead-end on a false "Connected"
+
+A member connecting a carrier that requires two-factor auth could land on
+a "Connected/finished" screen and never see the **verification-method
+picker or code entry** — the connection then silently failed when the
+carrier's 2FA prompt timed out unanswered. This happened with
+`realTimeVerification: false`: the SDK fell straight to the end widget and
+**never opened the progress stream**, so the `WAITING_FOR_METHOD_CHOICE`
+event had nothing listening.
+
+The fix keys the realtime/listening flow off the presence of a live
+validation task (the `taskId` + `taskToken` the credential submit returns)
+rather than off `realTimeVerification`. A live task means the backend is
+running an async validation that **may** require 2FA, and a 2FA-pending
+connection can never be "submit-and-trust" finished — the member has to
+act. The validation hero (method picker / code entry) and the SSE runner
+now mount whenever a validation is active, so 2FA is reachable even when
+the verification UI was opted out of. A page reload mid-2FA also resumes
+the live task now. First-time, never-submitted `realTimeVerification:
+false` users see no change.
+
+### Patient Access API (OAuth) return is a toast, not a full-page stop
+
+When a member finished connecting a carrier through its Patient Access
+API (the OAuth redirect flow), they previously landed on a full-page
+"Success!" end widget and had to click **"Add additional logins"** to
+do anything else. That dead-end click is gone.
+
+Both PAA variants now behave like the standard credential-submit flow:
+on a successful connection the SDK drops a self-dismissing **"Connected"
+card into the floating panel** and returns the member to the carrier
+picker so they can immediately add another carrier. This applies to the
+single-page redirect variant (which returns via
+`?forceTPAStreamSdkEnd=1`) and the popup variant (which polls the interop
+status). The single-page variant stashes the carrier name/logo across the
+redirect so the toast can name it.
+
+The explicit `forceEndStep` init option is unchanged — passing it still
+routes straight to the end widget. Only the URL-driven PAA return changed.
+When `realTimeVerification: false` (no floating panel), the PAA return
+keeps the legacy end-widget behavior.
+
+### Policy-holder status view + gated credential editing
+
+Tapping an already-connected carrier in the fix-credentials list now
+opens a **status view** first instead of dropping straight into the
+sign-in form. A healthy/connected carrier shows its connection status,
+last-synced time, masked username, and a **claim-sync summary** (claims
+synced + most recent claim date), and keeps the username/password hidden
+behind an explicit **"Update sign-in info"** button. PAA carriers show a
+**"Reconnect"** action instead. A carrier that genuinely needs attention
+(bad creds, etc.) still opens straight into the fix form. Adding a brand
+new carrier is unchanged.
+
+The claim-sync summary is fed by two new fields on the policy-holder SDK
+GET response (`claims_synced_count`, `most_recent_claim_date`); aggregate
+audit signals only — no per-claim provider / amount / diagnosis.
+
+### Refuse to initialize on insecure (plain HTTP) host pages
+
+`StreamConnect()` now checks `window.isSecureContext` at init and
+refuses to mount the SDK if the host page is served over plain HTTP
+from a non-loopback host. The browser-level secure-context check is
+true on HTTPS and on the loopback hosts (`localhost`, `127.0.0.1`,
+`[::1]`) — same set the new server-side CORS policy allows — so
+local development against `vite`, `webpack-dev-server`, etc. is
+unaffected.
+
+The previous behavior on a plain-HTTP page was a generic
+CORS-blocked error in the browser console on the first
+`/sdk-api/*` request, with no actionable explanation. The SDK now
+fails fast with a clear console error, calls the optional
+`handleInitErrors` callback with the same message, and links to
+the [origin-policy docs](https://developers.tpastream.com/connect/origin-policy)
+explaining the requirement and how to fix it.
+
+Members were never charged the network round-trip on a broken
+plain-HTTP integration in the first place, so the practical effect
+is shifting the error from "browser console mystery" to "init-time
+diagnostic that names the problem."
+
 ## 0.8.1
 
 ### Handle expired connectAccessToken without a confusing error

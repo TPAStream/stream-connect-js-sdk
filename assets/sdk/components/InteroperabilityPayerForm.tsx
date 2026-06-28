@@ -127,6 +127,27 @@ export const InteroperabilityPayerForm = (
       await beginInterop({ email });
       if (enablePatientAccessAPISinglePage) {
         if (streamPayer.interoperability_authorization_url) {
+          // Stash the carrier so the post-redirect load can render a
+          // named "Connected" toast. The single-page flow navigates the
+          // whole tab to the carrier and back, wiping in-memory React
+          // state, so on return the SDK cold-inits with no streamPayer.
+          // sessionStorage survives the away-and-back navigation within
+          // the same tab; sdk-core reads + clears it. Wrapped in try/catch
+          // because Safari private mode throws on setItem, and a failed
+          // stash should never block the redirect — the toast just falls
+          // back to a generic label.
+          try {
+            window.sessionStorage.setItem(
+              'tpastream_interop_return_payer',
+              JSON.stringify({
+                id: streamPayer.id,
+                name: streamPayer.name,
+                logo_url: streamPayer.logo_url
+              })
+            );
+          } catch {
+            // non-fatal — proceed to the redirect without the stash
+          }
           window.location.replace(
             streamPayer.interoperability_authorization_url
           );
