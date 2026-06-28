@@ -150,4 +150,22 @@ export interface SDKInitOptions {
 
   /** Override for tests + the /sdk-test sandbox. */
   _overrideBaseUrl?: string;
+
+  /** Internal — set by the entry (sdk-core) when the page loaded with
+   * `?forceTPAStreamSdkEnd=1`, i.e. the single-page PAA OAuth redirect
+   * just returned. Instead of the legacy full-page end widget, the SDK
+   * surfaces a "Connected" toast in the floating panel and lands the
+   * user back on the carrier picker so they can add another carrier.
+   * Not a public option; do not pass it yourself. */
+  interopReturn?: boolean;
+  /** Internal — the carrier the user just connected via the single-page
+   * PAA redirect, stashed in sessionStorage before the redirect and
+   * read back here so the return toast can name + logo the carrier.
+   * Null when the stash is missing (the toast falls back to a generic
+   * "Carrier connected"). */
+  interopReturnPayer?: {
+    id: number;
+    name: string;
+    logo_url: string;
+  } | null;
 }

@@ -24,7 +24,7 @@ The legacy alias `enableInteropSinglePage` is also still accepted with the same 
 After the carrier redirect completes, the SDK reads two URL parameters automatically on load:
 
 * `?accessToken=...`: a fresh connect-access token minted by `app.tpastream.com`.
-* `?forceTPAStreamSdkEnd=1`: set in the single-page variant to tell the next load to skip straight to the end widget.
+* `?forceTPAStreamSdkEnd=1`: set in the single-page variant to flag the OAuth return. As of 0.8.2 the SDK shows a self-dismissing "Connected" toast in the floating panel and returns the member to the carrier picker (so they can add another carrier) rather than the full-page end widget. When `realTimeVerification: false` (no panel), it falls back to the end widget. The explicit `forceEndStep` init option is unaffected and still routes to the end widget.
 
 Both are stripped from the URL via `history.replaceState` so they cannot leak via browser history or autofill. See [Client Usage > Redirect query parameters](./client-usage.md#redirect-query-parameters-patient-access-api) for the full mechanics.
 
