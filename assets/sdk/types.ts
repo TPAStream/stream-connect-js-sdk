@@ -67,6 +67,16 @@ export interface StreamPolicyHolder extends StreamPolicyHolderShort {
   login_correction_message?: string | null;
   loginProblemIsValid: () => boolean;
   demo?: boolean;
+  /** Lifetime count of claims TPAStream has synced for this PH. Added
+   * to the policy_holder_sdk GET serializer in stream 0.8.2-era. Optional
+   * so an SDK built ahead of the backend still type-checks; the detail
+   * view hides the sync summary when it's absent. */
+  claims_synced_count?: number | null;
+  /** ISO date (date-of-service) of the most recent claim on file for
+   * this PH, or null if none. Surfaced as an audit anchor so a member
+   * can confirm their latest visit was captured. Deliberately the only
+   * per-claim datum exposed — no provider / amount / diagnosis. */
+  most_recent_claim_date?: string | null;
 }
 
 export interface StreamPayer {

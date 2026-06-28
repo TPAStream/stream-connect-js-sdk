@@ -9,7 +9,38 @@ import type { SDKInitOptions } from '../types-init';
 // stylesheet so customers driving their own UI via the renderXxx
 // callbacks aren't forced to ship our ~50 KB of Tailwind output.
 
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
+
+const ORIGIN_POLICY_DOCS_URL =
+  'https://developers.tpastream.com/connect/origin-policy';
+
+// `window.isSecureContext` is the W3C primitive browsers use to gate
+// any API that handles sensitive data (WebAuthn, getUserMedia, service
+// workers). It is true on HTTPS pages and on the loopback hosts the
+// browser treats as secure — `localhost`, `127.0.0.1`, `[::1]`, file://,
+// chrome-extension:// — and false for plain `http://` everywhere else.
+//
+// We mirror that on the server (stream/security/sdk_cors.py) — the
+// `/sdk-api/*` CORS regex only echoes Access-Control-Allow-Origin for
+// HTTPS or loopback HTTP. So an integration loaded into a plain-HTTP
+// host page would hit a generic browser CORS-blocked error on the very
+// first API call, with no actionable explanation. Catch it here at
+// init() instead and report it clearly to the console + handleInitErrors
+// so the developer goes straight to the docs.
+const isSecureSDKContext = (): boolean => {
+  // SSR / non-browser harnesses (Jest with jsdom unset, etc.) can't
+  // be evaluated — fall through, the later `document.querySelector`
+  // path errors with its own message.
+  if (typeof window === 'undefined') return true;
+  // `isSecureContext` is also true for `file://` and extension pages,
+  // which are OUTSIDE the HTTPS/loopback set the `/sdk-api/*` CORS policy
+  // allows. Require an http(s) origin too, so those don't slip past this
+  // guard only to hit a generic CORS failure on the first API call.
+  const protocol = window.location.protocol;
+  return (
+    window.isSecureContext && (protocol === 'https:' || protocol === 'http:')
+  );
+};
 
 // Track one React root per container element. Some host pages call
 // StreamConnect() more than once against the same `el` (e.g. on a
@@ -132,7 +163,9 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
  *    the freshest value.
  *  - `?forceTPAStreamSdkEnd=1` — flag set by the redirect URL the SDK
  *    constructs in setStep4 when `enablePatientAccessAPISinglePage` is
- *    true. Tells this load to skip straight to the end widget.
+ *    true. Flags the single-page PAA OAuth return; the SDK shows a
+ *    "Connected" toast and lands on the carrier picker (see
+ *    `interopReturn` in SDK.tsx) rather than the full end widget.
  *
  * Both are stripped from the URL via history.replaceState so a refresh
  * doesn't re-trigger them AND the back button can't restore the
@@ -144,9 +177,14 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
 const consumeRedirectParams = (): {
   accessToken: string | null;
   shouldForceEnd: boolean;
+  interopReturnPayer: { id: number; name: string; logo_url: string } | null;
 } => {
   if (typeof window === 'undefined') {
-    return { accessToken: null, shouldForceEnd: false };
+    return {
+      accessToken: null,
+      shouldForceEnd: false,
+      interopReturnPayer: null
+    };
   }
   const search = new URLSearchParams(window.location.search);
   const accessToken = search.get('accessToken');
@@ -170,7 +208,44 @@ const consumeRedirectParams = (): {
     // (browser autofill, address bar, referrer leak, etc.).
     window.history.replaceState(null, '', newUrl);
   }
-  return { accessToken, shouldForceEnd };
+
+  // Pull (and clear) the carrier the single-page PAA flow stashed before
+  // redirecting to the carrier. Only consume it on an actual OAuth return
+  // (shouldForceEnd) so a stale stash from an abandoned attempt can't
+  // attach a wrong carrier name to an unrelated load. Always clear it
+  // when we're on a return so a refresh doesn't replay the toast.
+  let interopReturnPayer: {
+    id: number;
+    name: string;
+    logo_url: string;
+  } | null = null;
+  if (shouldForceEnd) {
+    try {
+      const raw = window.sessionStorage.getItem(
+        'tpastream_interop_return_payer'
+      );
+      window.sessionStorage.removeItem('tpastream_interop_return_payer');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (
+          parsed &&
+          typeof parsed.id === 'number' &&
+          typeof parsed.name === 'string'
+        ) {
+          interopReturnPayer = {
+            id: parsed.id,
+            name: parsed.name,
+            logo_url: typeof parsed.logo_url === 'string' ? parsed.logo_url : ''
+          };
+        }
+      }
+    } catch {
+      // sessionStorage unavailable / malformed JSON — fall back to a
+      // generic toast label. Never let this block init.
+    }
+  }
+
+  return { accessToken, shouldForceEnd, interopReturnPayer };
 };
 
 const StreamConnect = (options: SDKInitOptions) => {
@@ -181,24 +256,49 @@ const StreamConnect = (options: SDKInitOptions) => {
     return;
   }
 
+  // Consume + strip the post-redirect params FIRST, before any early
+  // return. consumeRedirectParams() strips ?accessToken= /
+  // ?forceTPAStreamSdkEnd= from the URL via replaceState; we must do that
+  // even when we're about to refuse to mount on an insecure context, or a
+  // single-use access token would linger in the address bar / history.
+  const { accessToken, shouldForceEnd, interopReturnPayer } =
+    consumeRedirectParams();
+
+  if (!isSecureSDKContext()) {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : '(unknown)';
+    const msg = `[stream-connect-sdk] init failed: host page must be served over HTTPS (or from http://localhost, http://127.0.0.1, or http://[::1] for local development). The current page origin ${origin} is insecure, and the SDK transmits member credentials — sending those over plain HTTP would expose them in transit. See ${ORIGIN_POLICY_DOCS_URL} for the fix.`;
+    console.error(msg);
+    options.handleInitErrors?.(new Error(msg));
+    return;
+  }
+
   console.log(`TPAStream Connect SDK v${VERSION}`);
 
   const normalized = normalizeOptions(options);
 
-  // Apply redirect-param overrides AFTER normalizeOptions so the
-  // accessToken from the URL wins over a stale connectAccessToken
-  // baked into the page.
-  const { accessToken, shouldForceEnd } = consumeRedirectParams();
+  // The accessToken from the URL wins over a stale connectAccessToken
+  // baked into the page. (Params were already consumed + stripped above,
+  // before the insecure-context guard.)
   if (accessToken) {
     normalized.connectAccessToken = accessToken;
   }
-  // Normalize forceEndStep to a number. Both the legacy 0.7.x boolean
-  // (`forceEndStep: true`) and the new explicit-step number form are
-  // accepted; truthy collapses to 5 (the FinishedEasyEnroll step) and
-  // the URL-side `forceTPAStreamSdkEnd` flag triggers the same path.
-  if (shouldForceEnd || normalized.forceEndStep) {
+  // Normalize an EXPLICIT forceEndStep init option to a number. The
+  // legacy 0.7.x boolean (`forceEndStep: true`) collapses to 5 (the
+  // FinishedEasyEnroll widget); a number is honored as-is. A customer
+  // passing this deliberately still gets the full end widget.
+  if (normalized.forceEndStep) {
     normalized.forceEndStep =
       typeof normalized.forceEndStep === 'number' ? normalized.forceEndStep : 5;
+  }
+  // The URL-side `?forceTPAStreamSdkEnd=1` flag — set by the single-page
+  // PAA OAuth redirect — no longer forces the full end widget. Instead
+  // it flags an "interop return": the SDK shows a "Connected" toast in
+  // the floating panel and lands the user back on the carrier picker so
+  // they can add another carrier without a button click. (0.8.2.)
+  if (shouldForceEnd) {
+    normalized.interopReturn = true;
+    normalized.interopReturnPayer = interopReturnPayer;
   }
 
   onDOMReady(() => {

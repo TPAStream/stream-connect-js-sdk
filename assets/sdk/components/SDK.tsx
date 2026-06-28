@@ -37,10 +37,11 @@ import { ChoosePayer } from './ChoosePayer';
 import { EnterCredentials } from './EnterCredentials';
 import { FinishedEasyEnroll } from './FinishedEasyEnroll';
 import { FixCredentials } from './FixCredentials';
+import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller
@@ -191,6 +192,11 @@ export const SDK = (props: SDKProps) => {
   useEffect(() => {
     if (!props.doneRealtime) return;
     for (const v of validations) {
+      // Skip synthetic PAA "Connected" toasts (showInteropSuccessToast):
+      // they're terminal cards with no SSE stream (empty taskToken), so
+      // announcing them as realtime validations would mislead integrators
+      // into thinking a stream started.
+      if (!v.taskToken) continue;
       if (!announcedRealtime.current.has(v.taskId)) {
         announcedRealtime.current.add(v.taskId);
         props.doneRealtime();
@@ -399,6 +405,44 @@ export const SDK = (props: SDKProps) => {
     ]
   );
 
+  // Push a one-off "Connected" card into the floating panel for a PAA
+  // (OAuth) carrier connection. Unlike a credential submit there's no
+  // celery task to stream — the carrier link is already confirmed — so
+  // we add a synthetic validation already in the terminal `success`
+  // state with `terminalConfirmed: true`. The ValidationStreamRunner
+  // skips any validation already success/failure/pending_async, so this
+  // never opens an SSE stream; the panel just renders it and
+  // auto-dismisses after the success hold. Used by both interop return
+  // paths (single-page redirect on init, and the popup poll-success
+  // branch in validateCreds) so OAuth connections get the same
+  // non-blocking toast as credential submits instead of a full-page
+  // end widget.
+  const showInteropSuccessToast = useCallback(
+    (args: {
+      policyHolderId?: number;
+      payer?: { id: number; name: string; logo_url: string } | null;
+      email?: string;
+    }) => {
+      const payer = args.payer ?? {
+        id: -1,
+        name: 'Your carrier',
+        logo_url: ''
+      };
+      addValidation({
+        policyHolderId: args.policyHolderId ?? -1,
+        // Unique per toast so concurrent / sequential interop successes
+        // don't collide on the context's id-keyed dedupe.
+        taskId: `interop-success-${payer.id}-${Date.now()}`,
+        taskToken: '',
+        payer,
+        email: args.email ?? '',
+        state: 'success',
+        terminalConfirmed: true
+      });
+    },
+    [addValidation]
+  );
+
   const validateCreds = useCallback(
     (args: {
       params: Record<string, unknown>;
@@ -420,39 +464,98 @@ export const SDK = (props: SDKProps) => {
       props.donePostCredentials?.({ params });
 
       if (interopPhId) {
+        // PAA (OAuth) popup flow just polled SUCCESS. In the default
+        // non-blocking flow, mirror the credential-submit behavior: drop
+        // a "Connected" toast into the floating panel and return the user
+        // to the carrier picker so they can add another carrier — no
+        // full-page end widget. We still fetch the PH to fire the legacy
+        // doneEasyEnroll with an accurate payload (and to feed the legacy
+        // submit-and-trust end widget when realTimeVerification is off).
+        const interopPayer = state.streamPayer
+          ? {
+              id: state.streamPayer.id,
+              name: state.streamPayer.name,
+              logo_url: state.streamPayer.logo_url
+            }
+          : null;
+        // Return step mirrors the credential-submit path: reconnecting an
+        // existing PH in fix mode goes back to the fix-credentials list
+        // (step 2); an add-new goes to the carrier picker (step 3).
+        const interopReturnStep = inFixMode && state.policyHolderId ? 2 : 3;
+        let fetchedPh: StreamPolicyHolder | null = null;
         getPolicyHolder({
           policyHolderId: interopPhId,
           email: state.streamUser.email,
           employerId: state.streamEmployer.id
         })
           .then((phData) => {
-            setState((prev) => ({
-              ...prev,
-              termsOfUse: false,
-              taskId: null,
-              taskToken: null,
+            fetchedPh = phData;
+            // Fire the legacy terminal callback so integrations relying on
+            // doneEasyEnroll keep getting a terminal event for PAA carriers.
+            props.doneEasyEnroll?.({
+              policyHolder: phData,
+              payer: state.streamPayer,
+              employer: state.streamEmployer,
+              tenant: state.streamTenant,
+              user: state.streamUser,
               credentialsValid: true,
-              policyHolderId: interopPhId,
-              streamPolicyHolder: phData,
-              step: 5
-            }));
+              pending: false
+            });
           })
           .catch(() => {
             // OAuth succeeded server-side but the post-success PH lookup
-            // failed. Advance to step 5 with credentialsValid still set
-            // (the upstream interop SUCCESS already confirmed the link)
-            // so the user reaches the end widget instead of stranding on
-            // the previous step. The end widget renders from the in-memory
-            // PH summary that was already fetched at init.
-            setState((prev) => ({
-              ...prev,
-              termsOfUse: false,
-              taskId: null,
-              taskToken: null,
-              credentialsValid: true,
+            // failed. Non-fatal — the upstream interop SUCCESS already
+            // confirmed the link, so we still show the toast / end widget.
+          })
+          .finally(() => {
+            if (!useNonBlockingValidation) {
+              // Legacy submit-and-trust (realTimeVerification: false):
+              // keep the full-page end widget.
+              setState((prev) => ({
+                ...prev,
+                termsOfUse: false,
+                taskId: null,
+                taskToken: null,
+                credentialsValid: true,
+                policyHolderId: interopPhId,
+                streamPolicyHolder: fetchedPh ?? prev.streamPolicyHolder,
+                step: 5
+              }));
+              return;
+            }
+            showInteropSuccessToast({
               policyHolderId: interopPhId,
-              step: 5
-            }));
+              payer: interopPayer,
+              email: state.streamUser?.email
+            });
+            // Refresh the carrier list so the just-connected PH shows up on
+            // the destination step instead of the stale init snapshot.
+            refreshUserPolicyHolders()
+              .then((user) => {
+                setState((prev) => ({
+                  ...prev,
+                  termsOfUse: false,
+                  taskId: null,
+                  taskToken: null,
+                  streamPayer: null,
+                  policyHolderId: null,
+                  streamPolicyHolder: null,
+                  streamUser: user ?? prev.streamUser,
+                  step: interopReturnStep
+                }));
+              })
+              .catch(() => {
+                setState((prev) => ({
+                  ...prev,
+                  termsOfUse: false,
+                  taskId: null,
+                  taskToken: null,
+                  streamPayer: null,
+                  policyHolderId: null,
+                  streamPolicyHolder: null,
+                  step: interopReturnStep
+                }));
+              });
           });
         return;
       }
@@ -486,19 +589,28 @@ export const SDK = (props: SDKProps) => {
         if (!state.streamUser || !state.streamEmployer || !policyHolderId)
           return;
 
-        // Non-blocking realtime path: push the validation into the
+        // Realtime / listening path: push the validation into the
         // floating panel and return the user to the picker step they
         // came from (Reconnect = step 2, Add new = step 3) so they can
         // start another validation in parallel. The floating panel +
         // the inline ActiveValidationsHero (2FA method picker / code
         // entry rendered inline in the hero card, no modal) own the
         // rest of the flow without taking over the screen.
-        if (
-          useNonBlockingValidation &&
-          taskId &&
-          taskToken &&
-          state.streamPayer
-        ) {
+        //
+        // Gate on the presence of a live validation task
+        // (taskId + taskToken), NOT on `useNonBlockingValidation`. A live
+        // task means the backend is running an async credential
+        // validation that MAY require 2FA — and a 2FA-pending connection
+        // can never be "submit-and-trust finished" (the member must pick
+        // a delivery method and enter a code, which only surfaces over the
+        // SSE stream). Previously `realTimeVerification: false` skipped
+        // this branch, fell straight to FinishedEasyEnroll, and never
+        // opened the progress stream, so 2FA carriers dead-ended on a
+        // false "Connected" screen. The realtime infra is now mounted
+        // whenever there's an active validation (see the render block), so
+        // the hero can surface the 2FA prompt even when the validation
+        // UI was opted out of.
+        if (taskId && taskToken && state.streamPayer) {
           addValidation({
             policyHolderId,
             taskId,
@@ -615,15 +727,19 @@ export const SDK = (props: SDKProps) => {
     [
       state.streamUser,
       state.streamEmployer,
+      state.streamTenant,
       state.policyHolderId,
       state.streamPayer,
       props.donePostCredentials,
       props.handleFormErrors,
+      props.doneEasyEnroll,
       props.realTimeVerification,
       props.isDemo,
       inFixMode,
       useNonBlockingValidation,
-      addValidation
+      addValidation,
+      showInteropSuccessToast,
+      refreshUserPolicyHolders
     ]
   );
 
@@ -693,7 +809,13 @@ export const SDK = (props: SDKProps) => {
         // floating panel + inline ActiveValidationsHero (2FA method
         // picker / code entry, no modal) handle the in-flight work in
         // parallel.
-        if (!restartFlow && useNonBlockingValidation) {
+        //
+        // Resume regardless of `useNonBlockingValidation`. A
+        // member who reloads the page mid-2FA (even with the validation
+        // UI opted out) must be able to re-enter the still-live task and
+        // finish the code entry; the realtime infra mounts whenever an
+        // active validation exists (see the render block).
+        if (!restartFlow) {
           for (const ph of user.policy_holders || []) {
             if (!ph.task_id || !ph.task_token) continue;
             const matchingPayer = payers.find((p) => p.id === ph.payer_id);
@@ -736,6 +858,40 @@ export const SDK = (props: SDKProps) => {
             step: target,
             credentialsValid: true
           }));
+          return;
+        }
+        if (props.interopReturn && !restartFlow) {
+          // The single-page PAA OAuth redirect just returned (sdk-core set
+          // this from `?forceTPAStreamSdkEnd=1`). In the default
+          // non-blocking flow, surface a "Connected" toast and land on the
+          // carrier picker (step 3) so the user can add another carrier —
+          // not the legacy full-page end widget. The just-connected PH
+          // shows up in the picker's used-carriers via the validations
+          // effect's user refresh. When non-blocking is disabled
+          // (realTimeVerification: false) there's no panel to host the
+          // toast, so fall back to the end widget.
+          if (useNonBlockingValidation) {
+            showInteropSuccessToast({
+              payer: props.interopReturnPayer ?? null,
+              email: user.email
+            });
+            setState((prev) => ({
+              ...prev,
+              loading: false,
+              step: 3,
+              termsOfUse: false,
+              streamPayer: null,
+              policyHolderId: null,
+              streamPolicyHolder: null
+            }));
+          } else {
+            setState((prev) => ({
+              ...prev,
+              loading: false,
+              step: 5,
+              credentialsValid: true
+            }));
+          }
           return;
         }
         if (inFixMode) {
@@ -837,9 +993,12 @@ export const SDK = (props: SDKProps) => {
       props.isDemo,
       props.doneGetSDK,
       props.forceEndStep,
+      props.interopReturn,
+      props.interopReturnPayer,
       inFixMode,
       useNonBlockingValidation,
       addValidation,
+      showInteropSuccessToast,
       setStep4,
       setStepConfigError
     ]
@@ -1001,16 +1160,21 @@ export const SDK = (props: SDKProps) => {
     }
     // Default: render the credentials form with the terms overlay
     // portaled on top. EnterCredentials stays mounted underneath so
-    // form state survives the round trip.
-    return (
+    // form state survives the round trip. Factored into a helper so the
+    // PolicyHolderDetail gate (below) can reveal the same form with its
+    // back button rewired to the status view instead of the carrier list.
+    const renderCredentialsForm = (
+      returnToStep2: false | (() => void),
+      returnToStep3: false | (() => void)
+    ) => (
       <>
         <EnterCredentials
-          streamPayer={state.streamPayer}
+          streamPayer={state.streamPayer!}
           streamPolicyHolder={state.streamPolicyHolder}
-          tenantTerms={state.streamTenant.terms_of_use}
+          tenantTerms={state.streamTenant!.terms_of_use}
           formData={state.formData}
           email={state.streamUser?.email || ''}
-          streamTenant={state.streamTenant}
+          streamTenant={state.streamTenant!}
           toggleTermsOfUse={toggleTermsOfUse}
           enableInterop={props.enableInterop}
           enableInteropSinglePage={props.enableInteropSinglePage}
@@ -1020,16 +1184,8 @@ export const SDK = (props: SDKProps) => {
           }
           includePayerBlogs={props.includePayerBlogs}
           userAddedUISchema={props.userSchema}
-          returnToStep3={
-            state.streamPayers &&
-            state.streamPayers.length > 1 &&
-            state.policyHolderId === null
-              ? setStep3
-              : false
-          }
-          returnToStep2={
-            inFixMode && state.policyHolderId !== null ? setStep2 : false
-          }
+          returnToStep3={returnToStep3}
+          returnToStep2={returnToStep2}
           validateCreds={validateCreds}
           doneStep4={props.doneStep4}
           donePopUp={props.donePopUp}
@@ -1037,6 +1193,50 @@ export const SDK = (props: SDKProps) => {
         {termsOverlay}
       </>
     );
+
+    const defaultReturnToStep3 =
+      state.streamPayers &&
+      state.streamPayers.length > 1 &&
+      state.policyHolderId === null
+        ? setStep3
+        : false;
+    const defaultReturnToStep2 =
+      inFixMode && state.policyHolderId !== null ? setStep2 : false;
+
+    // Status-first gate: when the user opened an EXISTING policy holder
+    // from the fix-credentials list, show its connection status (and a
+    // claim-sync summary) before the credential form. A healthy PH keeps
+    // its username/password hidden behind an explicit "Update sign-in
+    // info" action; a broken PH drops straight into the form. Adding a
+    // NEW carrier (no streamPolicyHolder) skips the gate entirely.
+    if (state.streamPolicyHolder) {
+      const usePAA =
+        !!(props.enablePatientAccessAPI ?? props.enableInterop) ||
+        !!(
+          props.enablePatientAccessAPISinglePage ??
+          props.enableInteropSinglePage
+        );
+      const isInterop =
+        usePAA && !!state.streamPayer.supports_interoperability_apis;
+      const returnToList = inFixMode ? setStep2 : setStep3;
+      return (
+        <PolicyHolderDetail
+          // Remount on a different PH so editing/summary state never
+          // carries over from a previously-opened carrier (the internal
+          // state is seeded from props at mount only).
+          key={state.streamPolicyHolder.id}
+          policyHolder={state.streamPolicyHolder}
+          streamPayer={state.streamPayer}
+          email={state.streamUser?.email || ''}
+          employerId={state.streamEmployer?.id ?? 0}
+          isInterop={isInterop}
+          returnToList={returnToList}
+          renderEditForm={(onBack) => renderCredentialsForm(onBack, false)}
+        />
+      );
+    }
+
+    return renderCredentialsForm(defaultReturnToStep2, defaultReturnToStep3);
   };
 
   const renderStep5_FinishedEasyEnroll = () => {
@@ -1115,6 +1315,18 @@ export const SDK = (props: SDKProps) => {
     return rendered ?? renderUnknownStep();
   };
 
+  // Mount the realtime infra when the non-blocking flow is on OR there's
+  // an active validation in flight. The second clause is the 2FA fix:
+  // even with `realTimeVerification: false`, a submitted credential can
+  // spawn a live validation task that needs 2FA, and the only way the
+  // member can complete it is the SSE-driven hero. Without mounting the
+  // runner the stream never opens (the carrier 2FA prompt times out
+  // unanswered) and without the hero there's nowhere to pick a method /
+  // enter the code. Gating on active validations keeps first-time,
+  // never-submitted realTimeVerification:false users exactly as before
+  // (no validation chrome) while making 2FA actually reachable for them.
+  const showValidationUi = useNonBlockingValidation || validations.length > 0;
+
   return (
     <>
       {/* Hero mounted at SDK level so a validation hitting 2FA while
@@ -1123,9 +1335,9 @@ export const SDK = (props: SDKProps) => {
           hero was inline-mounted in ChoosePayer / FixCredentials only,
           which left those other steps with a status-only panel and no
           way to enter the code. */}
-      {useNonBlockingValidation && <ActiveValidationsHero />}
+      {showValidationUi && <ActiveValidationsHero />}
       {renderWizard()}
-      {useNonBlockingValidation && state.streamUser && state.streamEmployer && (
+      {showValidationUi && state.streamUser && state.streamEmployer && (
         <ValidationStreamRunner
           email={state.streamUser.email}
           employerId={state.streamEmployer.id}
@@ -1163,7 +1375,7 @@ export const SDK = (props: SDKProps) => {
           }}
         />
       )}
-      {useNonBlockingValidation && <ActiveValidationsPanel />}
+      {showValidationUi && <ActiveValidationsPanel />}
     </>
   );
 };
