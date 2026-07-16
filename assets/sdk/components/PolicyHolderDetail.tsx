@@ -12,6 +12,7 @@ import {
   labelFor,
   severityFor
 } from '../util/login-status';
+import { resolvePolicyHolderId } from '../util/policy-holder-id';
 
 interface PolicyHolderDetailProps {
   /** The PH selected from the fix-credentials list. Carries enough to
@@ -127,8 +128,17 @@ export const PolicyHolderDetail = (props: PolicyHolderDetailProps) => {
     // header renders from the list PH meanwhile, so a slow / failed
     // summary fetch never blocks the screen.
     if (summary !== null) return;
+    // Never fetch without a resolvable id — `policy_holder/undefined`
+    // 404s at the routing layer. The controller normalizes ids before
+    // handing us the PH, but integrator-passed objects are outside our
+    // control; degrade to a summary-less status card instead.
+    const phId = resolvePolicyHolderId(policyHolder);
+    if (phId === null) {
+      setSummary({ claimsSyncedCount: null, mostRecentClaimDate: null });
+      return;
+    }
     getPolicyHolder({
-      policyHolderId: policyHolder.id,
+      policyHolderId: phId,
       email: props.email,
       employerId: props.employerId
     })

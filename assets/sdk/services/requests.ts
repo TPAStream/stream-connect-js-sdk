@@ -8,6 +8,7 @@ import {
   type ValidateCredsResponse
 } from '../types';
 import type { InitEmployer, InitUser } from '../types-init';
+import { resolvePolicyHolderId } from '../util/policy-holder-id';
 import { sdkAxios } from './axios';
 
 /**
@@ -139,6 +140,11 @@ export const getPolicyHolder = async ({
     { params: { employer_id: employerId, email } }
   );
   const ph = response.data.data as StreamPolicyHolder;
+  // The backend serializes `policy_holder_id` but not `id` on this
+  // endpoint. Backfill `id` so callers that store this object (the
+  // post-submit refresh paths keep it in state.streamPolicyHolder) can
+  // still build `.../policy_holder/<id>` URLs from it later.
+  ph.id = resolvePolicyHolderId(ph) ?? ph.id;
   // Attach the helper the legacy controller calls inline.
   // login_problem === null means "no problem at all" (clean account);
   // a non-null value names a specific issue and is only "valid" if it

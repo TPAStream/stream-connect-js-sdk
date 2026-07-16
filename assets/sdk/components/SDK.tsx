@@ -31,6 +31,7 @@ import { Alert } from '../ui/Alert';
 import { Card } from '../ui/Card';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
+import { resolvePolicyHolderId } from '../util/policy-holder-id';
 import { ActiveValidationsHero } from './ActiveValidationsHero';
 import { ActiveValidationsPanel } from './ActiveValidationsPanel';
 import { ChoosePayer } from './ChoosePayer';
@@ -313,11 +314,22 @@ export const SDK = (props: SDKProps) => {
       }
       if (!state.streamUser || !state.streamEmployer) return;
 
+      // Normalize the id up front. Customer portals that drive the
+      // wizard via the step callbacks pass their own PH-shaped objects,
+      // which often carry `policy_holder_id` instead of `id` (the
+      // single-PH GET response has the same shape). Without this, the
+      // status view fetches `.../policy_holder/undefined` and a
+      // credential re-submit falls back from PUT to POST, stranding the
+      // original broken PH. See resolvePolicyHolderId.
+      const resolvedPhId = resolvePolicyHolderId(policyHolder);
       setState((prev) => ({
         ...prev,
         ...(policyHolder && {
-          streamPolicyHolder: policyHolder as unknown as StreamPolicyHolder,
-          policyHolderId: policyHolder.id
+          streamPolicyHolder: {
+            ...policyHolder,
+            id: resolvedPhId
+          } as unknown as StreamPolicyHolder,
+          policyHolderId: resolvedPhId
         })
       }));
 

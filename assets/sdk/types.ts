@@ -19,6 +19,14 @@ export interface StreamUser {
 
 export interface StreamPolicyHolderShort {
   id: number;
+  /** Alias for `id`. The backend's single-PH GET
+   * (`policy_holder_sdk/policy_holder/<id>`) serializes
+   * `policy_holder_id` but not `id`, and integrator-built PH objects
+   * (custom portals driving the wizard via the step callbacks) often
+   * carry only this field. Anywhere the SDK needs the numeric id it
+   * should go through `resolvePolicyHolderId`, which falls back to
+   * this alias. */
+  policy_holder_id?: number;
   payer_id: number;
   username: string;
   login_problem: string | null;
