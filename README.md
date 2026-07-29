@@ -4,6 +4,14 @@
 
 ## Version
 
+### 0.8.3
+
+Fix: carriers whose credential form asks for a Date of Birth (Medical Mutual, SimplePay Health) could not be connected at all. The value was discarded before submit, so the server rejected the enrollment as missing a required field and no input format worked. Regression introduced in 0.8.0. Date fields now render as a native date input.
+
+### 0.8.2
+
+Patient Access API (OAuth) connections finish with a self-dismissing "Connected" toast and return the member to the carrier picker instead of dead-ending on a full-page end widget. Tapping an already-connected carrier opens a status view first. Fix: 2FA-required carriers reach the verification-method picker rather than a false "Connected". `StreamConnect()` refuses to mount on insecure (plain-HTTP) host pages.
+
 ### 0.8.1
 
 Handle expired `connectAccessToken` cleanly. Long-lived pages no longer surface the misleading 422 when the ~60-minute server-side TTL elapses; integrations opt into transparent refresh via a new server-side endpoint hook, or a clean expiry callback as a fallback. See the [Refreshing an expired token](./docs/connect-access-token.md#refreshing-an-expired-token-081) integration guide.
@@ -20,6 +28,34 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.3 highlights
+
+* Fix: a carrier whose credential form includes a **Date of Birth**
+  field — Medical Mutual, SimplePay Health — could not be connected.
+  Whatever the member typed was dropped before the request left the
+  browser, so the server rejected the enrollment as missing a required
+  field and returned a validation error no input format could clear.
+  Introduced in 0.8.0 by a spread-order change; ten weeks in the field.
+* Date fields (`{"type": "string", "format": "date"}` in the carrier
+  schema) now render as a native date input rather than a bare text
+  box, so the submitted value is always the ISO `YYYY-MM-DD` the
+  backend expects.
+* The React Native hook (`stream-connect-sdk-hook`) was never affected.
+
+### 0.8.2 highlights
+
+* Patient Access API (OAuth) connections end with a self-dismissing
+  "Connected" toast in the floating panel and return the member to the
+  carrier picker, instead of dead-ending on a full-page end widget.
+* Tapping an already-connected carrier opens a status view (status,
+  last-synced, masked username, claim-sync summary) with credentials
+  gated behind an explicit "Update sign-in info" / "Reconnect".
+* Fix: 2FA-required carriers reach the verification-method picker
+  rather than a false "Connected" — the realtime flow keys off a live
+  validation task rather than `realTimeVerification`.
+* `StreamConnect()` refuses to mount on insecure (plain-HTTP) host
+  pages; `localhost` / `127.0.0.1` / `[::1]` still work for local dev.
 
 ### 0.8.1 highlights
 

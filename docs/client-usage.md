@@ -11,7 +11,7 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 ### Via CDN (vanilla HTML, server-rendered, Backbone, jQuery)
 
 ```html
-<script src="https://app.tpastream.com/static/js/sdk-v-0.8.1.js"></script>
+<script src="https://app.tpastream.com/static/js/sdk-v-0.8.3.js"></script>
 <div id="sdk-hook"></div>
 <script>
   window.StreamConnect({
@@ -27,12 +27,16 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 </script>
 ```
 
-Three CDN forms are supported:
+These CDN forms are supported:
 
-* `sdk-v-0.8.1.js` (current 0.8.x, pinned)
+* `sdk-v-0.8.3.js` (current 0.8.x, pinned)
+* `sdk-v-0.8.2.js` (0.8.2, pinned)
+* `sdk-v-0.8.1.js` (0.8.1, pinned)
 * `sdk-v-0.8.0.js` (0.8.0, pinned)
 * `sdk-v-0.7.7.js` (last 0.7.x, pinned)
 * `sdk.js` (floating pointer to the latest release; updates automatically when a new version ships)
+
+If you pin, note that you do not pick up fixes automatically. 0.8.3 fixes a bug that made Medical Mutual and SimplePay Health impossible to connect, so pinned integrations on 0.8.0–0.8.2 should move up.
 
 Pinned versions stay available indefinitely. See [Migrating from 0.7 to 0.8](./migration-0.7-to-0.8.md) for the breaking-change story before flipping the floating pointer in production.
 
