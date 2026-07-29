@@ -4,6 +4,36 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.3
+
+### Fix: carriers that ask for Date of Birth could never be connected
+
+A member connecting a carrier whose credential form includes a **Date of
+Birth** field — Medical Mutual and SimplePay Health — could not complete
+enrollment. Whatever they typed was discarded before the request left the
+browser, the backend rejected the submission as missing a required field
+(HTTP 422), and the form came back with a red validation error. No input
+format worked, because the value never reached the server at all.
+
+The credential payload spread the carrier's form values first and then
+re-pinned a handful of SDK-controlled fields on top. One of those was
+`date_of_birth: values.dateOfBirth || null` — camelCase, which no carrier
+schema emits — so it always evaluated to `null` and overwrote the real
+value. The line was inherited from 0.7.x, where the spread order was
+reversed and the member's value won; 0.8.0 inverted that order (so carrier
+schemas can't clobber `payer_id` / `accept` / `tenants_accept`) and turned a
+dead line into a data-destroying one. The re-pin is gone; `payer_id` and the
+consent fields are still protected.
+
+Date fields also render as a native date input now. Carrier schemas mark
+them `{"type": "string", "format": "date"}`, which 0.8.x rendered as a bare
+text box with no format hint even though the backend only accepts ISO
+`YYYY-MM-DD`. The date input always produces ISO, so there is nothing left
+to guess.
+
+The React Native hook (`stream-connect-sdk-hook`) kept the 0.7.x spread
+order and was never affected.
+
 ## 0.8.2
 
 ### Fix: 2FA-required carriers no longer dead-end on a false "Connected"
