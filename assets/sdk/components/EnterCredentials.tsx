@@ -110,7 +110,7 @@ interface FormState {
   fields: Array<{
     key: string;
     title: string;
-    type: 'text' | 'password' | 'select' | 'checkbox';
+    type: 'text' | 'password' | 'select' | 'checkbox' | 'date';
     options?: string[];
     placeholder?: string;
   }>;
@@ -150,6 +150,14 @@ const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
       type = 'select';
     } else if (p?.type === 'boolean') {
       type = 'checkbox';
+    } else if (p?.format === 'date') {
+      // Carrier schemas emit `{type: 'string', format: 'date'}` for DOB
+      // fields (Medical Mutual, SimplePay Health). Render a native date
+      // input so the submitted value is always ISO `YYYY-MM-DD`, which
+      // is the only format the backend's WTForms DateField parses. As a
+      // free-text box the member has to guess the format, and every
+      // guess but ISO is rejected server-side with a 422.
+      type = 'date';
     }
 
     fields.push({
@@ -344,7 +352,15 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
       ...values,
       username: values.username,
       password: values.password,
-      date_of_birth: values.dateOfBirth || null,
+      // NOTE: do not re-pin `date_of_birth` here. Carrier form values are
+      // keyed by their JSON-schema property name (`date_of_birth`), so
+      // `...values` already carries it. A trailing
+      // `date_of_birth: values.dateOfBirth || null` used to sit here —
+      // camelCase, which no carrier schema ever emits — so it resolved to
+      // `null` and clobbered whatever the member typed. Harmless in 0.7.x
+      // (which spread `...formData` LAST so the real value won), it became
+      // data-destroying when 0.8.0 inverted the spread order, 422ing every
+      // new Medical Mutual / SimplePay Health enrollment.
       payer_id: streamPayer.id,
       accept: values.termsAndServices,
       tenants_accept: [values.tenantAcknowledgement]
@@ -495,6 +511,7 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                       <TextInput
                         key={field.key}
                         label={field.title}
+                        type={field.type === 'date' ? 'date' : 'text'}
                         autoComplete={
                           field.key === 'username' ? 'username' : undefined
                         }
