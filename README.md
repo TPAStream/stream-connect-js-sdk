@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.4
+
+Credential validations that outlive a single progress stream now keep reporting live. A stream connection is capped at about ten minutes server-side; the SDK reattaches to the running validation instead of showing "Still working on it" and going quiet, so members on slow carriers or long MFA waits see the flow finish rather than having to reload.
+
 ### 0.8.3
 
 Fix: carriers whose credential form asks for a Date of Birth (Medical Mutual, SimplePay Health) could not be connected at all. The value was discarded before submit, so the server rejected the enrollment as missing a required field and no input format worked. Regression introduced in 0.8.0. Date fields now render as a native date input.
@@ -28,6 +32,24 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.4 highlights
+
+* A validation that outlives one progress-stream connection keeps
+  streaming. The server caps a single SSE connection at roughly ten
+  minutes, but the validation behind it can run far longer: the
+  post-MFA claims pull is usually what takes the time. The SDK now
+  re-fetches the policy holder for a fresh stream token and
+  resubscribes, up to ten times, covering the validation's whole
+  observable lifetime.
+* Members who used to dead-end on "Still working on it" until they
+  reloaded the page now watch the connection complete. `pending_async`
+  is still there, but only for when reattach genuinely can't proceed.
+* Dropped connections take the same path behind a backoff, so an SSE
+  blip no longer ends a validation's live reporting.
+* Requires the policy-holder GET to serve `task_id` + `task_token`
+  (stream #15091). Against an older backend the SDK falls back to the
+  previous `pending_async` behavior rather than failing.
 
 ### 0.8.3 highlights
 

@@ -23,7 +23,7 @@ hero re-renders with the right copy and the right input control:
 | `submitting` | "Working on it…" | Wait |
 | `success` | "Connected!" (green) | Done; auto-dismisses after a short hold |
 | `failure` | "Couldn't connect" (red) with the carrier message | Reconnect via the tile |
-| `pending_async` | "Still working on it" | Come back later; SDK is no longer streaming live |
+| `pending_async` | "Still working on it" | Come back later; the SDK has stopped streaming live (reattach ran out of road) |
 
 The hero is rendered by `ActiveValidationsHero` and lives alongside
 the wizard step state, so the user can keep navigating
@@ -88,19 +88,32 @@ without re-running the entire credential flow.
 
 ### Stream times out (10-minute deadline)
 
-The server-side SSE deadline is ~10 minutes per stream. If the user
-takes longer than that to retrieve and enter the code, the stream
-closes and the validation moves to `pending_async`. The hero shows
-"Still working on it" and the validation stays visible. The user can
-keep using the SDK; the task itself isn't cancelled. When they come
-back later, the validation's terminal state will be reflected on the
-next page load.
+The ~10-minute SSE deadline is per stream, not per validation. If the
+user takes longer than that to retrieve and enter the code, the server
+emits `timeout` and closes the connection, and the SDK reattaches: it
+re-fetches the policy holder for the still-active `task_id` and a
+freshly minted `task_token`, then resubscribes. The hero keeps showing
+live state; the member sees nothing. A validation stays observable for
+about 90 minutes, and the SDK will spend up to ten reattaches covering
+it.
+
+The member's real deadline is much tighter and is enforced by the task,
+not the transport: the worker waits ~5 minutes at each interactive MFA
+stage for a method choice or a code before giving up.
+
+If the validation actually ended while the SDK was between
+connections, the reattach finds no active task, reads the outcome from
+the validate-credentials GET, and shows the real terminal state.
 
 ### Stream disconnects mid-2FA
 
-A network blip, server-side close, or proxy drop during the validation
-lands the validation in `pending_async` the same way the timeout does.
-The backend task continues; the SDK just can't observe it live anymore.
+A network blip, server-side close, or proxy drop is handled the same
+way as a timeout, with a short backoff between attempts so an outage
+doesn't turn into a retry storm. Only when reattach itself can't
+proceed (the backend is unreachable, or ten attempts are spent) does
+the validation land in `pending_async`. The backend task
+continues either way; `pending_async` means the SDK stopped watching,
+not that anything was cancelled.
 
 `AbortController.abort()` is intentionally NOT treated as a disconnect:
 the SDK aborts on unmount and on terminal-state cleanup, and surfacing

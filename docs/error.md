@@ -77,18 +77,27 @@ in the hero element.
 | HTTP status | Detail message | Meaning | Recovery |
 |---|---|---|---|
 | 401 | `Missing token` | The SSE URL was hit without a `?token=` query param | Shouldn't happen via the SDK; if you proxy the URL yourself, forward the token |
-| 401 | `Task token has expired` | JWT `exp` passed (10-minute TTL after dispatch) | Re-submit the credentials to get a fresh token |
-| 401 | `Task not available` | The Redis `progress_task_owner` pointer expired (typically same TTL as token) | Same: re-submit |
+| 401 | `Task token has expired` | JWT `exp` passed (10-minute TTL, sized to one connection) | Re-fetch the policy holder for a fresh token and resubscribe. The SDK does this automatically |
+| 401 | `Task not available` | The Redis `progress_task_owner` pointer is gone: cleared on terminal state, or the ~90-minute observation window lapsed | Usually means the task finished. Read the outcome from the validate-credentials GET rather than retrying the stream |
 | 403 | `Not your task` | The JWT and Redis pointer disagree on `user_id` | Token reuse across sessions; re-init the SDK |
 | 422 | `Task token is invalid` | Bad signature, unknown algorithm, or malformed claims | Token was tampered with or minted by a different deploy |
 | 422 | `Task token does not match requested task` | The token's `task_id` claim doesn't match the URL path | Token reuse against the wrong task; re-submit |
 | 422 | `Task token audience mismatch` | `aud` claim isn't `sdk:sse:progress` | Token from a different service was forwarded |
 | 422 | `Task token missing required claim: <name>` | Mint upstream produced a token missing one of `exp` / `iat` / `task_id` / `sub` | Backend bug; report it |
 
-On any error the SDK transitions the active validation to
-`pending_async` (visible in the hero / corner panel) and leaves the
-wizard usable. The user can keep adding carriers; when they return
-later the validation's true terminal state is reflected.
+On any of these the SDK first tries to reattach (re-fetch the policy
+holder for a fresh `task_token`, resubscribe), because the stream
+failing says nothing about whether the validation is still running.
+Only if that can't proceed does the validation go to `pending_async`
+(visible in the hero / corner panel), and the wizard stays usable
+throughout. The user can keep adding carriers; when they return later
+the validation's true terminal state is reflected.
+
+`Task not available` is the interesting one: the Redis pointer is
+cleared the moment a task reaches a terminal state, so this now
+usually means the validation *finished*, not that a window lapsed. The
+SDK reads the outcome from the validate-credentials GET and shows the
+real terminal state rather than asking the user to re-submit.
 
 ## Cred-submit + validation errors
 
