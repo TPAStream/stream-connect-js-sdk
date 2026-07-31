@@ -41,7 +41,7 @@ import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.3';
+const VERSION = '0.8.4';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller

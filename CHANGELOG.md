@@ -4,6 +4,48 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.4
+
+### Validations that outlive one stream connection keep reporting live
+
+A member whose credential validation ran longer than a single progress
+stream would watch live updates stop arriving, get "Still working on
+it", and have no way forward except reloading the page. Nothing was
+broken server-side: the SDK had simply stopped looking.
+
+The server caps one SSE connection at about ten minutes
+(`STREAM_DEADLINE_SECONDS`) and then emits a `timeout` event. That
+deadline belongs to the connection, not to the validation:
+`validate_credentials` runs up to 4800s, and the slow part is usually
+the post-MFA claims pull, well after the member has done everything
+asked of them. The runner treated `timeout` as the end of the story.
+
+It now reattaches. On `timeout` it re-fetches the policy holder, takes
+the still-active `task_id` and a freshly minted `task_token`, and
+resubscribes: the same loop the Connect API docs describe for backend
+callers. Up to ten reattaches, which spans the ~90-minute window the
+backend keeps a validation observable for. Dropped connections take the
+same path behind a 1s-to-15s backoff, so an SSE blip doesn't become a
+retry storm across every member mid-validation.
+
+When a reattach finds no active task the validation has almost
+certainly finished, but that is not a good enough basis for telling a
+member their carrier connected: the real outcome comes from the
+validate-credentials GET, and only a terminal state finalizes.
+`pending_async` remains the fallback for an unreachable backend or a
+spent attempt budget.
+
+Requires a backend that serves `task_id` + `task_token` on the
+policy-holder GET (stream #15091, live 2026-07-29). Against an older
+backend the reattach finds no token and the SDK falls back to the
+previous `pending_async` behavior.
+
+Verified end to end against a local stack with the per-connection
+deadline shortened to 15s, driving the built-in test-2FA carrier: nine
+connections, a distinct token on each, every reattach 15.3-15.4s apart,
+and a `WAITING_FOR_TWO_FACTOR_CODE` emitted after a reattach rendering
+live in the hero.
+
 ## 0.8.3
 
 ### Fix: carriers that ask for Date of Birth could never be connected
