@@ -32,7 +32,7 @@ Embed the SDK in a WebView via [`react-native-webview`](https://github.com/react
 The older `stream-connect-sdk-hook` npm package (v0.6.2) is deprecated. Existing integrations keep working but won't receive feature updates: no SSE-driven validation, no inline 2FA, no fix-credentials status badges, no PAA support. New integrations should use the WebView pattern.
 
 ## I'd like to create a more customized flow for how a user enters credentials and validation.
-The default recommendation for customizing the SDK flow is to use the various sdk [Callbacks](client-usage.md#callbacks).
+The default recommendation for customizing the SDK flow is to use the various sdk [Callbacks](client-usage.md#lifecycle-callbacks-in-detail).
 
 The SDK renders various steps with default templates which should be editted post render using JS and CSS. However, if you would like
 to create more customized widgets it is possible to turn off the default rendering using the various `renderXStep` values within the
@@ -42,7 +42,7 @@ If you are to turn of the default template rendering, the callbacks associated w
 objects in their parameters which will allow an implementor to mirror all of the functionality previously defined in the default
 template.
 
-Each of the provided information is present in the [Callbacks](client-usage.md#callbacks) docs.
+Each of the provided information is present in the [Callbacks](client-usage.md#lifecycle-callbacks-in-detail) docs.
 
 ## How do I use the data from the SDK?
 The StreamConnect SDK is designed to take in carrier credentials, save them to the TPAStream sytem, and then validate the credentials.
