@@ -124,6 +124,15 @@ export const sdkAxiosMaker = ({
     headers: {
       'X-TPAStream-Token': apiToken || '',
       'X-SDK-Version': version,
+      // Where the widget is mounted (TPA-6661): cross-origin requests
+      // carry only the Origin header, so the path of the hosting page
+      // has to be reported explicitly. The backend stamps it per
+      // (SDK token, tenant) to route fix-credentials emails back to
+      // the portal page that embeds the widget.
+      ...(typeof window !== 'undefined' &&
+        window.location?.pathname && {
+          'X-SDK-Page-Path': window.location.pathname
+        }),
       ...(sdkStateId && { 'X-SDK-State-Id': sdkStateId }),
       'X-Is-Demo': isDemo ? '1' : '0',
       ...(connectAccessToken && {

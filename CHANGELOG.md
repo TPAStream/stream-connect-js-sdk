@@ -4,6 +4,34 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.5
+
+### Broken logins surface on the entry screen (TPA-6662)
+
+A member opening the widget in member-portal mode saw no signal that
+any of their carrier logins were broken until they clicked into
+"Manage your carriers", so broken logins sat unnoticed exactly where
+the member already was. The entry screen's Manage tile now carries a
+pill reading "X logins need attention", where X is the combined
+critical + warning count from the same `severityFor` classification
+the carrier list uses (a warning with a successful sync in the last
+seven days still counts as healthy). The pill is red if any critical
+problem exists, amber otherwise, and renders nothing at zero. The
+count is computed from the policy holders already in widget state, so
+it costs no extra request, and because the widget refetches member
+state after each validation completes, fixing a login updates the
+count without a reload.
+
+### The widget reports the page it is mounted on (TPA-6661)
+
+Cross-origin requests carry only the embedding page's origin; the path
+never reaches the server. The SDK now sends the hosting page's
+pathname as `X-SDK-Page-Path` on every request, and the backend stamps
+(origin, path) per SDK token and tenant. That stamped location is what
+lets fix-credentials emails link members of SDK-only tenants back to
+the portal page that actually hosts the widget instead of a TPA Stream
+portal they have never seen. Older backends ignore the header.
+
 ## 0.8.4
 
 ### Validations that outlive one stream connection keep reporting live

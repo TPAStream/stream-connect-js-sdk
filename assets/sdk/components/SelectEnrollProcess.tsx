@@ -2,11 +2,19 @@ import { type ReactNode, useEffect } from 'react';
 import { UserEditIcon, UserPlusIcon } from '../icons';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
+import { SEVERITY_BADGE_CLASSES, type Severity } from '../util/login-status';
 
 interface SelectEnrollProcessProps {
   setChoosePayer: () => void;
   setFixCredentials: () => void;
   doneStep1?: (props?: unknown) => void;
+  /** Combined critical + warning login count for the "X logins need
+   * attention" pill on the Manage tile. Absent or zero renders no
+   * pill. */
+  attentionCount?: number;
+  /** Worst severity among the counted logins: 'critical' renders the
+   * red pill palette, anything else amber. */
+  attentionSeverity?: Severity;
 }
 
 interface OptionTileProps {
@@ -14,9 +22,16 @@ interface OptionTileProps {
   label: string;
   description: string;
   onClick: () => void;
+  badge?: ReactNode;
 }
 
-const OptionTile = ({ icon, label, description, onClick }: OptionTileProps) => (
+const OptionTile = ({
+  icon,
+  label,
+  description,
+  onClick,
+  badge
+}: OptionTileProps) => (
   <button
     type="button"
     onClick={onClick}
@@ -29,6 +44,7 @@ const OptionTile = ({ icon, label, description, onClick }: OptionTileProps) => (
       <div>
         <p className="tpa-font-semibold tpa-text-slate-900">{label}</p>
         <p className="tpa-text-sm tpa-text-slate-500">{description}</p>
+        {badge}
       </div>
     </div>
   </button>
@@ -39,6 +55,19 @@ export const SelectEnrollProcess = (props: SelectEnrollProcessProps) => {
     props.doneStep1?.(props);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const attentionCount = props.attentionCount ?? 0;
+  const attentionBadge =
+    attentionCount > 0 ? (
+      <span
+        className={`tpa-text-xs tpa-font-medium tpa-rounded-full tpa-px-2 tpa-py-0.5 tpa-inline-flex tpa-items-center tpa-mt-1 ${
+          SEVERITY_BADGE_CLASSES[props.attentionSeverity || 'warning']
+        }`}
+      >
+        {attentionCount} login{attentionCount === 1 ? '' : 's'} need
+        {attentionCount === 1 ? 's' : ''} attention
+      </span>
+    ) : null;
 
   return (
     <Stack gap="lg">
@@ -60,6 +89,7 @@ export const SelectEnrollProcess = (props: SelectEnrollProcessProps) => {
           label="Manage your carriers"
           description="See what's connected, update logins, or check on a sync."
           onClick={props.setFixCredentials}
+          badge={attentionBadge}
         />
       </Stack>
     </Stack>

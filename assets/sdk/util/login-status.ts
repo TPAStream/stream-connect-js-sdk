@@ -1,5 +1,6 @@
 import {
   CRITICAL_LOGIN_PROBLEMS,
+  type StreamPolicyHolderShort,
   VALID_LOGIN_PROBLEMS,
   WARNING_LOGIN_PROBLEMS
 } from '../types';
@@ -100,6 +101,42 @@ export const labelFor = (
   if (severity === 'ok') return 'Connected';
   if (!loginProblem) return 'Action needed';
   return LOGIN_PROBLEM_LABELS[loginProblem] || loginProblem.replace(/_/g, ' ');
+};
+
+/**
+ * Combined "logins need attention" summary for a set of policy
+ * holders: how many are critical-or-warning, and the worst severity
+ * among them (drives the badge palette — red if any critical exists,
+ * amber otherwise). Kept here so the entry-screen pill and the
+ * fix-credentials carrier list can never drift on the count.
+ */
+export const attentionSummary = (
+  policyHolders:
+    | Array<
+        Pick<
+          StreamPolicyHolderShort,
+          'login_problem' | 'last_successful_crawl_end'
+        >
+      >
+    | null
+    | undefined
+): { count: number; severity: Severity } => {
+  let count = 0;
+  let severity: Severity = 'warning';
+  for (const ph of policyHolders || []) {
+    const phSeverity = severityFor(
+      ph.login_problem,
+      ph.last_successful_crawl_end
+    );
+    if (phSeverity === 'ok') {
+      continue;
+    }
+    count += 1;
+    if (phSeverity === 'critical') {
+      severity = 'critical';
+    }
+  }
+  return { count, severity };
 };
 
 export const SEVERITY_BADGE_CLASSES: Record<Severity, string> = {

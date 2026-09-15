@@ -31,6 +31,7 @@ import { Alert } from '../ui/Alert';
 import { Card } from '../ui/Card';
 import { Stack } from '../ui/Stack';
 import { Text, Title } from '../ui/Title';
+import { attentionSummary } from '../util/login-status';
 import { ActiveValidationsHero } from './ActiveValidationsHero';
 import { ActiveValidationsPanel } from './ActiveValidationsPanel';
 import { ChoosePayer } from './ChoosePayer';
@@ -41,7 +42,7 @@ import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.4';
+const VERSION = '0.8.5';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller
@@ -1064,13 +1065,20 @@ export const SDK = (props: SDKProps) => {
     </Card>
   );
 
-  const renderStep1_SelectEnrollProcess = () => (
-    <SelectEnrollProcess
-      doneStep1={props.doneStep1}
-      setFixCredentials={setStep2}
-      setChoosePayer={setStep3}
-    />
-  );
+  const renderStep1_SelectEnrollProcess = () => {
+    // Recomputed on every render: the post-validation refetch replaces
+    // state.streamUser, so the pill tracks the live count for free.
+    const attention = attentionSummary(state.streamUser?.policy_holders);
+    return (
+      <SelectEnrollProcess
+        doneStep1={props.doneStep1}
+        setFixCredentials={setStep2}
+        setChoosePayer={setStep3}
+        attentionCount={attention.count}
+        attentionSeverity={attention.severity}
+      />
+    );
+  };
 
   const renderStep2_FixCredentials = () => {
     if (!state.streamUser || !state.streamPayers) return null;
