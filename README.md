@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.5
+
+The entry screen's "Manage your carriers" tile now carries an "X logins need attention" pill (red if any critical problem exists, amber otherwise, hidden at zero), so members in portal mode see broken logins without clicking in. The SDK also reports the hosting page's pathname (`X-SDK-Page-Path`) so fix-credentials emails can route members of SDK-only tenants back to the portal page that embeds the widget.
+
 ### 0.8.4
 
 Credential validations that outlive a single progress stream now keep reporting live. A stream connection is capped at about ten minutes server-side; the SDK reattaches to the running validation instead of showing "Still working on it" and going quiet, so members on slow carriers or long MFA waits see the flow finish rather than having to reload.
@@ -32,6 +36,18 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.5 highlights
+
+* "X logins need attention" pill on the entry screen's Manage tile:
+  combined critical + warning count from the same severity
+  classification the carrier list uses, red when any critical problem
+  exists, amber otherwise, absent at zero. Updates live as
+  validations complete, with no extra requests.
+* The widget reports the page it is mounted on via `X-SDK-Page-Path`,
+  letting the backend stamp the embed location per SDK token and
+  tenant and route fix-credentials emails back to the hosting portal
+  page. Older backends ignore the header.
 
 ### 0.8.4 highlights
 

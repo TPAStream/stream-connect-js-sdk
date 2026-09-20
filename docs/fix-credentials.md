@@ -32,7 +32,11 @@ StreamConnect({
 
 When a returning user opens the SDK in fix-credentials mode, the
 first screen offers two paths: add a new carrier, or manage existing
-ones.
+ones. When any connected carrier needs attention, the "Manage your
+carriers" tile carries a pill reading "N logins need attention": red
+if any login is critical, amber otherwise, and absent at zero. The
+count uses the same severity rules as the status badges below and
+updates as validations finish.
 
 ![Select enroll process](https://tpastream-public.s3.amazonaws.com/sdk-docs/fix-credentials/select-enroll-widget.png)
 
