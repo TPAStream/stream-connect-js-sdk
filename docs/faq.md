@@ -75,3 +75,28 @@ Using the `user` configuration object you can define `memberSystemKey`. This sys
 employer block, since a member can only exist under 1 employer.
 
 See our [Client Usage Docs](client-usage.md) for more information on the `user` object block.
+
+## Restricting which sites may embed your key
+By default an `sdkToken` works from any HTTPS page, because the token is public and ships in your page source.
+You can optionally limit a key to your own sites. Only TPAStream staff can change these settings, so to turn this on, ask TPAStream support to enable it for your key and tell them the list of origins and the mode you want. Each key has two settings:
+
+* **Embed origins**: a list of origins such as `https://benefits.example.com` or `https://*.example.com`.
+* **Mode**: one of the three below.
+
+| Mode | What happens to a request from a browser origin that is not on the list |
+|---|---|
+| `off` (default) | Nothing. The list is ignored and behavior is unchanged. |
+| `report` | The request succeeds, and TPAStream logs it so you can see what would be blocked. |
+| `enforce` | The request fails with HTTP 403 and `{"error_code": "origin_not_allowed", "docs_url": "..."}`. See [Error Documentation](./error.md#origin_not_allowed). |
+
+The check uses the browser's `Origin` header on every SDK request that carries the key. Requests with no `Origin` header (server-to-server calls) are never affected, and neither are CORS preflight (`OPTIONS`) requests.
+
+**Suggested rollout:**
+1. Leave the key on `off` while you collect every site that embeds the SDK, including staging and QA.
+2. Ask TPAStream support to enter those origins and switch the key to `report`. Run for about a week and ask TPAStream support for the logged origins that were not on the list.
+3. Ask support to add anything you missed, then switch to `enforce`.
+
+Notes:
+* A wildcard such as `https://*.example.com` matches subdomains (`https://benefits.example.com`). It never matches the bare `https://example.com`, so list the bare origin separately if you need it.
+* Local development origins must be listed too, for example `http://localhost:3000`. Include the port.
+* This restricts which websites can use a key from a browser. It does not protect a key used from a server, because server callers send no `Origin` header. For that, use server-side [connect access tokens](./connect-access-token.md).

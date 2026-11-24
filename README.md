@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.6
+
+Security release: axios is upgraded to 1.20.0 and DOMPurify to 3.4.17, clearing every `npm audit --omit=dev` advisory against the SDK's runtime dependencies. No API or wire-format change. The `X-SDK-Page-Path` header is now read on each request instead of once at mount. Fix: a member who resubmits the same credentials while that validation is still running keeps the 2FA method picker or code prompt instead of sticking on "Connecting…" until a reload.
+
 ### 0.8.5
 
 The entry screen's "Manage your carriers" tile now carries an "X logins need attention" pill (red if any critical problem exists, amber otherwise, hidden at zero), so members in portal mode see broken logins without clicking in. The SDK also reports the hosting page's pathname (`X-SDK-Page-Path`) so fix-credentials emails can route members of SDK-only tenants back to the portal page that embeds the widget.

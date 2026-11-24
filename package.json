@@ -1,13 +1,14 @@
 {
   "name": "stream-connect-sdk",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "A JavaScript SDK implementing TPAStream's Connect Platform",
   "scripts": {
     "build": "webpack --config webpack.prod-sdk.js --mode=production",
     "format": "biome check --write assets/",
     "test:lint": "biome check assets/",
     "test:types": "tsc --noEmit",
-    "test": "npm run test:lint && npm run test:types",
+    "test:unit": "node --test --experimental-strip-types \"assets/**/*.test.ts\"",
+    "test": "npm run test:lint && npm run test:types && npm run test:unit",
     "screenshots": "node scripts/screenshots/capture.mjs",
     "screenshots:preview": "node scripts/screenshots/preview.mjs",
     "screenshots:upload": "node scripts/screenshots/upload.mjs"
@@ -42,8 +43,8 @@
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.10.0",
-    "axios": "^1.7.9",
-    "dompurify": "^3.2.4",
+    "axios": "^1.20.0",
+    "dompurify": "^3.4.17",
     "marked": "^15.0.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

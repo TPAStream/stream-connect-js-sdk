@@ -66,6 +66,37 @@ redirect URL registered with your sdkToken so the carrier knows where
 to send the user after they authenticate. Contact TPAStream support
 to configure this on the sdkToken.
 
+## Embed origin errors
+
+### `origin_not_allowed`
+
+The request was rejected with HTTP 403 and a JSON body like:
+
+```json
+{ "error_code": "origin_not_allowed", "docs_url": "..." }
+```
+
+Your `sdkToken` has an embed origin allowlist, its mode is `enforce`,
+and the page that made the request is not on the list. The browser's
+`Origin` header (for example `https://staging.example.com`) did not
+match any entry under the key's "Embed origins". The response still
+carries the normal CORS headers, so the SDK can read it and hand the
+error to `handleInitErrors`.
+
+To fix it, either:
+
+* Add the site's origin (scheme, host, and port if not the default) to
+  the key's embed origins. A wildcard such as `https://*.example.com`
+  covers subdomains. Local development origins like
+  `http://localhost:3000` must be listed too.
+* Or switch the key's mode back to `report`, which lets the request
+  through and only logs it, while you finish the list.
+
+Only TPAStream staff can change these settings, so contact TPAStream
+support with the origins and mode you want. Requests with no `Origin` header, such as
+server-to-server calls, are never affected. See
+[Restricting which sites may embed your key](./faq.md#restricting-which-sites-may-embed-your-key).
+
 ## SSE / real-time validation errors (0.8+)
 
 These come from the `/v3/sdk/progress/<task_id>/stream` endpoint that

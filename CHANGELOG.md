@@ -4,6 +4,52 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.6
+
+### Security: axios and dompurify upgraded
+
+The SDK's two runtime dependencies with published advisories move to
+their first patched versions:
+
+* **axios** 1.16.1 -> 1.20.0 (and its `form-data` dependency 4.0.5 ->
+  4.0.6). Closes the axios advisories affecting 1.0.0 - 1.19.0 and
+  GHSA-hmw2-7cc7-3qxx in `form-data`.
+* **dompurify** 3.4.3 -> 3.4.17. Closes the advisories affecting
+  <= 3.4.15. DOMPurify sanitizes the Terms of Use modal and the payer
+  info articles before they render.
+
+The package.json floors are now `axios ^1.20.0` and `dompurify
+^3.4.17`, so a host app that installs `stream-connect-sdk` no longer
+pulls vulnerable nested copies into its own lockfile. The query
+strings the SDK sends are unchanged: every query parameter is a flat
+string or number, and axios 1.16.1 and 1.20.0 encode them
+byte-for-byte the same.
+
+### `X-SDK-Page-Path` is read per request
+
+0.8.5 read the hosting page's pathname once, when the widget mounted.
+0.8.6 reads it as each request is sent, so a single-page host that
+routes the member to another view reports the page the widget is
+actually on.
+
+### Fix: resubmitting during 2FA no longer sticks on "Connecting…"
+
+A member who submitted the same credentials again while that
+validation was still running (for example, waiting on the
+verification-method picker) was left on "Connecting…" until a page
+reload. The server hands back the running task's id instead of
+starting a new one, and the SDK replaced its entry for that id with a
+fresh `pending` one, dropping the method list. The progress stream
+for that id stayed open, but the server sends a step only when the
+step changes, so the picker or code prompt never came back.
+
+Adding a validation whose id is still live now keeps its current
+step, method list and messages, and takes only the new token, email
+and carrier. An entry that has already ended (success, failure or
+"still working on it") is replaced as before, so a new stream opens
+for it. `npm test` now also runs the reducer's unit tests
+(`npm run test:unit`, Node's built-in runner).
+
 ## 0.8.5
 
 ### Broken logins surface on the entry screen (TPA-6662)
