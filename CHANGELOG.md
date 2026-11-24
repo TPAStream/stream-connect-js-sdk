@@ -4,6 +4,84 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.6
+
+### Security: axios and dompurify upgraded
+
+The SDK's two runtime dependencies with published advisories move to
+their first patched versions:
+
+* **axios** 1.16.1 -> 1.20.0 (and its `form-data` dependency 4.0.5 ->
+  4.0.6). Closes the axios advisories affecting 1.0.0 - 1.19.0 and
+  GHSA-hmw2-7cc7-3qxx in `form-data`.
+* **dompurify** 3.4.3 -> 3.4.17. Closes the advisories affecting
+  <= 3.4.15. DOMPurify sanitizes the Terms of Use modal and the payer
+  info articles before they render.
+
+The package.json floors are now `axios ^1.20.0` and `dompurify
+^3.4.17`, so a host app that installs `stream-connect-sdk` no longer
+pulls vulnerable nested copies into its own lockfile. The query
+strings the SDK sends are unchanged: every query parameter is a flat
+string or number, and axios 1.16.1 and 1.20.0 encode them
+byte-for-byte the same.
+
+### Security: zod removed
+
+`npm audit --omit=dev` reported a high advisory against zod 3.25.76
+(GHSA-mrhx-c7xc-m3w5) whose only fix is zod 4. zod validated one
+small form, the carrier credential form, so it is removed along with
+`@hookform/resolvers` instead of being carried to a new major
+version. A small built-in React Hook Form resolver
+(`credentialsResolver.ts`) now applies the same rules: required and
+optional text, password, date and select fields, boolean and numeric
+fields, and the two consent checkboxes. Every error message the
+member can see is unchanged. With zod gone, `npm audit --omit=dev`
+reports 0 vulnerabilities. A plain `npm audit fix` also cleared the
+build-time advisories in `@babel/core` and `postcss-selector-parser`,
+so the full `npm audit` reports 0 as well.
+
+### Saved host-site logins are no longer offered on the carrier form
+
+The SDK runs inside the customer's page, so the browser's password
+manager treated the carrier form as a login for the customer's own
+site. A customer reported a member's saved login for their site being
+filled into the carrier username and password fields. The password
+field asked for `autocomplete="current-password"` and the username
+field for `autocomplete="username"`. Both, and every other text field
+on the form, now render `autocomplete="off"` plus the opt-out
+attributes 1Password, LastPass, Bitwarden and Dashlane read
+(`data-1p-ignore`, `data-lpignore`, `data-bwignore`,
+`data-form-type="other"`), the same pattern the carrier picker
+already used. `new-password` is deliberately not used, because Chrome
+would then offer to generate a password for an existing carrier
+login. The one-time-code field in the 2FA prompt keeps
+`autocomplete="one-time-code"`.
+
+### `X-SDK-Page-Path` is read per request
+
+0.8.5 read the hosting page's pathname once, when the widget mounted.
+0.8.6 reads it as each request is sent, so a single-page host that
+routes the member to another view reports the page the widget is
+actually on.
+
+### Fix: resubmitting during 2FA no longer sticks on "Connecting…"
+
+A member who submitted the same credentials again while that
+validation was still running (for example, waiting on the
+verification-method picker) was left on "Connecting…" until a page
+reload. The server hands back the running task's id instead of
+starting a new one, and the SDK replaced its entry for that id with a
+fresh `pending` one, dropping the method list. The progress stream
+for that id stayed open, but the server sends a step only when the
+step changes, so the picker or code prompt never came back.
+
+Adding a validation whose id is still live now keeps its current
+step, method list and messages, and takes only the new token, email
+and carrier. An entry that has already ended (success, failure or
+"still working on it") is replaced as before, so a new stream opens
+for it. `npm test` now also runs the reducer's unit tests
+(`npm run test:unit`, Node's built-in runner).
+
 ## 0.8.5
 
 ### Broken logins surface on the entry screen (TPA-6662)

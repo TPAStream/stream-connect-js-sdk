@@ -124,15 +124,6 @@ export const sdkAxiosMaker = ({
     headers: {
       'X-TPAStream-Token': apiToken || '',
       'X-SDK-Version': version,
-      // Where the widget is mounted (TPA-6661): cross-origin requests
-      // carry only the Origin header, so the path of the hosting page
-      // has to be reported explicitly. The backend stamps it per
-      // (SDK token, tenant) to route fix-credentials emails back to
-      // the portal page that embeds the widget.
-      ...(typeof window !== 'undefined' &&
-        window.location?.pathname && {
-          'X-SDK-Page-Path': window.location.pathname
-        }),
       ...(sdkStateId && { 'X-SDK-State-Id': sdkStateId }),
       'X-Is-Demo': isDemo ? '1' : '0',
       ...(connectAccessToken && {
@@ -143,6 +134,39 @@ export const sdkAxiosMaker = ({
         'X-Tenant-Key': tenant.systemKey
       })
     }
+  });
+  // Where the widget is mounted (TPA-6661): cross-origin requests carry
+  // only the Origin header, so the path of the hosting page has to be
+  // reported explicitly. The backend stamps it per (SDK token, tenant)
+  // to route fix-credentials emails back to the portal page that embeds
+  // the widget.
+  //
+  // Read per request rather than baked into the instance headers above.
+  // sdkAxiosMaker runs once, in a mount effect, so a snapshot taken
+  // there would be frozen for the life of the instance: a single-page
+  // host that routes the member to another view, or an integrator who
+  // calls init() from an app-bootstrap route before the widget's own
+  // page is reached, would keep stamping a path the widget was never on
+  // and mail the member a link to the wrong portal route. Reading at
+  // dispatch time is also what the changelog already promises ("on
+  // every request").
+  _sdkAxios.interceptors.request.use((config) => {
+    const pagePath =
+      typeof window !== 'undefined' ? window.location?.pathname : undefined;
+    if (!pagePath) {
+      return config;
+    }
+    // Same header-shape fallback as the retry path below: axios v1
+    // normalizes to AxiosHeaders in the request pipeline, but a custom
+    // adapter could leave a plain object, and a TypeError thrown here
+    // would fail the request outright.
+    const headers = config.headers;
+    if (typeof headers?.set === 'function') {
+      headers.set('X-SDK-Page-Path', pagePath);
+    } else if (headers) {
+      (headers as Record<string, string>)['X-SDK-Page-Path'] = pagePath;
+    }
+    return config;
   });
   _sdkAxios.interceptors.response.use(
     (response) => {

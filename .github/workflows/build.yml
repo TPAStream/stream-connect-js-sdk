@@ -5,6 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      # npm run test:unit needs Node's type stripping (22.6 or newer).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Install modules
         run: npm install --dd
       - name: Run eslint

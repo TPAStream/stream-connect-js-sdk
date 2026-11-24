@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["assets/**/*.ts", "assets/**/*.tsx"],
   "exclude": ["node_modules", "sdk.js", "static"]

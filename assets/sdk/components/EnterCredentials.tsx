@@ -1,7 +1,5 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { type ZodTypeAny, z } from 'zod';
 import type { StreamPayer, StreamPolicyHolder, StreamTenant } from '../types';
 import { Alert } from '../ui/Alert';
 import { BackButton } from '../ui/BackButton';
@@ -14,6 +12,12 @@ import { TextInput } from '../ui/TextInput';
 import { Text } from '../ui/Title';
 import { InteroperabilityPayerForm } from './InteroperabilityPayerForm';
 import { PayerInfo } from './PayerInfo';
+import {
+  type CredentialsRules,
+  consentRules,
+  credentialsResolver,
+  propertyToRule
+} from './credentialsResolver';
 
 interface EnterCredentialsProps {
   streamPayer: StreamPayer;
@@ -30,7 +34,7 @@ interface EnterCredentialsProps {
   includePayerBlogs?: boolean;
   /** Customer-side UI schema overrides. The 0.7.x SDK forwarded this
    * to react-jsonschema-form, which had its own UI-schema language.
-   * 0.8 uses React Hook Form + Zod; rjsf is gone. Any top-level
+   * 0.8 uses React Hook Form; rjsf is gone. Any top-level
    * key/value pairs the customer sets here are folded into the
    * submission payload as extra fields (matching the most common
    * 0.7.x usage: injecting tenant-specific identifiers). A console
@@ -47,64 +51,20 @@ interface EnterCredentialsProps {
   donePopUp?: () => void;
 }
 
-/**
- * Translate a single JSON Schema property into a Zod schema. The
- * carrier onboard_form schemas in production are uniformly simple —
- * string fields with optional enum / format. Anything more exotic
- * falls through as `z.any()` so the submit still succeeds.
- */
-const propertyToZod = (
-  // biome-ignore lint/suspicious/noExplicitAny: schema shape is dynamic
-  property: any,
-  isRequired: boolean
-): ZodTypeAny => {
-  let schema: ZodTypeAny;
-  let isNumericCoerce = false;
-  if (property?.enum && Array.isArray(property.enum)) {
-    schema = z.string();
-  } else {
-    switch (property?.type) {
-      case 'boolean':
-        schema = z.boolean();
-        break;
-      case 'integer':
-      case 'number':
-        // Pre-validate the raw input string before coercion. An empty
-        // input field arrives as "" which z.coerce.number() turns into
-        // 0, bypassing the isRequired check below. Reject empties up
-        // front (and surface the same "Required" message the string
-        // branch uses) so a blank required numeric field can't slip
-        // through with a 0 value.
-        schema = z.coerce.number();
-        isNumericCoerce = true;
-        break;
-      default:
-        schema = z.string();
-    }
-  }
-  if (!isRequired) {
-    if (isNumericCoerce) {
-      // Optional numeric: an untouched HTML input arrives as "" which
-      // z.coerce.number() turns into 0. Without the preprocess, the
-      // submission would include a literal 0 for a field the user
-      // never touched. Treat empty/whitespace as "not provided" by
-      // mapping to undefined before piping through the coerce.
-      schema = z.preprocess(
-        (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
-        z.coerce.number().optional()
-      );
-    } else {
-      schema = schema.optional();
-    }
-  } else if (schema instanceof z.ZodString) {
-    schema = schema.min(1, 'Required');
-  } else if (isNumericCoerce) {
-    // Required numeric: layer a raw-string preflight so empty inputs
-    // fail with 'Required' instead of being silently coerced to 0.
-    schema = z.string().min(1, 'Required').pipe(z.coerce.number());
-  }
-  return schema;
-};
+// Browsers and password managers must not fill the login saved for the
+// host site (the SDK runs inside the customer's page) into the carrier
+// username and password fields. `autoComplete="off"` covers most
+// browsers; the data-* attributes are the opt-outs that 1Password,
+// LastPass, Bitwarden and Dashlane read. Same pattern as Combobox.
+// `new-password` is deliberately not used: Chrome would then offer to
+// generate a password, which is wrong for an existing carrier login.
+const NO_SAVED_LOGIN = {
+  autoComplete: 'off',
+  'data-1p-ignore': 'true',
+  'data-lpignore': 'true',
+  'data-bwignore': 'true',
+  'data-form-type': 'other'
+} as const;
 
 interface FormState {
   fields: Array<{
@@ -114,7 +74,7 @@ interface FormState {
     options?: string[];
     placeholder?: string;
   }>;
-  zodSchema: z.ZodTypeAny;
+  rules: CredentialsRules;
 }
 
 const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
@@ -131,7 +91,7 @@ const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
     ? new Set(schemaObj.required)
     : new Set<string>();
   const requiredKeys = new Set<string>();
-  const shape: Record<string, ZodTypeAny> = {};
+  const rules: CredentialsRules = {};
   const fields: FormState['fields'] = [];
 
   for (const [key, prop] of Object.entries(properties)) {
@@ -141,7 +101,7 @@ const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
       schemaRequired.has(key) ||
       (p?.required !== undefined ? !!p.required : false);
     if (isRequired) requiredKeys.add(key);
-    shape[key] = propertyToZod(p, isRequired);
+    rules[key] = propertyToRule(p, isRequired);
 
     let type: FormState['fields'][number]['type'] = 'text';
     if (p?.format === 'password' || key.toLowerCase().includes('password')) {
@@ -203,20 +163,11 @@ const buildFormFromOnboardSchema = (payer: StreamPayer): FormState => {
   }
 
   // Mandatory terms & tenant-acknowledgement fields the legacy SDK
-  // injected via AdditionalSchema().
-  shape.termsAndServices = z.literal(true, {
-    errorMap: () => ({ message: 'You must agree to the terms and services.' })
-  });
-  shape.tenantAcknowledgement = z.literal(true, {
-    errorMap: () => ({
-      message: 'You must acknowledge that claims will be sent to the tenant.'
-    })
-  });
+  // injected via AdditionalSchema(). They override a carrier property
+  // of the same name, as the zod schema used to.
+  Object.assign(rules, consentRules);
 
-  return {
-    fields,
-    zodSchema: z.object(shape)
-  };
+  return { fields, rules };
 };
 
 export const EnterCredentials = (props: EnterCredentialsProps) => {
@@ -279,7 +230,7 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
     control,
     getValues
   } = useForm<FormValues>({
-    resolver: formState ? zodResolver(formState.zodSchema) : undefined,
+    resolver: formState ? credentialsResolver(formState.rules) : undefined,
     defaultValues: {
       // Spread saved formData LAST so a Terms-of-Use round trip's
       // captured values win over the static defaults. Without this,
@@ -436,7 +387,7 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                         <PasswordInput
                           key={field.key}
                           label={field.title}
-                          autoComplete="current-password"
+                          {...NO_SAVED_LOGIN}
                           {...register(field.key)}
                           error={
                             errors[field.key]?.message as string | undefined
@@ -512,9 +463,11 @@ export const EnterCredentials = (props: EnterCredentialsProps) => {
                         key={field.key}
                         label={field.title}
                         type={field.type === 'date' ? 'date' : 'text'}
-                        autoComplete={
-                          field.key === 'username' ? 'username' : undefined
-                        }
+                        // Every text field, not only `username`: a
+                        // password manager treats whichever text field
+                        // precedes the password as the username, and
+                        // some carriers name it differently.
+                        {...(field.type === 'date' ? {} : NO_SAVED_LOGIN)}
                         {...register(field.key)}
                         error={errors[field.key]?.message as string | undefined}
                       />

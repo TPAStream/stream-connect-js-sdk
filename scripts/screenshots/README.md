@@ -18,10 +18,12 @@ markdown-only change.
   `http://localhost:4000`) and proxies `/sdk-api/*` through to it so the
   browser stays same-origin.
 - `preview.mjs` — static gallery on `--port` (default `8085`) showing
-  old (committed in `docs/`) vs new (captured) side by side. Use for
-  diffing before pushing to S3.
+  what's currently published on S3 vs what you just captured, side by
+  side. Pass `--old=<dir>` to diff against a local directory instead.
+  Use it before pushing to S3.
 - `upload.mjs` — `aws s3 sync` to `tpastream-public/<prefix>/` with
-  `--acl public-read`. Default prefix is `sdk-docs`.
+  `--acl public-read`. Default prefix is `sdk-docs`. No `--delete`, so a
+  partial capture only overwrites the keys it actually produced.
 
 ## Typical flow
 
@@ -33,6 +35,34 @@ npm run screenshots:upload    # push to s3://tpastream-public/sdk-docs/
 ```
 
 For a single shot: `node scripts/screenshots/capture.mjs choose-payer`.
+
+## The shots this pipeline owns
+
+| id | published under `sdk-docs/` | backend |
+|---|---|---|
+| `demo-init-page` | `quickstart-screenshots/demo-init-page.png` | demo |
+| `error-init-page` | `quickstart-screenshots/error-init-page.png` | `realToken` |
+| `choose-payer` | `flow-screenshots/choose-payer.png` | demo |
+| `choose-payer-dropdown` | `flow-screenshots/choose-payer-dropdown.png` | demo |
+| `enter-credentials` | `flow-screenshots/enter-credentials.png` | demo |
+| `pop-up` | `flow-screenshots/pop-up.png` | demo |
+| `terms-of-service` | `flow-screenshots/terms-of-service.png` | demo |
+| `realtime-validation` | `flow-screenshots/realtime-validation.png` | `realToken` |
+| `select-enroll-widget` | `fix-credentials/select-enroll-widget.png` | `realToken` |
+
+The `realToken` shots need a running `STREAM_WEBAPP` whose `/sdk-test`
+can mint tokens — so that container has to be up **and** its dev DB
+migrated (`alembic upgrade head`). A dev DB a few migrations behind
+serves a 500 from `/sdk-test` and the capture dies there.
+
+## `employer-key-page` belongs to the other pipeline
+
+`docs/quickstart.md` Step 5 embeds an Employer Key screenshot, but it's a
+webapp shot, not an SDK one: it's captured by the pipeline in the
+`stream` repo (`scripts/screenshots/shots/employers.mjs`) and published
+under the `webapp-docs/` prefix. Refresh it there, not here — see
+`.claude/docs/screenshots.md` in that repo for the decision tree between
+the two pipelines.
 
 ## Adding a new shot
 
@@ -51,13 +81,6 @@ Then add the corresponding `![alt](https://tpastream-public.s3...)`
 reference in the relevant `docs/*.md` and push the new PNG with
 `npm run screenshots:upload`.
 
-## Known-missing shots
-
-- `employer-key-page` (quickstart Step 5) — needs a bespoke employer
-  fixture with a missing systemKey to trigger the right error state.
-- `realtime-validation` (sdk-flow Real Time Validation) — needs a real
-  credentials submit + SSE stream from the backend. Doable with a
-  `page.route()` mock of `/v3/sdk/progress/<task>/stream` that emits
-  canned `text/event-stream` chunks, but not wired in yet.
-
-The committed PNGs for those two states are still the 0.7-era versions.
+To get it into the preview gallery, add it to `ENTRIES` in `preview.mjs`
+as well — that list is maintained by hand and is not derived from
+`SHOTS`, so it currently omits all three `realToken` shots.

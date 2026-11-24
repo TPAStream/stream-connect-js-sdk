@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.6
+
+Security release: axios is upgraded to 1.20.0 and DOMPurify to 3.4.17, and the zod dependency is removed, clearing every `npm audit --omit=dev` advisory against the SDK's runtime dependencies. No API or wire-format change. The `X-SDK-Page-Path` header is now read on each request instead of once at mount. The carrier credential form no longer invites the browser to fill in the login saved for the host site. Fix: a member who resubmits the same credentials while that validation is still running keeps the 2FA method picker or code prompt instead of sticking on "Connecting…" until a reload.
+
 ### 0.8.5
 
 The entry screen's "Manage your carriers" tile now carries an "X logins need attention" pill (red if any critical problem exists, amber otherwise, hidden at zero), so members in portal mode see broken logins without clicking in. The SDK also reports the hosting page's pathname (`X-SDK-Page-Path`) so fix-credentials emails can route members of SDK-only tenants back to the portal page that embeds the widget.
@@ -36,6 +40,31 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.6 highlights
+
+* Fix: a member who submits the same credentials again while that
+  validation is still running keeps the 2FA method picker or code
+  prompt. Before, the widget stuck on "Connecting…" until the page was
+  reloaded.
+* Dependency security upgrades: axios 1.20.0 and DOMPurify 3.4.17.
+  zod is removed; the carrier credential form is now checked by a
+  small built-in validator with the same rules and messages.
+  `npm audit --omit=dev` reports no advisories against the SDK's
+  runtime dependencies.
+* `X-SDK-Page-Path` is read as each request is sent, not once at
+  mount, so a single-page host that changes route reports the page
+  the widget is actually on.
+* The validation hero no longer sits flush against the step below it
+  when a member returns to the carrier picker or the fix-credentials
+  screen after a validation.
+* New docs for the per-key embed origin allowlist: the
+  `origin_not_allowed` error and an FAQ entry. TPA Stream support
+  turns the allowlist on.
+* The carrier username and password fields opt out of autofill.
+  Because the SDK runs inside the host's page, the browser used to
+  offer the login saved for the host site, and a customer reported a
+  member's host-site login being filled into the carrier form.
 
 ### 0.8.5 highlights
 

@@ -42,7 +42,7 @@ import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.5';
+const VERSION = '0.8.6';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller
@@ -1336,7 +1336,20 @@ export const SDK = (props: SDKProps) => {
   const showValidationUi = useNonBlockingValidation || validations.length > 0;
 
   return (
-    <>
+    // `Stack gap="lg"` rather than a bare fragment: `.tpa-sdk-root` is a
+    // plain block wrapper, so the hero and the wizard used to sit flush
+    // against each other. After a validation finishes and the member
+    // lands back on ChoosePayer ("Add another carrier") or
+    // FixCredentials, that put the wizard's <BackButton /> directly
+    // beneath the hero's "Connected!" carrier tile with no breathing
+    // room. `lg` matches the step-level spacing the wizard steps
+    // already use internally. The other children cost nothing here:
+    // <ValidationStreamRunner /> always renders null, the hero and
+    // <ActiveValidationsPanel /> render null while there are no
+    // validations, and the panel is absolutely positioned when it does
+    // render — so flex gap only ever materializes between the hero and
+    // the wizard, which is the one seam that needed it.
+    <Stack gap="lg">
       {/* Hero mounted at SDK level so a validation hitting 2FA while
           the user is on SelectEnrollProcess / EnterCredentials /
           FinishedEasyEnroll still gets actionable UI. Previously the
@@ -1384,6 +1397,6 @@ export const SDK = (props: SDKProps) => {
         />
       )}
       {showValidationUi && <ActiveValidationsPanel />}
-    </>
+    </Stack>
   );
 };

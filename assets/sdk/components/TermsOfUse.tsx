@@ -28,9 +28,13 @@ export const TermsOfUse = ({
     if (open) doneTermsOfService?.();
   }, [open, doneTermsOfService]);
 
-  // The terms HTML comes from sdk-api/terms_of_service which is
-  // tenant-controlled. We sanitize defensively at render time so a
-  // misconfigured tenant can't inject script tags into the host page.
+  // This is TPAStream's own Terms of Use, served as a static document
+  // by sdk-api/terms_of_service. It is NOT tenant-authored and no
+  // tenant setting changes it: a tenant's custom legal language lives
+  // in `tenant.terms_of_use`, which the credentials form renders as
+  // its own block (see EnterCredentials `tenantTerms`), never here.
+  // We still sanitize at render time as defense in depth, since the
+  // result is injected into the host page.
   const safeHtml = DOMPurify.sanitize(termsHtmlString || '');
 
   // When the overlay opens before the terms HTML has finished
