@@ -168,7 +168,8 @@ how to handle. Indicates a backend-frontend version skew; report it.
 ### `Required`
 
 A required field on the credentials form is empty. Comes from the
-Zod schema generated from the carrier's `onboard_form.schema`.
+validation rules the SDK builds from the carrier's
+`onboard_form.schema`.
 
 ### `You must agree to the terms and services.`
 

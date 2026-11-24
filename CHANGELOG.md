@@ -25,6 +25,38 @@ strings the SDK sends are unchanged: every query parameter is a flat
 string or number, and axios 1.16.1 and 1.20.0 encode them
 byte-for-byte the same.
 
+### Security: zod removed
+
+`npm audit --omit=dev` reported a high advisory against zod 3.25.76
+(GHSA-mrhx-c7xc-m3w5) whose only fix is zod 4. zod validated one
+small form, the carrier credential form, so it is removed along with
+`@hookform/resolvers` instead of being carried to a new major
+version. A small built-in React Hook Form resolver
+(`credentialsResolver.ts`) now applies the same rules: required and
+optional text, password, date and select fields, boolean and numeric
+fields, and the two consent checkboxes. Every error message the
+member can see is unchanged. With zod gone, `npm audit --omit=dev`
+reports 0 vulnerabilities. A plain `npm audit fix` also cleared the
+build-time advisories in `@babel/core` and `postcss-selector-parser`,
+so the full `npm audit` reports 0 as well.
+
+### Saved host-site logins are no longer offered on the carrier form
+
+The SDK runs inside the customer's page, so the browser's password
+manager treated the carrier form as a login for the customer's own
+site. A customer reported a member's saved login for their site being
+filled into the carrier username and password fields. The password
+field asked for `autocomplete="current-password"` and the username
+field for `autocomplete="username"`. Both, and every other text field
+on the form, now render `autocomplete="off"` plus the opt-out
+attributes 1Password, LastPass, Bitwarden and Dashlane read
+(`data-1p-ignore`, `data-lpignore`, `data-bwignore`,
+`data-form-type="other"`), the same pattern the carrier picker
+already used. `new-password` is deliberately not used, because Chrome
+would then offer to generate a password for an existing carrier
+login. The one-time-code field in the 2FA prompt keeps
+`autocomplete="one-time-code"`.
+
 ### `X-SDK-Page-Path` is read per request
 
 0.8.5 read the hosting page's pathname once, when the widget mounted.
