@@ -1,6 +1,6 @@
 /**
  * Init() option types. Kept in a sibling file from types.ts because
- * the axios layer depends on a tiny subset of these and pulling in the
+ * the HTTP client depends on a tiny subset of these and pulling in the
  * full Stream* types would be circular.
  */
 
@@ -42,7 +42,7 @@ export interface SDKInitOptions {
    * when a member leaves the SDK page open past that window and comes
    * back, the next API call gets a 422 with
    * `error_code: "expired_connect_token"`. If this hook is provided,
-   * the SDK calls it, swaps the returned string into the axios
+   * the SDK calls it, swaps the returned string into the
    * `X-Connect-Access-Token` header, and retries the failed request
    * transparently. If it's not provided (or it rejects), the SDK
    * dispatches a `tpastream-connect-token-expired` CustomEvent on

@@ -16,7 +16,7 @@
  */
 
 import type { ValidateCredsResponse } from '../types';
-import { sdkAxios } from './axios';
+import { sdkHttp } from './http';
 import { consumeSSE } from './sse';
 
 interface SubscribeArgs {
@@ -108,14 +108,14 @@ const stateFromTaskMeta = (
   return null;
 };
 
-const baseV3Url = (axiosBaseURL: string): string => {
-  // axios baseURL is .../sdk-api; the SSE sub-app is mounted at /v3/sdk
-  // sibling to it. Strip /sdk-api and append /v3/sdk.
-  const sdkApiIdx = axiosBaseURL.lastIndexOf('/sdk-api');
+const baseV3Url = (apiBaseURL: string): string => {
+  // The HTTP client's baseURL is .../sdk-api; the SSE sub-app is mounted
+  // at /v3/sdk sibling to it. Strip /sdk-api and append /v3/sdk.
+  const sdkApiIdx = apiBaseURL.lastIndexOf('/sdk-api');
   const root =
     sdkApiIdx >= 0
-      ? axiosBaseURL.slice(0, sdkApiIdx)
-      : axiosBaseURL.replace(/\/$/, '');
+      ? apiBaseURL.slice(0, sdkApiIdx)
+      : apiBaseURL.replace(/\/$/, '');
   return `${root}/v3/sdk`;
 };
 
@@ -127,7 +127,7 @@ export const subscribeToProgress = ({
   onError
 }: SubscribeArgs): (() => void) => {
   const controller = new AbortController();
-  const baseURL = sdkAxios.defaults.baseURL || '';
+  const baseURL = sdkHttp.defaults.baseURL || '';
   const url =
     `${baseV3Url(baseURL)}/progress/${encodeURIComponent(taskId)}/stream` +
     `?token=${encodeURIComponent(taskToken)}`;

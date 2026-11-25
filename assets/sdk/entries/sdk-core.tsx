@@ -9,7 +9,7 @@ import type { SDKInitOptions } from '../types-init';
 // stylesheet so customers driving their own UI via the renderXxx
 // callbacks aren't forced to ship our ~50 KB of Tailwind output.
 
-const VERSION = '0.8.6';
+const VERSION = '0.8.7';
 
 const ORIGIN_POLICY_DOCS_URL =
   'https://developers.tpastream.com/connect/origin-policy';
@@ -112,7 +112,7 @@ const normalizeOptions = (opts: SDKInitOptions): SDKInitOptions => {
   }
   // sdkToken is the legacy name for apiToken; both have always been
   // accepted as init options. Map sdkToken -> apiToken so downstream
-  // code (sdkAxiosMaker, requests) only has to read one field.
+  // code (sdkHttpMaker, requests) only has to read one field.
   if (opts.sdkToken && !opts.apiToken) {
     out.apiToken = opts.sdkToken;
   }

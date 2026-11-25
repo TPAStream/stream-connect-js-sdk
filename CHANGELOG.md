@@ -4,6 +4,85 @@ All notable changes to the `stream-connect-sdk` npm package. The
 companion React Native hook (`stream-connect-sdk-hook`) is on its own
 release line; see [`sdk-hook/docs/README.md`](./sdk-hook/docs/README.md).
 
+## 0.8.7
+
+### axios removed
+
+The SDK no longer depends on axios. Its requests now go through a
+small built-in client (`assets/sdk/services/http.ts`) that wraps the
+browser's `fetch`. axios brought about 26 transitive packages
+(`form-data`, `follow-redirects` and others) and was the source of
+nearly every advisory against the shipped bundle. The runtime
+dependency tree drops from 57 packages to 30, and
+`npm audit --omit=dev` still reports 0 vulnerabilities.
+
+What is unchanged on the wire:
+
+* Every header name: `X-TPAStream-Token`, `X-SDK-Version`,
+  `X-SDK-State-Id`, `X-Is-Demo`, `X-Connect-Access-Token`,
+  `X-Tenant-Label`, `X-Tenant-Key`, the per-request `X-SDK-Page-Path`,
+  and axios's `Accept: application/json, text/plain, */*`. The values
+  are unchanged too, with one exception: after a token refresh,
+  `X-Connect-Access-Token` carries the new token on every later
+  request (see the fix below).
+* URLs and query strings. Parameters are encoded exactly as axios
+  1.20.0 encoded them, and `undefined` or `null` parameters are left
+  out, as before.
+* JSON bodies with `Content-Type: application/json`, and no body on
+  GET.
+* No timeout, and cookies only on same-origin requests (axios's
+  `withCredentials: false` is fetch's `credentials: 'same-origin'`).
+* The expired-token flow: one shared refresh, one replay, no loop,
+  and one `onConnectAccessTokenExpired` notification per expiry
+  cycle.
+
+What an integrator can observe on the error object passed to
+`handleFormErrors` (and to `doneGetSDK` when the first request fails):
+
+* Unchanged: `message` (for example "Request failed with status code
+  422", or "Network Error" when the server could not be reached),
+  `code` (`ERR_BAD_REQUEST`, `ERR_BAD_RESPONSE`, `ERR_NETWORK`),
+  `status`, `isAxiosError` (still `true`), `toJSON()`,
+  `response.status`, `response.statusText`, `response.data`, and
+  `response.headers` (a plain object with lower-cased names). A
+  network failure still has no `response`.
+* Changed: `error.name` is `SdkHttpError` instead of `AxiosError`.
+* Changed: `error.request` (and the `request` in `handleFormErrors`'
+  second argument) is a plain `{ method, url }` object instead of the
+  browser's `XMLHttpRequest`. It is still present for every request
+  that was sent.
+* Changed: `error.config` keeps `method`, `url`, `baseURL`, `params`,
+  `headers` and `data` (the JSON string sent), but `headers` is a
+  plain object instead of an `AxiosHeaders` instance, and axios-only
+  fields such as `timeout`, `adapter` and `transformRequest` are gone.
+* `error instanceof AxiosError` was already `false` for integrators,
+  because the SDK bundled its own copy of axios.
+
+### Fix: a refreshed connect token is used by later requests
+
+When `connectAccessTokenRefreshFn` returned a new token, axios stored
+it in a default header that the `connectAccessToken` passed to
+`init()` overrode. Only the replayed request carried the new token,
+and every later request went out with the original one. On a
+long-lived page that meant a refresh on almost every request after
+the first expiry. Later requests now carry the new token, as the
+[connect token guide](./docs/connect-access-token.md) describes.
+
+The server's `X-Set-Connect-Access-Token` response header is not part
+of this fix for embedded widgets. The API does not expose that header
+to other origins, so a cross-origin embed cannot read it, under 0.8.6
+or 0.8.7. Only a page on the API's own origin can.
+
+### Fix: no second refresh for a slow request
+
+A request sent with the old token could come back expired after
+another request's refresh had already finished. The SDK then called
+`connectAccessTokenRefreshFn` a second time, minting a token that was
+not needed. It now retries that request once with the token it
+already holds. The other guarantees are unchanged: at most one retry
+per request, no loop, one `onConnectAccessTokenExpired` notification
+per expiry cycle, and parallel requests still share one refresh.
+
 ## 0.8.6
 
 ### Security: axios and dompurify upgraded

@@ -8,7 +8,7 @@ import {
 import { useActiveValidations } from '../contexts/ActiveValidationsContext';
 import { ValidationStreamRunner } from '../contexts/ValidationStreamRunner';
 import { SpinnerIcon } from '../icons';
-import { sdkAxiosMaker } from '../services/axios';
+import { sdkHttpMaker } from '../services/http';
 import {
   getFixCredentials,
   getPayer,
@@ -42,7 +42,7 @@ import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.6';
+const VERSION = '0.8.7';
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller
@@ -216,9 +216,9 @@ export const SDK = (props: SDKProps) => {
         : `sdk-${Date.now()}-${Math.random().toString(16).slice(2)}`)
   );
 
-  // Initialize the axios client once on mount with the customer's tokens.
+  // Initialize the HTTP client once on mount with the customer's tokens.
   useEffect(() => {
-    sdkAxiosMaker({
+    sdkHttpMaker({
       apiToken: props.apiToken,
       connectAccessToken: props.connectAccessToken,
       connectAccessTokenRefreshFn: props.connectAccessTokenRefreshFn,
@@ -230,7 +230,7 @@ export const SDK = (props: SDKProps) => {
       _overrideBaseUrl: props._overrideBaseUrl
     });
     // The token-expiry hooks (refresh fn + callback) are stashed
-    // module-locally inside sdkAxiosMaker, so they're not in this
+    // module-locally inside sdkHttpMaker, so they're not in this
     // effect's deps. They're identity references the customer passes
     // once at init() time; redefining them per-render would defeat the
     // expiry-detection cache anyway.

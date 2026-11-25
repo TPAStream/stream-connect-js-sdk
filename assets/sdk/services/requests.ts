@@ -8,10 +8,10 @@ import {
   type ValidateCredsResponse
 } from '../types';
 import type { InitEmployer, InitUser } from '../types-init';
-import { sdkAxios } from './axios';
+import { sdkHttp } from './http';
 
 /**
- * Thin axios wrappers around the sdk-api endpoints. Each function
+ * Thin wrappers around the sdk-api endpoints. Each function
  * matches the wire format the legacy SDK consumed; callers and
  * customer-side custom render props read snake_case keys directly.
  */
@@ -39,8 +39,8 @@ export const getSDK = async ({
 }: GetSDKArgs): Promise<GetSDKResult> => {
   try {
     const response = isDemo
-      ? await sdkAxios.get('tpastream_sdk')
-      : await sdkAxios.post('tpastream_sdk', {
+      ? await sdkHttp.get('tpastream_sdk')
+      : await sdkHttp.post('tpastream_sdk', {
           system_key: employer?.systemKey,
           vendor: employer?.vendor,
           employer_name: employer?.name,
@@ -89,11 +89,11 @@ export const postCredentials = async ({
 }: PostCredentialsArgs): Promise<PostCredentialsResult> => {
   try {
     const response = policyHolderId
-      ? await sdkAxios.put(
+      ? await sdkHttp.put(
           `policy_holder_sdk/policy_holder/${policyHolderId}`,
           params
         )
-      : await sdkAxios.post('policy_holder_sdk/policy_holder', params);
+      : await sdkHttp.post('policy_holder_sdk/policy_holder', params);
     return {
       taskId: response.data.data.task_id,
       taskToken: response.data.data.task_token || null,
@@ -134,7 +134,7 @@ export const getPolicyHolder = async ({
   employerId,
   email
 }: GetPolicyHolderArgs): Promise<StreamPolicyHolder> => {
-  const response = await sdkAxios.get(
+  const response = await sdkHttp.get(
     `policy_holder_sdk/policy_holder/${policyHolderId}`,
     { params: { employer_id: employerId, email } }
   );
@@ -155,7 +155,7 @@ export const getFixCredentials = async ({
 }: {
   email: string;
 }): Promise<{ user: StreamUser }> => {
-  const response = await sdkAxios.get('fix-credentials', { params: { email } });
+  const response = await sdkHttp.get('fix-credentials', { params: { email } });
   return response.data.data;
 };
 
@@ -172,7 +172,7 @@ export const getPayer = async ({
   payerId,
   referer
 }: GetPayerArgs): Promise<StreamPayer> => {
-  const response = await sdkAxios.get(`payer/${employerId}/${payerId}`, {
+  const response = await sdkHttp.get(`payer/${employerId}/${payerId}`, {
     params: { email, referer }
   });
   return response.data.data;
@@ -183,14 +183,14 @@ export const getTerms = async ({
 }: {
   email: string;
 }): Promise<string> => {
-  const response = await sdkAxios.get('terms_of_service', {
+  const response = await sdkHttp.get('terms_of_service', {
     params: { email }
   });
   return response.data.data.html_string;
 };
 
 export const beginInterop = async ({ email }: { email: string }) => {
-  const response = await sdkAxios.post('interop', { user_email: email });
+  const response = await sdkHttp.post('interop', { user_email: email });
   return response.data.data;
 };
 
@@ -199,7 +199,7 @@ export const getInteropState = async ({
 }: {
   email: string;
 }): Promise<{ status: string; ph_id?: number; error?: string }> => {
-  const response = await sdkAxios.get('interop', { params: { email } });
+  const response = await sdkHttp.get('interop', { params: { email } });
   return response.data.data;
 };
 
@@ -214,7 +214,7 @@ export const validateCredentials = async ({
   policyHolderId,
   email
 }: ValidateCredentialsArgs): Promise<ValidateCredsResponse> => {
-  const response = await sdkAxios.get(
+  const response = await sdkHttp.get(
     `validate-credentials/${policyHolderId}/${taskId}`,
     { params: { email } }
   );
@@ -232,7 +232,7 @@ export const putTask = async ({
   policyHolderId,
   params
 }: PutTaskArgs) => {
-  const response = await sdkAxios.put(
+  const response = await sdkHttp.put(
     `validate-credentials/${policyHolderId}/${taskId}`,
     params
   );

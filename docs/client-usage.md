@@ -11,7 +11,7 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 ### Via CDN (vanilla HTML, server-rendered, Backbone, jQuery)
 
 ```html
-<script src="https://app.tpastream.com/static/js/sdk-v-0.8.6.js"></script>
+<script src="https://app.tpastream.com/static/js/sdk-v-0.8.7.js"></script>
 <div id="sdk-hook"></div>
 <script>
   window.StreamConnect({
@@ -29,7 +29,8 @@ Mount the SDK by calling `StreamConnect({...})` with your config. The minimum yo
 
 These CDN forms are supported:
 
-* `sdk-v-0.8.6.js` (current 0.8.x, pinned)
+* `sdk-v-0.8.7.js` (current 0.8.x, pinned)
+* `sdk-v-0.8.6.js` (0.8.6, pinned)
 * `sdk-v-0.8.5.js` (0.8.5, pinned)
 * `sdk-v-0.8.4.js` (0.8.4, pinned)
 * `sdk-v-0.8.3.js` (0.8.3, pinned)
@@ -39,7 +40,7 @@ These CDN forms are supported:
 * `sdk-v-0.7.7.js` (last 0.7.x, pinned)
 * `sdk.js` (floating pointer to the latest release; updates automatically when a new version ships)
 
-If you pin, note that you do not pick up fixes automatically. 0.8.3 fixes a bug that made Medical Mutual and SimplePay Health impossible to connect, so pinned integrations on 0.8.0–0.8.2 should move up. 0.8.6 fixes the two-factor prompt disappearing when a member resubmits their credentials while the validation is still running, so pinned integrations on 0.8.0–0.8.5 should move up to 0.8.6.
+If you pin, note that you do not pick up fixes automatically. 0.8.3 fixes a bug that made Medical Mutual and SimplePay Health impossible to connect, so pinned integrations on 0.8.0–0.8.2 should move up. 0.8.6 fixes the two-factor prompt disappearing when a member resubmits their credentials while the validation is still running, so pinned integrations on 0.8.0–0.8.5 should move up to 0.8.6 or later. 0.8.7 also stops a refreshed connect access token from being dropped after the first retried request.
 
 Pinned versions stay available indefinitely. See [Migrating from 0.7 to 0.8](./migration-0.7-to-0.8.md) for the breaking-change story before flipping the floating pointer in production.
 
