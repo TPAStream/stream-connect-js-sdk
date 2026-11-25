@@ -4,6 +4,10 @@
 
 ## Version
 
+### 0.8.7
+
+Dependency release: axios is removed. The SDK now sends its requests with the browser's built-in `fetch`, which takes about 26 packages out of the SDK's runtime dependency tree. The requests, headers and query strings on the wire are unchanged. Errors passed to `handleFormErrors` and `doneGetSDK` keep `response.status`, `response.data`, `message`, `code` and `config`; see the [CHANGELOG](./CHANGELOG.md) for the few fields that changed. Fix: after a connect token refresh, later requests now carry the new token instead of the original one.
+
 ### 0.8.6
 
 Security release: axios is upgraded to 1.20.0 and DOMPurify to 3.4.17, and the zod dependency is removed, clearing every `npm audit --omit=dev` advisory against the SDK's runtime dependencies. No API or wire-format change. The `X-SDK-Page-Path` header is now read on each request instead of once at mount. The carrier credential form no longer invites the browser to fill in the login saved for the host site. Fix: a member who resubmits the same credentials while that validation is still running keeps the 2FA method picker or code prompt instead of sticking on "Connecting…" until a reload.
@@ -40,6 +44,30 @@ This SDK embeds the [EasyEnrollment platform](https://www.easyenrollment.net) in
 
 Latest highlights below. The full per-version changelog lives in
 [CHANGELOG.md](./CHANGELOG.md).
+
+### 0.8.7 highlights
+
+* axios is removed. The SDK's HTTP client is now a small wrapper
+  around the browser's `fetch`, and the runtime dependency tree
+  shrinks from 57 packages to 30. `npm audit --omit=dev` still
+  reports no advisories.
+* The requests the SDK sends are unchanged: same URLs, query strings,
+  headers and JSON bodies, no timeout, and cookies only on same-origin
+  requests, as before.
+* Errors handed to `handleFormErrors` and `doneGetSDK` keep the fields
+  integrators read (`response.status`, `response.data`,
+  `response.headers`, `message`, `code`, `config`, `request`). The
+  error's `name` is now `SdkHttpError` instead of `AxiosError`, and
+  `request` is a small `{ method, url }` object instead of an
+  `XMLHttpRequest`. The full list is in the CHANGELOG.
+* Fix: after `connectAccessTokenRefreshFn` returns a new connect
+  token, every later request now uses it. Before, when a
+  `connectAccessToken` was passed to `init()`, only the retried
+  request carried the new token, and later requests went out with the
+  original one.
+* A slow request that comes back expired after another request's
+  refresh has finished is retried with the new token, instead of
+  calling `connectAccessTokenRefreshFn` a second time.
 
 ### 0.8.6 highlights
 

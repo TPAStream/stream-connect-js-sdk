@@ -8,7 +8,7 @@ import {
 import { useActiveValidations } from '../contexts/ActiveValidationsContext';
 import { ValidationStreamRunner } from '../contexts/ValidationStreamRunner';
 import { SpinnerIcon } from '../icons';
-import { sdkAxiosMaker } from '../services/axios';
+import { sdkHttpMaker } from '../services/http';
 import {
   getFixCredentials,
   getPayer,
@@ -42,7 +42,23 @@ import { PolicyHolderDetail } from './PolicyHolderDetail';
 import { SelectEnrollProcess } from './SelectEnrollProcess';
 import { TermsOfUse } from './TermsOfUse';
 
-const VERSION = '0.8.6';
+const VERSION = '0.8.7';
+
+// The id comes from the browser's cryptographic generator. `randomUUID`
+// needs a secure context; `getRandomValues` does not, so it covers
+// older browsers. With no `crypto` at all (server-side rendering) the id
+// is a timestamp: never `Math.random()`, which is predictable.
+const makeSdkStateId = (): string => {
+  const c = typeof crypto !== 'undefined' ? crypto : undefined;
+  if (c?.randomUUID) {
+    return c.randomUUID();
+  }
+  if (c?.getRandomValues) {
+    const bytes = c.getRandomValues(new Uint8Array(16));
+    return `sdk-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  }
+  return `sdk-${Date.now()}`;
+};
 
 interface SDKProps extends SDKInitOptions {
   /** Computed inside the entry; passed in here so the controller
@@ -206,19 +222,14 @@ export const SDK = (props: SDKProps) => {
   }, [validations, props.doneRealtime]);
 
   // Stable per-instance state-id. The 0.7.x entry generated one with
-  // crypto.getRandomValues; we use crypto.randomUUID where available.
+  // crypto.getRandomValues; makeSdkStateId prefers crypto.randomUUID.
   // Customers can override by passing entrySdkStateId. The X-SDK-State-Id
   // header lets server logs correlate every request in one wizard run.
-  const sdkStateId = useRef<string>(
-    props.entrySdkStateId ||
-      (typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `sdk-${Date.now()}-${Math.random().toString(16).slice(2)}`)
-  );
+  const sdkStateId = useRef<string>(props.entrySdkStateId || makeSdkStateId());
 
-  // Initialize the axios client once on mount with the customer's tokens.
+  // Initialize the HTTP client once on mount with the customer's tokens.
   useEffect(() => {
-    sdkAxiosMaker({
+    sdkHttpMaker({
       apiToken: props.apiToken,
       connectAccessToken: props.connectAccessToken,
       connectAccessTokenRefreshFn: props.connectAccessTokenRefreshFn,
@@ -230,7 +241,7 @@ export const SDK = (props: SDKProps) => {
       _overrideBaseUrl: props._overrideBaseUrl
     });
     // The token-expiry hooks (refresh fn + callback) are stashed
-    // module-locally inside sdkAxiosMaker, so they're not in this
+    // module-locally inside sdkHttpMaker, so they're not in this
     // effect's deps. They're identity references the customer passes
     // once at init() time; redefining them per-render would defeat the
     // expiry-detection cache anyway.
