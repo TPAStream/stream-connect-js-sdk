@@ -73,6 +73,13 @@ of this fix for embedded widgets. The API does not expose that header
 to other origins, so a cross-origin embed cannot read it, under 0.8.6
 or 0.8.7. Only a page on the API's own origin can.
 
+### The fallback state id no longer uses `Math.random()`
+
+The `X-SDK-State-Id` value comes from `crypto.randomUUID()`. Where
+that is missing, the SDK now uses `crypto.getRandomValues()` instead
+of `Math.random()`. Browsers on HTTPS pages are unaffected, because
+they already took the `randomUUID` path.
+
 ### Fix: no second refresh for a slow request
 
 A request sent with the old token could come back expired after
